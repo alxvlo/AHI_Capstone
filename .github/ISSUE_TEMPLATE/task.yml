@@ -1,0 +1,32 @@
+name: Task
+description: Track technical or operational tasks
+labels: ["type:task"]
+body:
+  - type: input
+    id: ticket_id
+    attributes:
+      label: Ticket ID
+      placeholder: AHI-000
+    validations:
+      required: true
+  - type: input
+    id: summary
+    attributes:
+      label: Task Summary
+    validations:
+      required: true
+  - type: textarea
+    id: checklist
+    attributes:
+      label: Task Checklist
+      value: |
+        - [ ] Implementation complete
+        - [ ] Tests or validation complete
+        - [ ] Docs updated
+    validations:
+      required: true
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Dependencies
+      placeholder: Depends on #123

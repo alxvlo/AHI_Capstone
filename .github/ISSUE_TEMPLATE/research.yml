@@ -1,0 +1,41 @@
+name: Research
+description: Track research, evaluation, or analysis tasks
+labels: ["type:research"]
+body:
+  - type: input
+    id: ticket_id
+    attributes:
+      label: Ticket ID
+      placeholder: AHI-000
+    validations:
+      required: true
+  - type: input
+    id: hypothesis
+    attributes:
+      label: Research Question or Hypothesis
+    validations:
+      required: true
+  - type: textarea
+    id: method
+    attributes:
+      label: Method
+      description: Data source, sample, and analysis plan.
+    validations:
+      required: true
+  - type: textarea
+    id: output
+    attributes:
+      label: Expected Output
+      description: What artifact or decision should this produce?
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance Criteria
+      value: |
+        - [ ] Question is explicit
+        - [ ] Method is clear and reproducible
+        - [ ] Decision impact is documented
+    validations:
+      required: true

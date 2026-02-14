@@ -1,0 +1,66 @@
+name: Feature
+description: Track a new capstone feature
+labels: ["type:feature"]
+body:
+  - type: input
+    id: ticket_id
+    attributes:
+      label: Ticket ID
+      placeholder: AHI-000
+    validations:
+      required: true
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      options:
+        - P1
+        - P2
+        - P3
+    validations:
+      required: true
+  - type: input
+    id: sprint
+    attributes:
+      label: Sprint
+      placeholder: "1"
+    validations:
+      required: true
+  - type: input
+    id: epic
+    attributes:
+      label: Epic
+      placeholder: EPIC-1
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem Statement
+      description: What user or workflow issue does this solve?
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope
+      description: Define in-scope and out-of-scope behavior.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance Criteria
+      value: |
+        - [ ] Functional scenario and role are explicit
+        - [ ] Edge case and failure path are handled
+        - [ ] Security and audit implications reviewed
+        - [ ] Tests are added/updated
+        - [ ] Documentation is updated
+    validations:
+      required: true
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Dependencies
+      placeholder: Depends on #123

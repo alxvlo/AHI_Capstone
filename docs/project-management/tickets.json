@@ -1,0 +1,84 @@
+{
+  "project_title": "AHI Capstone MVP Roadmap",
+  "milestones": [
+    {
+      "title": "M1 Foundation + Intake",
+      "description": "Foundation, security baseline, and intake lifecycle.",
+      "state": "open"
+    },
+    {
+      "title": "M2 Internal Workflow MVP",
+      "description": "Real-time operations and internal clinical workflow.",
+      "state": "open"
+    },
+    {
+      "title": "M3 External Access MVP",
+      "description": "External portal and compliance baseline.",
+      "state": "open"
+    },
+    {
+      "title": "M4 Validation + Handover",
+      "description": "UAT, evaluation evidence, and final handover.",
+      "state": "open"
+    }
+  ],
+  "labels": [
+    { "name": "type:feature", "color": "0e8a16", "description": "Feature work" },
+    { "name": "type:bug", "color": "d73a4a", "description": "Defect" },
+    { "name": "type:task", "color": "1d76db", "description": "Task" },
+    { "name": "type:research", "color": "5319e7", "description": "Research/evaluation" },
+    { "name": "area:devops", "color": "0052cc", "description": "DevOps and delivery" },
+    { "name": "area:intake", "color": "006b75", "description": "Intake and registration" },
+    { "name": "area:queue", "color": "0b7f3f", "description": "Queue and real-time flow" },
+    { "name": "area:clinical", "color": "b60205", "description": "Clinical workflow" },
+    { "name": "area:portal", "color": "fbca04", "description": "External portal" },
+    { "name": "area:security", "color": "d93f0b", "description": "Security and compliance" },
+    { "name": "area:evaluation", "color": "c2e0c6", "description": "Evaluation and reporting" },
+    { "name": "role:reception", "color": "bfd4f2", "description": "Reception role" },
+    { "name": "role:nurse", "color": "bfdadc", "description": "Nurse role" },
+    { "name": "role:physician", "color": "f9d0c4", "description": "Physician role" },
+    { "name": "role:releasing", "color": "fef2c0", "description": "Releasing role" },
+    { "name": "role:client", "color": "c5def5", "description": "Client representative role" },
+    { "name": "role:patient", "color": "d4c5f9", "description": "Patient role" },
+    { "name": "role:admin", "color": "ededed", "description": "Admin role" },
+    { "name": "P0", "color": "b60205", "description": "Critical blocker" },
+    { "name": "P1", "color": "d93f0b", "description": "MVP critical path" },
+    { "name": "P2", "color": "fbca04", "description": "Important" },
+    { "name": "P3", "color": "0e8a16", "description": "Nice to have" },
+    { "name": "blocked", "color": "000000", "description": "Blocked item" },
+    { "name": "needs-spec", "color": "cfd3d7", "description": "Needs clarification" },
+    { "name": "needs-test", "color": "f9d0c4", "description": "Needs testing evidence" }
+  ],
+  "tickets": [
+    { "id": "AHI-001", "title": "Establish branch strategy, PR rules, and CI checks", "epic": "EPIC-1", "sprint": 1, "priority": "P1", "estimate": 3, "milestone": "M1 Foundation + Intake", "labels": ["type:task", "area:devops", "role:admin", "P1"], "depends_on": [], "description": "Set repository standards and CI quality gates." },
+    { "id": "AHI-002", "title": "Create Docker dev stack (app + postgres)", "epic": "EPIC-1", "sprint": 1, "priority": "P1", "estimate": 3, "milestone": "M1 Foundation + Intake", "labels": ["type:task", "area:devops", "role:admin", "P1"], "depends_on": ["AHI-001"], "description": "Create local environment parity for development and demo runs." },
+    { "id": "AHI-003", "title": "Implement core database schema and Prisma migrations", "epic": "EPIC-1", "sprint": 1, "priority": "P1", "estimate": 5, "milestone": "M1 Foundation + Intake", "labels": ["type:feature", "area:security", "role:admin", "P1"], "depends_on": ["AHI-002"], "description": "Define baseline entities and migration flow." },
+    { "id": "AHI-004", "title": "Implement authentication flow (credentials)", "epic": "EPIC-1", "sprint": 1, "priority": "P1", "estimate": 5, "milestone": "M1 Foundation + Intake", "labels": ["type:feature", "area:security", "role:admin", "P1"], "depends_on": ["AHI-003"], "description": "Provide secure login and session handling." },
+    { "id": "AHI-005", "title": "Implement RBAC for all paper-defined roles", "epic": "EPIC-1", "sprint": 1, "priority": "P1", "estimate": 5, "milestone": "M1 Foundation + Intake", "labels": ["type:feature", "area:security", "role:admin", "P1"], "depends_on": ["AHI-004"], "description": "Restrict permissions by role in API and UI." },
+    { "id": "AHI-006", "title": "Implement audit logging middleware foundation", "epic": "EPIC-1", "sprint": 1, "priority": "P1", "estimate": 3, "milestone": "M1 Foundation + Intake", "labels": ["type:feature", "area:security", "role:admin", "P1"], "depends_on": ["AHI-004"], "description": "Record role-sensitive actions in audit trail." },
+    { "id": "AHI-007", "title": "Build patient and company intake forms + APIs", "epic": "EPIC-2", "sprint": 2, "priority": "P1", "estimate": 5, "milestone": "M1 Foundation + Intake", "labels": ["type:feature", "area:intake", "role:reception", "P1"], "depends_on": ["AHI-005"], "description": "Digitize patient and company registration workflows." },
+    { "id": "AHI-008", "title": "Implement PEME case creation and linkage to intake", "epic": "EPIC-2", "sprint": 2, "priority": "P1", "estimate": 5, "milestone": "M1 Foundation + Intake", "labels": ["type:feature", "area:intake", "role:reception", "P1"], "depends_on": ["AHI-007"], "description": "Create case records and tie them to intake data." },
+    { "id": "AHI-009", "title": "Implement case and visit status state machine", "epic": "EPIC-2", "sprint": 2, "priority": "P1", "estimate": 3, "milestone": "M1 Foundation + Intake", "labels": ["type:feature", "area:intake", "role:reception", "P1"], "depends_on": ["AHI-008"], "description": "Control valid lifecycle transitions for cases and visits." },
+    { "id": "AHI-010", "title": "Add duplicate detection and intake validation rules", "epic": "EPIC-2", "sprint": 2, "priority": "P2", "estimate": 3, "milestone": "M1 Foundation + Intake", "labels": ["type:task", "area:intake", "role:reception", "P2"], "depends_on": ["AHI-008"], "description": "Reduce bad data and repeated registrations." },
+    { "id": "AHI-011", "title": "Build reception queue board for active cases", "epic": "EPIC-2", "sprint": 2, "priority": "P1", "estimate": 3, "milestone": "M1 Foundation + Intake", "labels": ["type:feature", "area:queue", "role:reception", "P1"], "depends_on": ["AHI-009"], "description": "Display current queue and case progression for reception." },
+    { "id": "AHI-012", "title": "Build department visit assignment and handoff APIs", "epic": "EPIC-3", "sprint": 3, "priority": "P1", "estimate": 5, "milestone": "M2 Internal Workflow MVP", "labels": ["type:feature", "area:queue", "role:nurse", "P1"], "depends_on": ["AHI-009"], "description": "Support inter-department case handoffs and visit updates." },
+    { "id": "AHI-013", "title": "Implement SSE channel for real-time queue updates", "epic": "EPIC-3", "sprint": 3, "priority": "P1", "estimate": 5, "milestone": "M2 Internal Workflow MVP", "labels": ["type:feature", "area:queue", "role:admin", "P1"], "depends_on": ["AHI-012"], "description": "Stream queue changes to dashboards with low latency." },
+    { "id": "AHI-014", "title": "Build internal real-time dashboard by department", "epic": "EPIC-3", "sprint": 3, "priority": "P1", "estimate": 5, "milestone": "M2 Internal Workflow MVP", "labels": ["type:feature", "area:queue", "role:nurse", "P1"], "depends_on": ["AHI-013"], "description": "Provide live department status for operations staff." },
+    { "id": "AHI-015", "title": "Implement rush/priority queue discipline", "epic": "EPIC-3", "sprint": 3, "priority": "P1", "estimate": 3, "milestone": "M2 Internal Workflow MVP", "labels": ["type:feature", "area:queue", "role:reception", "P1"], "depends_on": ["AHI-012"], "description": "Prioritize rush cases while preserving queue transparency." },
+    { "id": "AHI-016", "title": "Add queue timer metrics capture (wait/throughput basis)", "epic": "EPIC-3", "sprint": 3, "priority": "P2", "estimate": 2, "milestone": "M2 Internal Workflow MVP", "labels": ["type:task", "area:evaluation", "role:admin", "P2"], "depends_on": ["AHI-014"], "description": "Capture timestamps needed for KPI reporting." },
+    { "id": "AHI-017", "title": "Build result item entry workflow for nurse/physician", "epic": "EPIC-4", "sprint": 4, "priority": "P1", "estimate": 5, "milestone": "M2 Internal Workflow MVP", "labels": ["type:feature", "area:clinical", "role:nurse", "P1"], "depends_on": ["AHI-012"], "description": "Enable structured recording of exam results." },
+    { "id": "AHI-018", "title": "Implement physician decision workflow", "epic": "EPIC-4", "sprint": 4, "priority": "P1", "estimate": 5, "milestone": "M2 Internal Workflow MVP", "labels": ["type:feature", "area:clinical", "role:physician", "P1"], "depends_on": ["AHI-017"], "description": "Capture fit/unfit/conditional decisions and status changes." },
+    { "id": "AHI-019", "title": "Implement releasing staff finalization with status lock", "epic": "EPIC-4", "sprint": 4, "priority": "P1", "estimate": 3, "milestone": "M2 Internal Workflow MVP", "labels": ["type:feature", "area:clinical", "role:releasing", "P1"], "depends_on": ["AHI-018"], "description": "Finalize decisions and prevent accidental post-release edits." },
+    { "id": "AHI-020", "title": "Implement PDF result output for released cases", "epic": "EPIC-4", "sprint": 4, "priority": "P1", "estimate": 3, "milestone": "M2 Internal Workflow MVP", "labels": ["type:feature", "area:clinical", "role:releasing", "P1"], "depends_on": ["AHI-019"], "description": "Generate downloadable result documents." },
+    { "id": "AHI-021", "title": "Enforce access and audit logs for result view/download", "epic": "EPIC-4", "sprint": 4, "priority": "P1", "estimate": 2, "milestone": "M2 Internal Workflow MVP", "labels": ["type:task", "area:security", "role:admin", "P1"], "depends_on": ["AHI-019"], "description": "Track sensitive result access internally." },
+    { "id": "AHI-022", "title": "Implement external portal authentication and RBAC scope", "epic": "EPIC-5", "sprint": 5, "priority": "P1", "estimate": 5, "milestone": "M3 External Access MVP", "labels": ["type:feature", "area:portal", "role:client", "P1"], "depends_on": ["AHI-005", "AHI-019"], "description": "Provide secure external login with limited permissions." },
+    { "id": "AHI-023", "title": "Implement external released-result view and download", "epic": "EPIC-5", "sprint": 5, "priority": "P1", "estimate": 5, "milestone": "M3 External Access MVP", "labels": ["type:feature", "area:portal", "role:patient", "P1"], "depends_on": ["AHI-022"], "description": "Allow external users to access released results only." },
+    { "id": "AHI-024", "title": "Implement result-ready email notifications", "epic": "EPIC-5", "sprint": 5, "priority": "P2", "estimate": 3, "milestone": "M3 External Access MVP", "labels": ["type:feature", "area:portal", "role:client", "P2"], "depends_on": ["AHI-019"], "description": "Notify users when released results are available." },
+    { "id": "AHI-025", "title": "Implement privacy notice, retention config, and backup smoke test", "epic": "EPIC-5", "sprint": 5, "priority": "P1", "estimate": 3, "milestone": "M3 External Access MVP", "labels": ["type:task", "area:security", "role:admin", "P1"], "depends_on": ["AHI-006"], "description": "Complete minimum compliance controls for MVP." },
+    { "id": "AHI-026", "title": "Prepare and run role-based UAT scripts", "epic": "EPIC-6", "sprint": 6, "priority": "P1", "estimate": 3, "milestone": "M4 Validation + Handover", "labels": ["type:task", "area:evaluation", "role:admin", "P1"], "depends_on": ["AHI-023"], "description": "Validate end-to-end workflows with representative users." },
+    { "id": "AHI-027", "title": "Triage and fix high-impact pilot defects", "epic": "EPIC-6", "sprint": 6, "priority": "P1", "estimate": 5, "milestone": "M4 Validation + Handover", "labels": ["type:bug", "area:evaluation", "role:admin", "P1"], "depends_on": ["AHI-026"], "description": "Resolve major defects found during pilot and UAT." },
+    { "id": "AHI-028", "title": "Generate baseline vs post KPI report", "epic": "EPIC-6", "sprint": 6, "priority": "P1", "estimate": 3, "milestone": "M4 Validation + Handover", "labels": ["type:research", "area:evaluation", "role:admin", "P1"], "depends_on": ["AHI-016", "AHI-027"], "description": "Produce capstone metric comparison output." },
+    { "id": "AHI-029", "title": "Run SUS survey capture and summary", "epic": "EPIC-6", "sprint": 6, "priority": "P2", "estimate": 2, "milestone": "M4 Validation + Handover", "labels": ["type:research", "area:evaluation", "role:admin", "P2"], "depends_on": ["AHI-026"], "description": "Capture and summarize usability feedback." },
+    { "id": "AHI-030", "title": "Finalize capstone docs, demo script, and handover sign-off", "epic": "EPIC-6", "sprint": 6, "priority": "P1", "estimate": 3, "milestone": "M4 Validation + Handover", "labels": ["type:task", "area:evaluation", "role:admin", "P1"], "depends_on": ["AHI-028", "AHI-029"], "description": "Package final evidence and complete project closeout." }
+  ]
+}
