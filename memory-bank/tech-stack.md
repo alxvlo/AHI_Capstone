@@ -215,3 +215,22 @@ If clinic policy mandates strict on-premises data residency:
 | **Discord / Messenger** | Team communication |
 | **Google Drive** | Documentation sharing |
 | **Zoom** | Virtual meetings |
+
+---
+
+## 10. Delivery Operations & Planning Automation
+
+### 10.1 GitHub Project Operations
+- **Project Board:** `AHI Capstone 2026 Delivery` (GitHub Project V2)
+- **Milestone Model:** 13 sprint milestones from 2026-03-01 to 2026-10-03
+- **Issue Set:** Iteration epics/stories/tasks (`#31`-`#62`) aligned to roadmap phases
+- **Timeline Fields:** `Start Date` and `Target Date` fields populated from sprint windows
+- **Assignment Policy:** Sprint-aware and globally-balanced issue ownership based on `memory-bank/profiles.md`
+
+### 10.2 Repository Automation Scripts
+- `scripts/github/publish-project.ps1` — creates/updates labels, milestones, issues, project, and project item links.
+- `scripts/github/fill-project-dates.ps1` — creates missing DATE fields and fills project timeline dates from milestone mapping.
+- `scripts/github/assign-ticket-owners.ps1` — applies role-fit assignees and balances workloads by sprint/date window and overall distribution.
+
+### 10.3 Seed Data for Planning
+- `project-management/github-seed.json` — canonical generated source for labels, milestones, and initial ticket set.
