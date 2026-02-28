@@ -78,6 +78,22 @@ if ($allIssues.Count -eq 0) {
   throw "No issues found in range #$StartIssue-#$EndIssue."
 }
 
+$sprintWindowByMilestone = @{
+  "Sprint 01 (Mar 1 - Mar 14)" = @{ start = "2026-03-01"; end = "2026-03-14" }
+  "Sprint 02 (Mar 15 - Mar 28)" = @{ start = "2026-03-15"; end = "2026-03-28" }
+  "Sprint 03 (Mar 29 - Apr 11)" = @{ start = "2026-03-29"; end = "2026-04-11" }
+  "Sprint 04 (Apr 12 - Apr 25)" = @{ start = "2026-04-12"; end = "2026-04-25" }
+  "Sprint 05 (Apr 26 - May 16)" = @{ start = "2026-04-26"; end = "2026-05-16" }
+  "Sprint 06 (May 17 - Jun 6)" = @{ start = "2026-05-17"; end = "2026-06-06" }
+  "Sprint 07 (Jun 7 - Jun 20)" = @{ start = "2026-06-07"; end = "2026-06-20" }
+  "Sprint 08 (Jun 21 - Jul 4)" = @{ start = "2026-06-21"; end = "2026-07-04" }
+  "Sprint 09 (Jul 5 - Jul 25)" = @{ start = "2026-07-05"; end = "2026-07-25" }
+  "Sprint 10 (Jul 26 - Aug 8)" = @{ start = "2026-07-26"; end = "2026-08-08" }
+  "Sprint 11 (Aug 9 - Aug 29)" = @{ start = "2026-08-09"; end = "2026-08-29" }
+  "Sprint 12 (Aug 30 - Sep 19)" = @{ start = "2026-08-30"; end = "2026-09-19" }
+  "Sprint 13 (Sep 20 - Oct 3)" = @{ start = "2026-09-20"; end = "2026-10-03" }
+}
+
 $assignments = @()
 foreach ($issue in $allIssues) {
   $text = "$($issue.title) `n $($issue.body)"
@@ -108,19 +124,87 @@ foreach ($issue in $allIssues) {
   if ($sorted.Count -gt 1) {
     $secondBest = $sorted[1].Key
   }
+  $maxScore = $sorted[0].Value
+  $secondScore = if ($sorted.Count -gt 1) { $sorted[1].Value } else { 0 }
+  $confidence = [int]($maxScore - $secondScore)
+
+  $milestoneTitle = if ($issue.milestone -and $issue.milestone.title) { [string]$issue.milestone.title } else { "UNSCHEDULED" }
+  $windowKey = if ($sprintWindowByMilestone.ContainsKey($milestoneTitle)) {
+    $w = $sprintWindowByMilestone[$milestoneTitle]
+    "$($w.start) -> $($w.end)"
+  } else {
+    "UNSCHEDULED"
+  }
 
   $assignments += [PSCustomObject]@{
     Number = $issue.number
     Title = $issue.title
+    Milestone = $milestoneTitle
+    WindowKey = $windowKey
     Preferred = $best
     PreferredScore = $scores[$best]
     SecondBest = $secondBest
+    Confidence = $confidence
     Scores = $scores
   }
 }
 
-$counts = @{ clark = 0; keith = 0; alex = 0 }
-foreach ($a in $assignments) { $counts[$a.Preferred] += 1 }
+Write-Host "Calculating sprint-aware balanced assignments..."
+$memberKeys = @("clark","keith","alex")
+$globalCounts = @{ clark = 0; keith = 0; alex = 0 }
+$totalIssueCount = $assignments.Count
+$globalCap = [math]::Ceiling($totalIssueCount / 3.0)
+$windowCountsByKey = @{}
+$windowCapsByKey = @{}
+
+$groupedByWindow = $assignments | Group-Object -Property WindowKey
+foreach ($group in $groupedByWindow) {
+  $windowIssues = @($group.Group)
+  $windowCount = $windowIssues.Count
+  $windowCap = [math]::Ceiling($windowCount / 3.0)
+  $windowCounts = @{ clark = 0; keith = 0; alex = 0 }
+  $windowCountsByKey[$group.Name] = $windowCounts
+  $windowCapsByKey[$group.Name] = $windowCap
+
+  $ordered = $windowIssues | Sort-Object -Property @(
+    @{ Expression = { $_.Confidence }; Descending = $true },
+    @{ Expression = { if ($_.Title -like "[Epic]*") { 1 } else { 0 } }; Descending = $false },
+    @{ Expression = { $_.Number }; Descending = $false }
+  )
+
+  foreach ($issueAssignment in $ordered) {
+    $candidates = @($memberKeys | Sort-Object -Property @(
+      @{ Expression = { -1 * $issueAssignment.Scores[$_] } },
+      @{ Expression = { $windowCounts[$_] } },
+      @{ Expression = { $globalCounts[$_] } }
+    ))
+
+    $chosen = $null
+    foreach ($candidate in $candidates) {
+      if ($windowCounts[$candidate] -lt $windowCap -and $globalCounts[$candidate] -lt ($globalCap + 1)) {
+        $chosen = $candidate
+        break
+      }
+    }
+
+    if (-not $chosen) {
+      foreach ($candidate in $candidates) {
+        if ($windowCounts[$candidate] -lt ($windowCap + 1)) {
+          $chosen = $candidate
+          break
+        }
+      }
+    }
+
+    if (-not $chosen) {
+      $chosen = $candidates[0]
+    }
+
+    $issueAssignment.Preferred = $chosen
+    $windowCounts[$chosen] += 1
+    $globalCounts[$chosen] += 1
+  }
+}
 
 function Get-MaxKey {
   param($Table)
@@ -132,22 +216,35 @@ function Get-MinKey {
   return ($Table.GetEnumerator() | Sort-Object -Property Value, Name | Select-Object -First 1).Key
 }
 
-for ($i = 0; $i -lt 100; $i++) {
-  $maxKey = Get-MaxKey -Table $counts
-  $minKey = Get-MinKey -Table $counts
-  $delta = [math]::Abs($counts[$maxKey] - $counts[$minKey])
+for ($i = 0; $i -lt 200; $i++) {
+  $maxKey = Get-MaxKey -Table $globalCounts
+  $minKey = Get-MinKey -Table $globalCounts
+  $delta = [math]::Abs($globalCounts[$maxKey] - $globalCounts[$minKey])
   if ($delta -le 1) { break }
 
   $candidate = $assignments |
     Where-Object { $_.Preferred -eq $maxKey } |
     Sort-Object -Property @{Expression={ $_.Scores[$maxKey] - $_.Scores[$minKey] }; Ascending=$true} |
+    Where-Object {
+      $wk = $_.WindowKey
+      if (-not $windowCountsByKey.ContainsKey($wk)) { return $false }
+      $wc = $windowCountsByKey[$wk]
+      $cap = $windowCapsByKey[$wk]
+      return ($wc[$minKey] -lt $cap)
+    } |
     Select-Object -First 1
 
-  if (-not $candidate) { break }
+  if (-not $candidate) {
+    break
+  }
 
+  $wk = $candidate.WindowKey
+  $wc = $windowCountsByKey[$wk]
   $candidate.Preferred = $minKey
-  $counts[$maxKey] -= 1
-  $counts[$minKey] += 1
+  $globalCounts[$maxKey] -= 1
+  $globalCounts[$minKey] += 1
+  $wc[$maxKey] -= 1
+  $wc[$minKey] += 1
 }
 
 $userByKey = @{}
@@ -167,6 +264,31 @@ foreach ($a in $assignments) {
 }
 $summary.GetEnumerator() | Sort-Object Name | ForEach-Object {
   Write-Host "  @$($_.Name): $($_.Value) issues"
+}
+
+Write-Host "Date-range overlap audit (by sprint window):"
+$auditByWindow = $assignments | Group-Object -Property WindowKey | Sort-Object Name
+foreach ($wg in $auditByWindow) {
+  $local = @{ clark = 0; keith = 0; alex = 0 }
+  foreach ($it in $wg.Group) {
+    $local[$it.Preferred] += 1
+  }
+
+  $flag = $false
+  foreach ($k in $memberKeys) {
+    if ($local[$k] -ge 2) {
+      $flag = $true
+    }
+  }
+
+  $clarkCount = $local.clark
+  $keithCount = $local.keith
+  $alexCount = $local.alex
+  if ($flag) {
+    Write-Host "  $($wg.Name): clark=$clarkCount, keith=$keithCount, alex=$alexCount (multiple assignments exist where sprint has >3 tasks)"
+  } else {
+    Write-Host "  $($wg.Name): clark=$clarkCount, keith=$keithCount, alex=$alexCount"
+  }
 }
 
 Write-Host "Done."
