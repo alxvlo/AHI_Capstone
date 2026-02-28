@@ -12,11 +12,34 @@
 
 ---
 
+## Sprint Calendar (Start: 2026-03-01)
+- Sprint 01 (2 weeks): 2026-03-01 → 2026-03-14
+- Sprint 02 (2 weeks): 2026-03-15 → 2026-03-28
+- Sprint 03 (2 weeks): 2026-03-29 → 2026-04-11
+- Sprint 04 (2 weeks): 2026-04-12 → 2026-04-25
+- Sprint 05 (3 weeks): 2026-04-26 → 2026-05-16
+- Sprint 06 (3 weeks): 2026-05-17 → 2026-06-06
+- Sprint 07 (2 weeks): 2026-06-07 → 2026-06-20
+- Sprint 08 (2 weeks): 2026-06-21 → 2026-07-04
+- Sprint 09 (3 weeks): 2026-07-05 → 2026-07-25
+- Sprint 10 (2 weeks): 2026-07-26 → 2026-08-08
+- Sprint 11 (3 weeks): 2026-08-09 → 2026-08-29
+- Sprint 12 (3 weeks): 2026-08-30 → 2026-09-19
+- Sprint 13 (2 weeks): 2026-09-20 → 2026-10-03
+
+**Iteration deadlines:**
+- Iteration 1 complete by 2026-04-11
+- Iteration 2 complete by 2026-06-20
+- Iteration 3 complete by 2026-08-08
+- Iteration 4 complete by 2026-10-03
+
+---
+
 ## Iteration 1: Cloud Infrastructure & Foundational Architecture
 > **Goal:** Establish the core cloud-native environment, database schema, authentication, and deployment pipeline.
 
 ### 1.1 Project Initialization
-- [ ] Initialize Git repository and push to GitHub
+- [x] Initialize Git repository and push to GitHub
 - [ ] Set up project folder structure (Next.js app)
 - [ ] Configure ESLint, Prettier, and code quality tooling
 - [ ] Create `.env` files structure for environment variables (dev, staging, prod)

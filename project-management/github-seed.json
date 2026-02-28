@@ -1,0 +1,232 @@
+{
+  "project": {
+    "title": "AHI Capstone 2026 Delivery",
+    "description": "Real-Time PEME Monitoring and Result Access System: sprint execution board"
+  },
+  "labels": [
+    { "name": "type:epic", "color": "5319e7", "description": "Large feature spanning multiple stories" },
+    { "name": "type:story", "color": "1d76db", "description": "User-centric feature slice" },
+    { "name": "type:task", "color": "0e8a16", "description": "Implementation task" },
+    { "name": "priority:P0", "color": "b60205", "description": "Critical path" },
+    { "name": "priority:P1", "color": "d93f0b", "description": "High priority" },
+    { "name": "priority:P2", "color": "fbca04", "description": "Normal priority" },
+    { "name": "area:frontend", "color": "0052cc", "description": "Next.js/React UI" },
+    { "name": "area:backend", "color": "0b5fff", "description": "Supabase/API/database logic" },
+    { "name": "area:security", "color": "c2e0c6", "description": "RLS, auth, hardening" },
+    { "name": "area:realtime", "color": "006b75", "description": "Realtime subscriptions and queues" },
+    { "name": "area:portal", "color": "bfdadc", "description": "Patient/agency portal" },
+    { "name": "area:devops", "color": "f9d0c4", "description": "CI/CD, deployment, operations" },
+    { "name": "area:testing", "color": "fef2c0", "description": "Verification and test automation" },
+    { "name": "area:compliance", "color": "c5def5", "description": "RA 10173, ISO, DOH controls" },
+    { "name": "area:docs", "color": "ededed", "description": "Manuals, training, documentation" }
+  ],
+  "milestones": [
+    { "title": "Sprint 01 (Mar 1 - Mar 14)", "dueOn": "2026-03-14T23:59:59Z", "description": "Bootstrap repository, environment setup, Supabase project creation" },
+    { "title": "Sprint 02 (Mar 15 - Mar 28)", "dueOn": "2026-03-28T23:59:59Z", "description": "Database schema, auth, baseline RLS" },
+    { "title": "Sprint 03 (Mar 29 - Apr 11)", "dueOn": "2026-04-11T23:59:59Z", "description": "Frontend foundation, CI/CD, auth flow validation" },
+    { "title": "Sprint 04 (Apr 12 - Apr 25)", "dueOn": "2026-04-25T23:59:59Z", "description": "Reception and triage workflows" },
+    { "title": "Sprint 05 (Apr 26 - May 16)", "dueOn": "2026-05-16T23:59:59Z", "description": "Department and physician workflows" },
+    { "title": "Sprint 06 (May 17 - Jun 6)", "dueOn": "2026-06-06T23:59:59Z", "description": "Releasing, admin, and realtime integration" },
+    { "title": "Sprint 07 (Jun 7 - Jun 20)", "dueOn": "2026-06-20T23:59:59Z", "description": "End-to-end lifecycle validation and stabilization" },
+    { "title": "Sprint 08 (Jun 21 - Jul 4)", "dueOn": "2026-07-04T23:59:59Z", "description": "Patient portal implementation" },
+    { "title": "Sprint 09 (Jul 5 - Jul 25)", "dueOn": "2026-07-25T23:59:59Z", "description": "Agency portal, notifications, and PDFs" },
+    { "title": "Sprint 10 (Jul 26 - Aug 8)", "dueOn": "2026-08-08T23:59:59Z", "description": "Security hardening and remediation" },
+    { "title": "Sprint 11 (Aug 9 - Aug 29)", "dueOn": "2026-08-29T23:59:59Z", "description": "Performance optimization, compliance evidence, deployment prep" },
+    { "title": "Sprint 12 (Aug 30 - Sep 19)", "dueOn": "2026-09-19T23:59:59Z", "description": "Documentation, training, and evaluation setup" },
+    { "title": "Sprint 13 (Sep 20 - Oct 3)", "dueOn": "2026-10-03T23:59:59Z", "description": "Final validation, presentation prep, closeout" }
+  ],
+  "issues": [
+    {
+      "title": "[Epic] Iteration 1: Cloud Infrastructure & Foundation",
+      "milestone": "Sprint 03 (Mar 29 - Apr 11)",
+      "labels": ["type:epic", "priority:P0", "area:devops", "area:backend", "area:frontend"],
+      "body": "Objective: Establish deployable baseline with Supabase, Next.js, auth, and CI/CD.\\n\\nAcceptance criteria:\\n- Supabase project configured with environment secrets\\n- Initial schema and auth tables available\\n- Next.js app deployed to preview/production environment\\n- Staff/patient/agency login entry points reachable"
+    },
+    {
+      "title": "[Story] Initialize Next.js + Tailwind workspace",
+      "milestone": "Sprint 01 (Mar 1 - Mar 14)",
+      "labels": ["type:story", "priority:P1", "area:frontend"],
+      "body": "Create baseline application shell for dashboards and portals.\\n\\nAcceptance criteria:\\n- Next.js TypeScript project scaffolded\\n- Tailwind configured with responsive breakpoints\\n- Base layout and route groups added"
+    },
+    {
+      "title": "[Story] Provision Supabase project and secrets",
+      "milestone": "Sprint 01 (Mar 1 - Mar 14)",
+      "labels": ["type:story", "priority:P0", "area:backend", "area:devops"],
+      "body": "Provision cloud project and connect application environments.\\n\\nAcceptance criteria:\\n- Supabase project created and reachable\\n- ENV variables documented in repository secrets\\n- Connectivity test succeeds from local and hosted app"
+    },
+    {
+      "title": "[Story] Create core schema migrations (12 tables)",
+      "milestone": "Sprint 02 (Mar 15 - Mar 28)",
+      "labels": ["type:story", "priority:P0", "area:backend"],
+      "body": "Implement canonical schema from capstone design-doc.\\n\\nAcceptance criteria:\\n- All 12 tables created with constraints\\n- UUID PK strategy applied to PATIENT and PEME_CASE\\n- Required indexes created for queue/performance paths"
+    },
+    {
+      "title": "[Story] Implement RBAC and RLS policies for 8 roles",
+      "milestone": "Sprint 02 (Mar 15 - Mar 28)",
+      "labels": ["type:story", "priority:P0", "area:security", "area:backend"],
+      "body": "Apply role-aware data isolation at DB layer.\\n\\nAcceptance criteria:\\n- RLS enabled on sensitive tables\\n- Policies restrict reads/writes by role boundaries\\n- Policy tests pass for all actor profiles"
+    },
+    {
+      "title": "[Story] Build unified login surfaces (Staff, Patient, Agency)",
+      "milestone": "Sprint 03 (Mar 29 - Apr 11)",
+      "labels": ["type:story", "priority:P1", "area:frontend", "area:security"],
+      "body": "Deliver role-appropriate authentication entry points.\\n\\nAcceptance criteria:\\n- Staff login supports email/password\\n- Patient login supports Case ID + DOB flow\\n- Agency login supports authorized credential flow"
+    },
+    {
+      "title": "[Story] Configure CI/CD to Vercel with branch previews",
+      "milestone": "Sprint 03 (Mar 29 - Apr 11)",
+      "labels": ["type:story", "priority:P1", "area:devops"],
+      "body": "Automate deploy pipeline for stable iteration delivery.\\n\\nAcceptance criteria:\\n- PR preview deploys enabled\\n- Main branch auto-deploy enabled\\n- Build failures surface in checks"
+    },
+    {
+      "title": "[Epic] Iteration 2: Active Encoding & Real-Time Dashboards",
+      "milestone": "Sprint 07 (Jun 7 - Jun 20)",
+      "labels": ["type:epic", "priority:P0", "area:backend", "area:frontend", "area:realtime"],
+      "body": "Objective: Complete internal PEME workflow from registration to release with live status visibility."
+    },
+    {
+      "title": "[Story] Reception/Billing queue and case creation",
+      "milestone": "Sprint 04 (Apr 12 - Apr 25)",
+      "labels": ["type:story", "priority:P0", "area:frontend", "area:backend"],
+      "body": "Implement patient lookup, company/package linkage, and case initiation."
+    },
+    {
+      "title": "[Story] Triage dashboard and vital signs encoding",
+      "milestone": "Sprint 04 (Apr 12 - Apr 25)",
+      "labels": ["type:story", "priority:P1", "area:frontend", "area:backend"],
+      "body": "Implement triage queue controls and clinical data capture form."
+    },
+    {
+      "title": "[Story] Department staff work queues and result entry",
+      "milestone": "Sprint 05 (Apr 26 - May 16)",
+      "labels": ["type:story", "priority:P0", "area:frontend", "area:backend"],
+      "body": "Enable department-level waiting/called/in-service/completed transitions and result item encoding."
+    },
+    {
+      "title": "[Story] Physician case review and fit/unfit decision",
+      "milestone": "Sprint 05 (Apr 26 - May 16)",
+      "labels": ["type:story", "priority:P0", "area:frontend", "area:backend"],
+      "body": "Provide consolidated case summary, notes, and decision finalization workflow."
+    },
+    {
+      "title": "[Story] Releasing station final checklist and release action",
+      "milestone": "Sprint 06 (May 17 - Jun 6)",
+      "labels": ["type:story", "priority:P0", "area:frontend", "area:backend"],
+      "body": "Implement release gating against visit completion and physician decision readiness."
+    },
+    {
+      "title": "[Story] Admin master data management (users, departments, packages)",
+      "milestone": "Sprint 06 (May 17 - Jun 6)",
+      "labels": ["type:story", "priority:P1", "area:frontend", "area:backend"],
+      "body": "Provide configuration interfaces and access management controls for admins."
+    },
+    {
+      "title": "[Story] Implement realtime subscriptions for queue updates",
+      "milestone": "Sprint 06 (May 17 - Jun 6)",
+      "labels": ["type:story", "priority:P1", "area:realtime", "area:backend", "area:frontend"],
+      "body": "Stream DEPARTMENT_VISIT and PEME_CASE status transitions to role dashboards in near real time."
+    },
+    {
+      "title": "[Story] End-to-end case lifecycle testing",
+      "milestone": "Sprint 07 (Jun 7 - Jun 20)",
+      "labels": ["type:story", "priority:P0", "area:testing"],
+      "body": "Validate complete workflow from registration to release with role-based checks and audit trails."
+    },
+    {
+      "title": "[Epic] Iteration 3: Patient & Agency Portals",
+      "milestone": "Sprint 10 (Jul 26 - Aug 8)",
+      "labels": ["type:epic", "priority:P0", "area:portal", "area:security"],
+      "body": "Objective: Deliver secure external access for patient and agency result visibility and downloads."
+    },
+    {
+      "title": "[Story] Patient portal progress tracker and released results view",
+      "milestone": "Sprint 08 (Jun 21 - Jul 4)",
+      "labels": ["type:story", "priority:P1", "area:portal", "area:frontend", "area:backend"],
+      "body": "Implement mobile-first status tracker and released result access for patients."
+    },
+    {
+      "title": "[Story] Agency portal search and consolidated access",
+      "milestone": "Sprint 09 (Jul 5 - Jul 25)",
+      "labels": ["type:story", "priority:P1", "area:portal", "area:frontend", "area:backend"],
+      "body": "Provide agency-side lookup and summary view for authorized candidate results."
+    },
+    {
+      "title": "[Story] Email notification pipeline on release",
+      "milestone": "Sprint 09 (Jul 5 - Jul 25)",
+      "labels": ["type:story", "priority:P1", "area:backend", "area:devops"],
+      "body": "Send release notifications via SMTP/TLS to patients, agencies, and designated staff."
+    },
+    {
+      "title": "[Story] PDF certificate generation and download",
+      "milestone": "Sprint 09 (Jul 5 - Jul 25)",
+      "labels": ["type:story", "priority:P1", "area:backend", "area:portal"],
+      "body": "Generate standardized certificate PDFs and transmittal summaries for released cases."
+    },
+    {
+      "title": "[Story] Security hardening and vulnerability remediation",
+      "milestone": "Sprint 10 (Jul 26 - Aug 8)",
+      "labels": ["type:story", "priority:P0", "area:security", "area:testing"],
+      "body": "Run OWASP-style checks and remediate critical/high findings before deployment readiness."
+    },
+    {
+      "title": "[Epic] Iteration 4: Validation, Deployment, and Handover",
+      "milestone": "Sprint 13 (Sep 20 - Oct 3)",
+      "labels": ["type:epic", "priority:P0", "area:testing", "area:compliance", "area:docs", "area:devops"],
+      "body": "Objective: Achieve performance, compliance, documentation, training, and capstone closeout targets."
+    },
+    {
+      "title": "[Story] Performance optimization against target SLAs",
+      "milestone": "Sprint 11 (Aug 9 - Aug 29)",
+      "labels": ["type:story", "priority:P0", "area:testing", "area:backend", "area:frontend"],
+      "body": "Tune dashboards, queues, portal loading, and PDF generation to meet response time targets."
+    },
+    {
+      "title": "[Story] Compliance evidence package (RA 10173, ISO, DOH)",
+      "milestone": "Sprint 11 (Aug 9 - Aug 29)",
+      "labels": ["type:story", "priority:P0", "area:compliance", "area:security", "area:docs"],
+      "body": "Compile controls, logs, and checklists required for privacy and quality compliance review."
+    },
+    {
+      "title": "[Story] Production deployment readiness and rollback plan",
+      "milestone": "Sprint 11 (Aug 9 - Aug 29)",
+      "labels": ["type:story", "priority:P0", "area:devops"],
+      "body": "Prepare production runbook, rollback strategy, and monitoring alerts for go-live."
+    },
+    {
+      "title": "[Story] User manuals and training materials by role",
+      "milestone": "Sprint 12 (Aug 30 - Sep 19)",
+      "labels": ["type:story", "priority:P1", "area:docs"],
+      "body": "Produce role-specific manuals, quick guides, and training references for handover."
+    },
+    {
+      "title": "[Story] Conduct staff and stakeholder training sessions",
+      "milestone": "Sprint 12 (Aug 30 - Sep 19)",
+      "labels": ["type:story", "priority:P1", "area:docs", "area:testing"],
+      "body": "Deliver onboarding sessions and collect readiness feedback for operational use."
+    },
+    {
+      "title": "[Story] Baseline vs post-implementation evaluation dataset",
+      "milestone": "Sprint 12 (Aug 30 - Sep 19)",
+      "labels": ["type:story", "priority:P1", "area:testing", "area:compliance"],
+      "body": "Capture operational metrics and SUS/interview data required for capstone evaluation."
+    },
+    {
+      "title": "[Story] Final acceptance, defense package, and closeout",
+      "milestone": "Sprint 13 (Sep 20 - Oct 3)",
+      "labels": ["type:story", "priority:P0", "area:docs", "area:testing"],
+      "body": "Complete final verification, archive deliverables, and prepare panel presentation materials."
+    },
+    {
+      "title": "[Task] Submit deployment authorization request (4-6 week lead)",
+      "milestone": "Sprint 09 (Jul 5 - Jul 25)",
+      "labels": ["type:task", "priority:P0", "area:devops", "area:compliance"],
+      "body": "Open formal deployment authorization request to satisfy required lead-time before production release."
+    },
+    {
+      "title": "[Task] Establish risk register and sprint risk review ritual",
+      "milestone": "Sprint 01 (Mar 1 - Mar 14)",
+      "labels": ["type:task", "priority:P1", "area:compliance", "area:testing"],
+      "body": "Track clinic schedule, connectivity, participation, and integration risks with mitigation owners."
+    }
+  ]
+}
