@@ -35,6 +35,114 @@
 
 ---
 
+## Realistic Execution Roadmap (All Iterations)
+
+### Iteration 1 (Sprints 01-03) — Foundation and Platform Readiness
+**Window:** 2026-03-01 to 2026-04-11  
+**Objective:** Establish a stable technical baseline before workflow features begin.
+
+**Planned outcomes by sprint**
+- **Sprint 01 (Mar 1-14):** Repository standards, project scaffold, Supabase project creation, environment setup, risk register kickoff.
+- **Sprint 02 (Mar 15-28):** Complete core schema migration and seed data; implement RBAC + RLS baseline and policy tests.
+- **Sprint 03 (Mar 29-Apr 11):** Auth flows (staff/patient/agency), frontend shell, CI/CD deployment, and staging validation.
+
+**Critical dependencies**
+- No Iteration 2 dashboard development starts until schema + RLS + auth baseline are verified.
+- Seed data quality must be validated before package mapping logic is implemented.
+
+**Realism controls**
+- Reserve final 2-3 days of Sprint 03 for stabilization and environment misconfiguration fixes.
+- Keep production-only settings deferred; use staging for all functional checks in this phase.
+
+**Iteration 1 exit criteria**
+- 12-table schema exists with required indexes and seed data.
+- Role-based access is enforced through tested RLS policies.
+- Login surfaces and protected routing are functional in staging.
+
+---
+
+### Iteration 2 (Sprints 04-07) — Internal Clinical Workflow Delivery
+**Window:** 2026-04-12 to 2026-06-20  
+**Objective:** Deliver end-to-end internal PEME processing from registration to releasing.
+
+**Planned outcomes by sprint**
+- **Sprint 04 (Apr 12-25):** Reception/Billing + Triage interfaces with queue initiation and timestamp fidelity.
+- **Sprint 05 (Apr 26-May 16):** Department queues, result entry flows, physician review/decision functions.
+- **Sprint 06 (May 17-Jun 6):** Releasing station, admin configuration modules, realtime subscriptions across core dashboards.
+- **Sprint 07 (Jun 7-20):** Full lifecycle integration tests, defect triage, readiness hardening for external portal phase.
+
+**Critical dependencies**
+- Releasing actions depend on completed required visits and physician decisions.
+- Realtime rollout depends on stable state transitions in DEPARTMENT_VISIT and PEME_CASE flows.
+
+**Realism controls**
+- Sprints 05-06 are intentionally 3 weeks due to high integration complexity.
+- Reserve at least 20% of Sprint 07 capacity for cross-role regression and bug fixes.
+
+**Iteration 2 exit criteria**
+- Register -> Triage -> Department -> Decision -> Release lifecycle is stable and auditable.
+- Realtime updates function reliably in multi-session scenarios.
+- Admin controls are sufficient for role, package, and status maintenance.
+
+---
+
+### Iteration 3 (Sprints 08-10) — External Access and Security Hardening
+**Window:** 2026-06-21 to 2026-08-08  
+**Objective:** Launch secure patient/agency access and finalize user-facing release outputs.
+
+**Planned outcomes by sprint**
+- **Sprint 08 (Jun 21-Jul 4):** Patient portal login, progress tracking, released-result visibility, mobile UX baseline.
+- **Sprint 09 (Jul 5-25):** Agency portal search/access, email notifications, certificate/transmittal PDF generation.
+- **Sprint 10 (Jul 26-Aug 8):** Security hardening, OWASP/manual test remediation, external workflow stabilization.
+
+**Critical dependencies**
+- Portal visibility rules depend on release state and RLS policy correctness.
+- Email and PDF outputs depend on stable release events and decision data integrity.
+
+**Realism controls**
+- Deployment authorization request must be submitted by Sprint 09 (4-6 week lead time).
+- Keep one hardening sprint (Sprint 10) dedicated to remediation before production prep.
+
+**Iteration 3 exit criteria**
+- Patient and agency portals expose only authorized released data.
+- Release-triggered notifications and PDF outputs are reliable and auditable.
+- Critical/high security findings are remediated.
+
+---
+
+### Iteration 4 (Sprints 11-13) — Validation, Compliance, and Closeout
+**Window:** 2026-08-09 to 2026-10-03  
+**Objective:** Complete non-functional targets, compliance evidence, handover, and capstone evaluation.
+
+**Planned outcomes by sprint**
+- **Sprint 11 (Aug 9-29):** Performance optimization, compliance evidence compilation, production and rollback readiness.
+- **Sprint 12 (Aug 30-Sep 19):** Documentation finalization, role-based training, SUS/interview and operational data collection.
+- **Sprint 13 (Sep 20-Oct 3):** Final validation, statistical analysis support, thesis artifacts, and closeout presentation readiness.
+
+**Critical dependencies**
+- Final evaluation metrics require production deployment plus staff familiarization window.
+- Compliance sign-off depends on complete audit evidence from prior iterations.
+
+**Realism controls**
+- Maintain a deployment rollback path throughout Sprint 11-13.
+- Protect Sprint 13 from feature expansion; limit scope to validation, closeout, and defense deliverables.
+
+**Iteration 4 exit criteria**
+- Performance and reliability targets are met or documented with corrective plan.
+- Compliance checks (RA 10173, ISO 9001, DOH AO, ISO/IEC 25010) are evidence-backed.
+- Training, handover documents, and capstone evaluation outputs are complete.
+
+---
+
+## Cross-Iteration Delivery Rules
+- **Scope discipline:** No out-of-scope additions (no CIS write-back, no SMS, no native mobile app, no BI analytics).
+- **Definition of done:** Every completed ticket includes verification evidence (test output, screenshots/logs, and updated docs where applicable).
+- **Risk review cadence:** Run risk review at each sprint midpoint and sprint close.
+- **Buffer policy:** Reserve 10-20% sprint capacity for integration defects and requirement clarifications.
+- **Gate policy:** Do not start the next iteration until current iteration exit criteria are satisfied.
+
+---
+
 ## Iteration 1: Cloud Infrastructure & Foundational Architecture
 > **Goal:** Establish the core cloud-native environment, database schema, authentication, and deployment pipeline.
 
