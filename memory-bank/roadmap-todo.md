@@ -1,7 +1,7 @@
 # Development Roadmap & Task Tracker
 **Project:** Real-Time PEME Monitoring and Result Access System for American Hospital Inc.
 **Source:** Capstone Manuscript §3.5.1 (Iterative Development Methodology — 4 Iterations)
-**Last Updated:** 2026-02-28
+**Last Updated:** 2026-02-28 (Repository + GitHub Project sync)
 
 ---
 
@@ -32,6 +32,21 @@
 - Iteration 2 complete by 2026-06-20
 - Iteration 3 complete by 2026-08-08
 - Iteration 4 complete by 2026-10-03
+
+---
+
+## Repository & Project Operations Sync (2026-02-28)
+- [x] Git repository connected to `https://github.com/alxvlo/AHI_Capstone.git`
+- [x] GitHub Project V2 created (`AHI Capstone 2026 Delivery`)
+- [x] Sprint milestones created (Sprint 01 to Sprint 13)
+- [x] Detailed generated issues created and linked to project (`#31` to `#62`)
+- [x] Project date fields (`Start Date`, `Target Date`) auto-populated from sprint windows
+- [x] Assignees mapped from `profiles.md` and balanced by sprint window + total workload
+
+**Current load distribution (issues #31-#62):**
+- `@devdjclark`: 10
+- `@VeinZzz`: 11
+- `@alxvlo`: 11
 
 ---
 
@@ -493,7 +508,7 @@
 
 | Iteration | Status | Key Deliverables |
 |---|---|---|
-| **1:** Infrastructure & Foundation | Not Started | Supabase, DB schema, Auth, RLS, CI/CD, basic login |
-| **2:** Active Encoding & Dashboards | Not Started | All 6 staff dashboards, WebSocket real-time, full PEME lifecycle |
-| **3:** Patient & Agency Portals | Not Started | Patient portal, agency portal, email notifications, PDF certs, security hardening |
-| **4:** Completion & Deployment | Not Started | Performance optimization, compliance, training, evaluation, production deploy |
+| **1:** Infrastructure & Foundation | In Progress | Repository/GitHub Project setup complete; Supabase, DB schema, Auth, RLS, CI/CD, basic login pending implementation |
+| **2:** Active Encoding & Dashboards | Planned | All 6 staff dashboards, WebSocket real-time, full PEME lifecycle |
+| **3:** Patient & Agency Portals | Planned | Patient portal, agency portal, email notifications, PDF certs, security hardening |
+| **4:** Completion & Deployment | Planned | Performance optimization, compliance, training, evaluation, production deploy |
