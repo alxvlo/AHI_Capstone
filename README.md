@@ -58,6 +58,3 @@ Current PEME workflows are slowed by fragmented coordination across departments 
 - PR template: `.github/PULL_REQUEST_TEMPLATE.md`
 - Project bootstrap script: `scripts/github/bootstrap-project.ps1`
 - Project field/config script: `scripts/github/configure-project.ps1`
-
-## Notes
-The source paper (`Intro to IT Research Paper.pdf`) is kept locally for reference and excluded from version control.
