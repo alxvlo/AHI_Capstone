@@ -1,7 +1,7 @@
 # Design Document
 **Project:** Real-Time PEME Monitoring and Result Access System for American Hospital Inc.
 **Source:** Capstone Manuscript — Chapter 3 (Research Methodology and Technical Background)
-**Last Updated:** 2026-02-28
+**Last Updated:** 2026-03-01 (Queue Simplification + DPA Compliance revision)
 
 ---
 
@@ -172,6 +172,7 @@ STATUS_CODE (1) ──── (0..*) DEPARTMENT_VISIT (visit status)
 | PackageID | INT | FK → PACKAGE, NOT NULL | Selected PEME package |
 | CaseCategory | VARCHAR(20) | Nullable | sea-based, land-based |
 | IsRush | BOOLEAN | Default FALSE | Rush processing flag |
+| WaiverSigned | BOOLEAN | Default FALSE | Patient authorized sharing results with agency (DPA compliance) |
 | CaseStatusCodeID | INT | FK → STATUS_CODE (CASE), NOT NULL | Current status |
 | RegistrationTimestamp | DATETIME | NOT NULL | Registration time |
 | TriageCompletedTimestamp | DATETIME | Nullable | Triage completion time |
@@ -181,6 +182,7 @@ STATUS_CODE (1) ──── (0..*) DEPARTMENT_VISIT (visit status)
 | Remarks | VARCHAR(255) | Nullable | General notes |
 
 > **Note:** Physical DB uses UUIDs for CaseID to prevent enumeration attacks.
+> **DPA Note:** `WaiverSigned` must be TRUE before agency portal access is permitted for this case. Reception staff must verify and set this flag during case creation based on physical consent waiver.
 
 #### 2.3.7 DEPARTMENT_VISIT
 | Field | Type | Constraints | Description |
@@ -188,9 +190,9 @@ STATUS_CODE (1) ──── (0..*) DEPARTMENT_VISIT (visit status)
 | VisitID | INT | PK, auto-increment | Identifier |
 | CaseID | INT | FK → PEME_CASE, NOT NULL | Case reference |
 | DepartmentID | INT | FK → DEPARTMENT, NOT NULL | Department reference |
-| VisitStatusCodeID | INT | FK → STATUS_CODE (VISIT), NOT NULL | Current visit status |
+| VisitStatusCodeID | INT | FK → STATUS_CODE (VISIT), NOT NULL | Current visit status: Pending, In_Progress, Skipped, Completed, Cancelled |
 | QueueNumber | VARCHAR(20) | Nullable | Queue number shown to patient |
-| TimeQueued | DATETIME | Nullable | Entered queue |
+| TimePending | DATETIME | Nullable | Time visit entered Pending status |
 | TimeStarted | DATETIME | Nullable | Service started |
 | TimeCompleted | DATETIME | Nullable | Service completed |
 | Remarks | VARCHAR(255) | Nullable | Visit-level notes |
@@ -298,28 +300,32 @@ STATUS_CODE (1) ──── (0..*) DEPARTMENT_VISIT (visit status)
                     └──────────┘
 ```
 
-### 3.2 Department Visit Lifecycle
+### 3.2 Department Visit Lifecycle (Manual-Pull Kanban)
 ```
                     ┌─────────┐
-  Visit Created ──► │ Waiting │
+  Visit Created ──► │ Pending │
                     └────┬────┘
-                         │ staff calls patient     ┌───────────┐
-                         ▼                         │ Cancelled │ (terminal)
-                    ┌────────┐                     └───────────┘
-                    │ Called  │                           ▲
-                    └────┬───┘                           │ from Waiting
-                         │ patient attended
-                         ▼
-                    ┌────────────┐
-                    │ In_Service │ ◄─── On_Hold (temporary pause)
-                    └─────┬──────┘ ───► On_Hold
-                          │
-                          │ exam completed, results encoded
-                          ▼
-                    ┌───────────┐
-                    │ Completed │ (terminal)
-                    └───────────┘
+                         │
+                    ┌────┴──────────────────┐
+                    │                       │
+                    ▼                       ▼
+              ┌─────────────┐         ┌─────────┐
+              │ In_Progress │         │ Skipped │ (patient absent/late)
+              └──────┬──────┘         └────┬────┘
+                     │                     │ patient returns
+                     │                     ▼
+                     │               ┌─────────┐
+                     │               │ Pending │ (re-queued)
+                     │               └─────────┘
+                     │
+                     │ exam completed, results encoded
+                     ▼
+               ┌───────────┐         ┌───────────┐
+               │ Completed │         │ Cancelled │ (terminal, from Pending)
+               └───────────┘         └───────────┘
 ```
+
+**Queue model:** Staff-driven manual-pull Kanban. Department staff view a list of Pending visits (sorted by rush priority, then by TimePending). Staff manually select which patient to serve next. If a patient is absent or late when called, staff mark the visit as Skipped; the patient can be re-queued to Pending status when they return. No automated routing or priority algorithms are used.
 
 ---
 
@@ -339,9 +345,10 @@ STATUS_CODE (1) ──── (0..*) DEPARTMENT_VISIT (visit status)
 
 ### 4.2 RLS Policy Enforcement
 - **Internal Staff:** RLS policies filter records by role and department assignment.
-- **Client Representative:** Can only query PEME_CASE rows where `CompanyID` matches their linked company AND `CaseStatusCodeID = Released` AND `PortalVisible = TRUE`.
+- **Client Representative:** Can only query PEME_CASE rows where `CompanyID` matches their linked company AND `CaseStatusCodeID = Released` AND `PortalVisible = TRUE` AND `WaiverSigned = TRUE`.
 - **Patient:** Can only query PEME_CASE rows where `PatientID` matches their linked patient identity.
 - **Audit:** All sensitive actions (logins, status changes, result updates, decisions, releases, portal views) logged to AUDIT_LOG.
+- **DPA Compliance:** Agency portal displays a standardized Data Privacy Act compliance notice when viewing patient records. Access is blocked if `WaiverSigned` is FALSE.
 
 ---
 
@@ -353,7 +360,8 @@ STATUS_CODE (1) ──── (0..*) DEPARTMENT_VISIT (visit status)
 #### 5.1.1 Reception/Billing Dashboard
 - Patient search (name, DOB, passport, government ID)
 - New patient registration form
-- PEME case creation (company, package, category, rush flag)
+- PEME case creation (company, package, category, rush flag, waiver signed checkbox)
+- **DPA waiver verification:** Reception must verify and check `WaiverSigned` before case can be saved (FR 1.6)
 - Active case list with filters (date range, company, rush flag, status)
 - Auto-generated Case ID/Number
 
@@ -363,10 +371,11 @@ STATUS_CODE (1) ──── (0..*) DEPARTMENT_VISIT (visit status)
 - Triage form (vital signs, vision, basic observations)
 - Triage completion timestamp auto-recorded
 
-#### 5.1.3 Department Staff Dashboard
-- Department-specific queue (sorted: rush first, then by TimeQueued)
-- Status transition controls: Waiting → Called → In_Service → Completed
-- On_Hold toggle
+#### 5.1.3 Department Staff Dashboard (Manual-Pull Kanban)
+- Department-specific pending list (sorted: rush first, then by TimePending)
+- Staff manually selects next patient to serve from the pending list
+- Status transition controls: Pending → In_Progress → Completed
+- Skip action: Pending → Skipped (patient absent/late); Skipped → Pending (re-queue when patient returns)
 - Clinical data encoding form (test results, flags, parameters per package)
 - Read-only result summary view for completed visits
 - Real-time WebSocket broadcast on result save
@@ -411,10 +420,12 @@ STATUS_CODE (1) ──── (0..*) DEPARTMENT_VISIT (visit status)
 
 #### 5.2.2 Client/Agency Portal
 - Username/password login
-- Released case list (filtered to own company, Released + PortalVisible)
+- **DPA compliance notice:** Standardized Data Privacy Act notice displayed upon accessing patient records (FR 2.8)
+- Released case list (filtered to own company, Released + PortalVisible + WaiverSigned)
 - Search by applicant name, passport number, date range
 - View PEME result summary (demographics, fitness status, decision remarks, configurable test subset)
-- Download/print PEME result summary
+- **Access gating:** System verifies `WaiverSigned = TRUE` before allowing any result summary to be opened (FR 2.1)
+- Download/print PEME result summary (contingent on WaiverSigned verification)
 - Mobile-responsive view (no horizontal scrolling on mobile)
 
 ---
@@ -427,8 +438,8 @@ STATUS_CODE (1) ──── (0..*) DEPARTMENT_VISIT (visit status)
 ### Process 2: Assess Fees & Process Payment
 `Billing verifies endorsement → Compute charges → Cash or Charge path → Cashier collects payment / Charge slip prepared → Mark case as Paid/Cleared → Update queue dashboard → Patient proceeds to exams`
 
-### Process 3: Conduct Medical Examinations
-`Patient enters waiting area → Patient Portal shows real-time progress → Nurse coordinator monitors queue → Call patient to next department → Department staff conduct exam → Encode results + update visit status to Completed → WebSocket broadcast → System checks package completion → Loop until all visits done → Email notification on completion`
+### Process 3: Conduct Medical Examinations (Manual-Pull Kanban)
+`Patient enters waiting area → Patient Portal shows real-time progress → Department staff view pending list (rush first, then by TimePending) → Staff manually select next patient → If patient absent/late: mark Skipped (re-queue when patient returns) → If patient present: mark In_Progress → Conduct exam → Encode results + update visit status to Completed → WebSocket broadcast → System checks package completion → Loop until all visits done → Email notification on completion`
 
 ### Process 4: Complete Chart & Release PEME
 `System auto-verifies completeness → Physician dashboard shows consolidated summary → Physician reviews + records fitness decision → (Optional: request additional tests → loop) → Case moves to For_Releasing → Releasing staff verify + finalize → Generate PDF certificate → Update portalVisible → Email notifications → Seal + deliver physical package → Messenger collects acknowledgement → Archive case`
@@ -438,7 +449,7 @@ STATUS_CODE (1) ──── (0..*) DEPARTMENT_VISIT (visit status)
 ## 7. Indexing Strategy
 Indexes defined on:
 - `PEME_CASE`: PatientID, CompanyID, PackageID, CaseStatusCodeID, RegistrationTimestamp, IsRush
-- `DEPARTMENT_VISIT`: CaseID, DepartmentID, VisitStatusCodeID, TimeQueued
+- `DEPARTMENT_VISIT`: CaseID, DepartmentID, VisitStatusCodeID, TimePending
 - `RESULT_ITEM`: VisitID, CaseID, DepartmentID
 - `USER_ACCOUNT`: RoleID, CompanyID, PatientID, Username
 - `AUDIT_LOG`: UserID, Timestamp, ActionType

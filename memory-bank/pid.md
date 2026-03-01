@@ -1,8 +1,8 @@
 # Project Initiation Document (PID)
 **Project Name:** Real-Time PEME Monitoring and Result Access System for American Hospital Inc.
 **Project Team:** Keith Alfred A. Avellaneda, Deejay Clark M. Datu, Alexander E. Velo
-**Source:** User-authored PID — canonical version at `/PID.md`
-**Last Synced:** 2026-02-28
+**Source:** User-authored PID — canonical version maintained in `memory-bank/`
+**Last Updated:** 2026-03-01
 
 ---
 
@@ -12,7 +12,7 @@ American Hospital Inc. (AHI) processes approximately 1,000 Pre-Employment Medica
 This project will develop a specialized, parallel Electronic Medical Record (EMR) module strictly dedicated to PEME workflows. By transitioning from legacy paper routing to active digital encoding, the system will provide real-time queue updates, automated result collation, and secure web portals for staff, patients, and agency representatives.
 
 ## 2. Core Objectives
-1. **Workflow Modernization:** Design a centralized system that actively tracks patient status across 10 clinical departments, bridging communication gaps via real-time data encoding and automated queue management.
+1. **Workflow Modernization:** Design a centralized system that actively tracks patient status across 10 clinical departments, bridging communication gaps via real-time data encoding and digital queue tracking.
 2. **Cloud-Native Deployment:** Implement a modern, responsive web-based Single Page Application (SPA) utilizing a cloud-native architecture (Supabase BaaS) with WebSocket-driven live updates.
 3. **Quality & Usability Testing:** Test against the FURPS+ framework to ensure functional suitability, >99% uptime, <3s load times, and above-average usability (Target SUS score >= 70).
 4. **Regulatory Compliance:** Ensure strict adherence to ISO 9001:2015 standards, DOH medical information system requirements (AO 2012-0012, 2013-0006), and the Philippine Data Privacy Act of 2012 (RA 10173).
@@ -24,7 +24,8 @@ This project will develop a specialized, parallel Electronic Medical Record (EMR
 * **Role-Based Web Dashboards:** Tailored interfaces for Reception/Billing, Triage Nurse, Department Staff, Physician, Releasing Staff, and System Admin.
 * **External Web Portals:**
   * **Patient Portal:** Mobile-responsive, secure access to track personal PEME progress and download finalized certificates.
-  * **Client/Agency Portal:** Secure access for recruitment representatives to view status and access results for assigned workers.
+  * **Client/Agency Portal:** Secure access for recruitment representatives to view status and access results for assigned workers, contingent upon system verification of a physical DPA consent waiver (`WaiverSigned` flag).
+* **DPA Consent Waivers:** System tracks whether patients have signed a physical data release waiver authorizing the sharing of their medical results with their agency.
 * **Automated Notifications:** Email alerts triggered to patients, agencies, and releasing staff upon case completion/result availability.
 * **Automated Collation:** System-generated consolidation of exam results for Physician fitness-to-work decision review.
 * **PDF Generation:** Downloadable, printable PEME certificates.
@@ -37,6 +38,7 @@ This project will develop a specialized, parallel Electronic Medical Record (EMR
 * **No Native Mobile Apps:** No iOS/Android app development (web portals will be mobile-responsive SPAs instead).
 * **No SMS Notifications:** Alerting is strictly restricted to email protocols.
 * **No Advanced Analytics:** Excludes BI dashboards, telemedicine, or direct integration with national health registries.
+* **No Automated Patient Routing:** The system will NOT utilize automated patient routing algorithms or priority queuing. Department queues are strictly staff-driven digital tracking lists (Manual-Pull Kanban model).
 
 ## 4. Success Metrics & KPIs
 * **Wait Time Reduction:** Reduce average cumulative patient waiting time from 2.6 hours to **2.1 - 2.2 hours** (15-20% reduction).

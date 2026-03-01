@@ -1,7 +1,7 @@
 # Development Roadmap & Task Tracker
 **Project:** Real-Time PEME Monitoring and Result Access System for American Hospital Inc.
 **Source:** Capstone Manuscript §3.5.1 (Iterative Development Methodology — 4 Iterations)
-**Last Updated:** 2026-02-28 (Repository + GitHub Project sync)
+**Last Updated:** 2026-03-01 (Repository restructuring + GitHub Project sync)
 
 ---
 
@@ -35,13 +35,21 @@
 
 ---
 
-## Repository & Project Operations Sync (2026-02-28)
+## Repository & Project Operations Sync (2026-03-01)
 - [x] Git repository connected to `https://github.com/alxvlo/AHI_Capstone.git`
 - [x] GitHub Project V2 created (`AHI Capstone 2026 Delivery`)
 - [x] Sprint milestones created (Sprint 01 to Sprint 13)
 - [x] Detailed generated issues created and linked to project (`#31` to `#62`)
 - [x] Project date fields (`Start Date`, `Target Date`) auto-populated from sprint windows
 - [x] Assignees mapped from `profiles.md` and balanced by sprint window + total workload
+- [x] Repository restructured — `memory-bank/` is single source of truth, `docs/project-management/` removed
+- [x] Legacy `[AHI-xxx]` issues (#1-#30) closed as not_planned (deprecated ticket system)
+- [x] Legacy milestones (M1-M4) closed (replaced by Sprint 01-13 milestones)
+
+**Current state:**
+- Open issues: 32 (#31-#62) — 4 epics + 26 stories + 2 tasks
+- Open milestones: 13 (Sprint 01 through Sprint 13)
+- Closed milestones: 4 (M1-M4, legacy)
 
 **Current load distribution (issues #31-#62):**
 - `@devdjclark`: 10
@@ -240,7 +248,8 @@
 ### 2.1 Reception/Billing Interface
 - [ ] Build patient search component (name, DOB, passport, government ID)
 - [ ] Build new patient registration form (required fields: name, DOB, sex, contact, ID)
-- [ ] Build PEME case creation form (company selector, package selector, category, rush flag)
+- [ ] Build PEME case creation form (company selector, package selector, category, rush flag, waiver signed checkbox)
+- [ ] Implement DPA waiver verification: case cannot be saved unless `WaiverSigned` is verified (FR 1.6)
 - [ ] Implement auto-generation of Case ID/Number on save
 - [ ] Implement auto-population of DepartmentVisit records based on package-dept mapping
 - [ ] Implement registration timestamp auto-recording
@@ -256,14 +265,15 @@
 - [ ] Implement triage completion timestamp recording on submit
 - [ ] Implement case status transition: Registered → In_Progress after triage
 
-### 2.3 Department Staff Interface
-- [ ] Build department-specific queue view (own dept visits only)
+### 2.3 Department Staff Interface (Manual-Pull Kanban)
+- [ ] Build department-specific pending list view (own dept visits only)
 - [ ] Display: patient name, Case ID, rush flag, queue number, visit status
-- [ ] Implement queue sorting: rush first, then by TimeQueued
-- [ ] Implement visit status transitions: Waiting → Called → In_Service → Completed
-- [ ] Implement On_Hold toggle (In_Service ↔ On_Hold)
-- [ ] Implement Waiting → Cancelled transition
-- [ ] Auto-record timestamps: TimeQueued, TimeStarted, TimeCompleted
+- [ ] Implement list sorting: rush first, then by TimePending
+- [ ] Implement visit status transitions: Pending → In_Progress → Completed
+- [ ] Implement skip action: Pending → Skipped (patient absent/late)
+- [ ] Implement re-queue action: Skipped → Pending (patient returns)
+- [ ] Implement Pending → Cancelled transition
+- [ ] Auto-record timestamps: TimePending, TimeStarted, TimeCompleted
 - [ ] Build clinical data encoding form (test results, flags, parameters per department)
 - [ ] Save encoded results as RESULT_ITEM records
 - [ ] Build read-only result summary view for completed visits
@@ -342,14 +352,16 @@
 - [ ] Ensure 44×44px minimum touch targets
 - [ ] Test on mobile viewports (no horizontal scrolling)
 
-### 3.2 Client/Agency Portal
+### 3.2 Client/Agency Portal (DPA Consent-Gated)
 - [ ] Build agency login (username + password)
-- [ ] Build released case list view (own company, Released + PortalVisible)
+- [ ] Display standardized DPA compliance notice on portal access (FR 2.8)
+- [ ] Build released case list view (own company, Released + PortalVisible + WaiverSigned)
 - [ ] Build search functionality (applicant name, passport number, date range)
 - [ ] Display search results: applicant name, Case ID, registration date, fitness status, release date
 - [ ] Build PEME result summary view (demographics, fitness status, remarks, configurable test subset)
-- [ ] Implement PDF summary download/print
-- [ ] Block access to non-Released cases
+- [ ] Implement `WaiverSigned` verification before allowing result summary to be opened (FR 2.1)
+- [ ] Implement PDF summary download/print (contingent on WaiverSigned)
+- [ ] Block access to non-Released cases and cases without signed waiver
 - [ ] Implement mobile-responsive view (no horizontal scrolling)
 
 ### 3.3 Email Notification System

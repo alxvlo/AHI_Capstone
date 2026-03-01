@@ -1,7 +1,7 @@
 # Technology Stack
 **Project:** Real-Time PEME Monitoring and Result Access System for American Hospital Inc.
 **Source:** PID §5, Capstone Manuscript §3.2 (Program Design), §3.4 (Non-Functional Requirements), §3.5 (Project Details)
-**Last Updated:** 2026-02-28
+**Last Updated:** 2026-03-01
 
 ---
 
