@@ -11,22 +11,15 @@ Real-Time PEME Monitoring and Result Access System for American Hospital Inc.
 - Technology stack: [memory-bank/tech-stack.md](memory-bank/tech-stack.md)
 - Auth implementation decision: [memory-bank/auth-implementation-decision.md](memory-bank/auth-implementation-decision.md)
 - Team profile mapping: [memory-bank/profiles.md](memory-bank/profiles.md)
-- Risk register: [memory-bank/risk-register.md](memory-bank/risk-register.md)
 
 ### Reference Documents
-- Docs index: [docs/README.md](docs/README.md)
-- Project details PDF: [docs/references/project-details.pdf](docs/references/project-details.pdf)
-- Patient portal requirements note: [docs/requirements/patient-portal-requirements.txt](docs/requirements/patient-portal-requirements.txt)
-- Dashboard requirements index: [docs/requirements/README.md](docs/requirements/README.md)
-- Dashboard role and feature spec: [docs/requirements/dashboard-role-feature-functional-spec.md](docs/requirements/dashboard-role-feature-functional-spec.md)
-- Dashboard layout and navigation spec: [docs/requirements/dashboard-frontend-layout-navigation-spec.md](docs/requirements/dashboard-frontend-layout-navigation-spec.md)
-- Dashboard phased development plan: [docs/requirements/dashboard-development-execution-plan.md](docs/requirements/dashboard-development-execution-plan.md)
-- Dashboard Phase 0 implementation log: [docs/changelog/2026-03-21-dashboard-phase0-foundation.md](docs/changelog/2026-03-21-dashboard-phase0-foundation.md)
-- Dashboard Phase 1 staff modules log: [docs/changelog/2026-03-21-dashboard-phase1-staff-modules.md](docs/changelog/2026-03-21-dashboard-phase1-staff-modules.md)
-- Schema snapshot: [docs/database/schema.txt](docs/database/schema.txt)
-- Scope and compliance changelog: [docs/changelog/2026-03-01-changelog.md](docs/changelog/2026-03-01-changelog.md)
-- Manuscript proofreading notes: [docs/manuscript/manuscript-proofreading-notes.md](docs/manuscript/manuscript-proofreading-notes.md)
-- GitHub automation guide: [docs/guides/github-setup.md](docs/guides/github-setup.md)
+- Project details PDF: [memory-bank/references/project-details.pdf](memory-bank/references/project-details.pdf)
+- Patient portal requirements note: [memory-bank/requirements/patient-portal-requirements.txt](memory-bank/requirements/patient-portal-requirements.txt)
+- Dashboard role and feature spec: [memory-bank/requirements/dashboard-role-feature-functional-spec.md](memory-bank/requirements/dashboard-role-feature-functional-spec.md)
+- Dashboard layout and navigation spec: [memory-bank/requirements/dashboard-frontend-layout-navigation-spec.md](memory-bank/requirements/dashboard-frontend-layout-navigation-spec.md)
+- Schema snapshot: [memory-bank/database/schema.txt](memory-bank/database/schema.txt)
+- Manuscript proofreading notes: [memory-bank/manuscript/manuscript-proofreading-notes.md](memory-bank/manuscript/manuscript-proofreading-notes.md)
+- GitHub automation guide: [memory-bank/guides/github-setup.md](memory-bank/guides/github-setup.md)
 
 ### Project Operations
 - **Jira** serves as the single source of truth for all project tracking, sprint planning, and task management.
@@ -37,15 +30,12 @@ Real-Time PEME Monitoring and Result Access System for American Hospital Inc.
 |- app/                    -> active Next.js App Router pages
 |- components/             -> shared UI, layout, and provider components
 |- lib/                    -> Supabase and app utility modules
-|- memory-bank/            -> AI context hub and implementation decisions
-|- docs/
+|- memory-bank/            -> unified architectural, documentation, and logic context hub
 |  |- manuscript/          -> manuscript notes and supporting references
 |  |- guides/              -> operational how-to guides
 |  |- requirements/        -> requirement notes and scope constraints
 |  |- database/            -> schema snapshots and database references
-|  |- changelog/           -> dated project update logs
-|  |- references/          -> supplementary PDF references
-|  '- branding/            -> raw/source branding assets
+|  '- references/          -> supplementary PDF references
 |- supabase/               -> local Supabase config and seed assets
 |- scripts/                -> automation and utility scripts
 ```
@@ -58,8 +48,6 @@ Real-Time PEME Monitoring and Result Access System for American Hospital Inc.
 
 ## Current Documentation Overlay (2026-03-21)
 - Parent-repo baseline documentation is intentionally preserved; no original sections were removed during reconciliation.
-- Current implementation deltas and superseded notes are tracked in:
-  - [docs/changelog/2026-03-21-doc-reconciliation.md](docs/changelog/2026-03-21-doc-reconciliation.md)
 - Canonical runtime schema remains:
-  - [docs/database/schema.txt](docs/database/schema.txt)
+  - [memory-bank/database/schema.txt](memory-bank/database/schema.txt)
 - `memory-bank/design-doc.md` now includes a non-destructive overlay section that maps conceptual table definitions to current live schema types and auth integration behavior.

@@ -23,11 +23,10 @@ This folder is the project knowledge hub for planning, decisions, risks, and imp
 
 ## Related Dashboard Planning Docs
 
-These are outside `memory-bank/` but are now part of the active execution context:
+These documentation specs are now housed directly in the `memory-bank/requirements/` directory:
 
-1. `docs/requirements/dashboard-role-feature-functional-spec.md`
-2. `docs/requirements/dashboard-frontend-layout-navigation-spec.md`
-3. `docs/requirements/dashboard-development-execution-plan.md`
+1. `memory-bank/requirements/dashboard-role-feature-functional-spec.md`
+2. `memory-bank/requirements/dashboard-frontend-layout-navigation-spec.md`
 
 Current execution stage:
 - Dashboard Phase 0 UX foundation is implemented.
