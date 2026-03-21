@@ -14,14 +14,12 @@ This folder is the project knowledge hub for planning, decisions, risks, and imp
   - Auth flow decisions and rationale.
 - `profiles.md`
   - Team member role mapping.
-- `risk-register.md`
-  - Active risks, scoring, and mitigation tracking.
 
 ## Reading Order For New Sessions
 
-1. `risk-register.md`
+1. `pid.md`
 2. `design-doc.md`
-3. `pid.md`
+3. `auth-implementation-decision.md`
 
 ## Related Dashboard Planning Docs
 
@@ -30,7 +28,6 @@ These are outside `memory-bank/` but are now part of the active execution contex
 1. `docs/requirements/dashboard-role-feature-functional-spec.md`
 2. `docs/requirements/dashboard-frontend-layout-navigation-spec.md`
 3. `docs/requirements/dashboard-development-execution-plan.md`
-4. `docs/changelog/2026-03-21-dashboard-planning-pack.md`
 
 Current execution stage:
 - Dashboard Phase 0 UX foundation is implemented.

@@ -6,8 +6,6 @@ This folder stores project references, governance artifacts, and implementation 
 
 - `branding/`
   - Source branding assets used by the app.
-- `changelog/`
-  - Dated project and documentation change history.
 - `database/`
   - Database schema snapshots and references.
 - `guides/`
@@ -33,9 +31,3 @@ This folder stores project references, governance artifacts, and implementation 
 ## Canonical References
 
 - Runtime schema snapshot: `database/schema.txt`
-- Reconciliation log for current docs alignment: `changelog/2026-03-21-doc-reconciliation.md`
-- Repository organization cleanup log: `changelog/2026-03-21-repository-organization-cleanup.md`
-- Dashboard planning pack log: `changelog/2026-03-21-dashboard-planning-pack.md`
-- Dashboard Phase 0 foundation log: `changelog/2026-03-21-dashboard-phase0-foundation.md`
-- Dashboard Phase 1 staff modules baseline log: `changelog/2026-03-21-dashboard-phase1-staff-modules.md`
-- Scope and compliance changelog baseline: `changelog/2026-03-01-changelog.md`
