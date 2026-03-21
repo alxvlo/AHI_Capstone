@@ -5,7 +5,7 @@ Real-Time PEME Monitoring and Result Access System for American Hospital Inc.
 ## Quick Navigation
 
 ### Memory Bank (AI Context - Single Source of Truth)
-- Memory bank index: [memory-bank/README.md](memory-bank/README.md)
+- Memory bank index: [memory-bank/index.md](memory-bank/index.md)
 - Project Initiation Document: [memory-bank/pid.md](memory-bank/pid.md)
 - Design document: [memory-bank/design-doc.md](memory-bank/design-doc.md)
 - Technology stack: [memory-bank/tech-stack.md](memory-bank/tech-stack.md)
