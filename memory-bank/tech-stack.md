@@ -1,7 +1,7 @@
 # Technology Stack
 **Project:** Real-Time PEME Monitoring and Result Access System for American Hospital Inc.
 **Source:** PID §5, Capstone Manuscript §3.2 (Program Design), §3.4 (Non-Functional Requirements), §3.5 (Project Details)
-**Last Updated:** 2026-03-01
+**Last Updated:** 2026-03-21
 
 ---
 
@@ -28,10 +28,10 @@
 ## 2. Frontend
 
 ### 2.1 Framework & Libraries
-- **Next.js** (React framework) — Server-side rendering, file-based routing, API routes, optimized builds.
-- **React.js** — Component-based UI, state management, hooks.
-- **Tailwind CSS** — Utility-first CSS, mobile-first responsive design.
-- **Supabase Client Library** — Frontend SDK for auth, data fetching, WebSocket subscriptions.
+- **Next.js 15.2.2** (React framework) — Server-side rendering, file-based routing, API routes, optimized builds.
+- **React 19** — Component-based UI, state management, hooks.
+- **Tailwind CSS v4.0.14** — Utility-first CSS, mobile-first responsive design.
+- **Supabase Client Library** (`@supabase/supabase-js` 2.49.4, `@supabase/ssr` 0.9.0) — Frontend SDK for auth, data fetching, WebSocket subscriptions.
 
 ### 2.2 Design Approach
 | Surface | Approach | Target Viewport |
@@ -87,7 +87,8 @@ Supabase provides a unified backend layer:
 | Session management | Supabase Auth tokens |
 | Auto-logout | Configurable inactivity timeout |
 | RBAC | Supabase RLS policies per role |
-| Patient portal auth | Unique identifier combination (Case ID + DOB or passport) |
+| Patient portal auth (V1) | Email + password (Supabase Auth) |
+| Patient portal auth (V3) | Unique identifier combination (Case ID + DOB or passport) — planned for Iteration 3 |
 | Agency portal auth | Username + password |
 
 ### 4.2 Data Protection
@@ -206,7 +207,7 @@ If clinic policy mandates strict on-premises data residency:
 | **VS Code** | Primary IDE |
 | **Git + GitHub** | Version control, collaboration, CI/CD triggers |
 | **Node.js** | JavaScript runtime for Next.js |
-| **npm/yarn** | Package management |
+| **npm** | Package management |
 | **Supabase CLI** | Local development, migrations, seed data |
 | **Docker** | Local Supabase instance for dev; on-premises fallback |
 | **OWASP ZAP** | Security vulnerability scanning |

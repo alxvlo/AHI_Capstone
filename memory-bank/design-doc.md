@@ -1,7 +1,7 @@
 # Design Document
 **Project:** Real-Time PEME Monitoring and Result Access System for American Hospital Inc.
 **Source:** Capstone Manuscript — Chapter 3 (Research Methodology and Technical Background)
-**Last Updated:** 2026-03-01 (Queue Simplification + DPA Compliance revision)
+**Last Updated:** 2026-03-21 (Queue Simplification + DPA Compliance baseline preserved; implementation overlay added)
 
 ---
 
@@ -242,7 +242,7 @@ STATUS_CODE (1) ──── (0..*) DEPARTMENT_VISIT (visit status)
 | RoleID | INT | FK → ROLE, NOT NULL | Assigned role |
 | CompanyID | INT | FK → COMPANY, Nullable | For client rep accounts |
 | PatientID | INT | FK → PATIENT, Nullable | For patient portal accounts |
-| Username | VARCHAR(50) | NOT NULL, UNIQUE | Login username |
+| Username | VARCHAR(100) | NOT NULL, UNIQUE | Login username (patient portal uses email) |
 | PasswordHash | VARCHAR(255) | NOT NULL | Hashed password (Supabase Auth) |
 | IsActive | BOOLEAN | Default TRUE | Active flag |
 | IsLocked | BOOLEAN | Default FALSE | Locked flag |
@@ -463,3 +463,31 @@ These support responsive queue views, reporting, and portal queries across the f
 - Digital PEME cases transition to `Archived` status via retention rule or admin action.
 - Archived cases remain queryable for audit purposes but hidden from active dashboards.
 - PortalVisible set to FALSE on archival.
+
+---
+
+## 9. Current Project Overlay (2026-03-21, Additive)
+
+This section reconciles design-level definitions with current implemented schema and auth behavior. Parent baseline sections above are retained for thesis/design continuity.
+
+### 9.1 Canonical Runtime Schema Source
+- Runtime source of truth for concrete table/column types is `docs/database/schema.txt`.
+- This design document remains conceptual-first and is now paired with explicit implementation deltas below.
+
+### 9.2 Schema Delta Notes (Conceptual vs Current Live)
+| Area | Baseline Design Text | Current Implemented State |
+|---|---|---|
+| `PATIENT.PatientID` | INT in conceptual table | UUID in live schema (`patient.patientid uuid`) |
+| `PEME_CASE.CaseID` and FKs | INT model | UUID case keys in live schema (`peme_case.caseid uuid`) |
+| `USER_ACCOUNT.UserID` | INT + auto-increment model | UUID mapped to `auth.users.id` (`user_account.userid uuid`) |
+| `USER_ACCOUNT.PasswordHash` | Documented as required field | Not stored in `user_account`; password hashing/verification handled by Supabase Auth |
+| `AUDIT_LOG.EntityID` | INT model | `varchar(50)` in live schema for flexible entity identifier formats |
+| Timestamp typing | `DATETIME` naming used in conceptual tables | `timestamp with time zone` is used in live schema for auditability and cross-timezone consistency |
+
+### 9.3 Security and Auth Progress Overlay
+- Hosted hardening migrations through `20260327` are applied (RLS baseline, role-scoped SELECT/write baseline, auth lifecycle audit logging).
+- Role-aware route guarding, write-policy probes, workflow write matrix probes, and auth lifecycle audit probes are implemented and passing in current project tracking files.
+
+### 9.4 Preservation Note
+- No original design sections were removed in this reconciliation.
+- This overlay exists to prevent schema/type ambiguity while keeping parent-repo thesis framing intact.

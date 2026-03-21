@@ -1,14 +1,14 @@
 # Development Roadmap & Task Tracker
 **Project:** Real-Time PEME Monitoring and Result Access System for American Hospital Inc.
 **Source:** Capstone Manuscript §3.5.1 (Iterative Development Methodology — 4 Iterations)
-**Last Updated:** 2026-03-01 (Repository restructuring + GitHub Project sync)
+**Last Updated:** 2026-03-21 (dashboard Phase 1 staff role-module baseline implemented and validated)
 
 ---
 
 ## Status Legend
 - [ ] Not started
 - [x] Completed
-- 🔄 In progress
+- [~] In progress
 
 ---
 
@@ -45,8 +45,10 @@
 - [x] Repository restructured — `memory-bank/` is single source of truth, `docs/project-management/` removed
 - [x] Legacy `[AHI-xxx]` issues (#1-#30) closed as not_planned (deprecated ticket system)
 - [x] Legacy milestones (M1-M4) closed (replaced by Sprint 01-13 milestones)
+- [x] Local project Git boundary isolated on 2026-03-20 (`.git` created in repo root, `main` tracking `origin/main`, no push performed)
 
 **Current state:**
+- **Note:** Detailed tracking of active sprints and high-priority GitHub issues is now actively maintained in [`progress.md`](C:/Users/Keith/Downloads/AHI_Capstone-main/AHI_Capstone-main/memory-bank/progress.md).
 - Open issues: 32 (#31-#62) — 4 epics + 26 stories + 2 tasks
 - Open milestones: 13 (Sprint 01 through Sprint 13)
 - Closed milestones: 4 (M1-M4, legacy)
@@ -171,74 +173,331 @@
 
 ### 1.1 Project Initialization
 - [x] Initialize Git repository and push to GitHub
-- [ ] Set up project folder structure (Next.js app)
-- [ ] Configure ESLint, Prettier, and code quality tooling
-- [ ] Create `.env` files structure for environment variables (dev, staging, prod)
+- [x] Set up project folder structure (Next.js app)
+- [~] Configure ESLint and code quality tooling (ESLint configured; Prettier not yet added)
+- [~] Create `.env` files structure for environment variables (`.env.local` and `.env.example` done; staging/prod variants pending)
 - [ ] Write initial README with setup instructions
 
 ### 1.2 Supabase Setup
-- [ ] Create Supabase project (cloud instance)
-- [ ] Configure Supabase Auth (email/password provider)
-- [ ] Set up Supabase CLI for local development
-- [ ] Configure database connection and environment variables
+- [x] Create Supabase project (cloud instance)
+- [~] Configure Supabase Auth (email/password provider) (patient auth wired; confirmation-email frontend flow added; production-safe post-confirmation profile creation and other role flows still pending)
+- [x] Set up Supabase CLI for local development
+- [x] Configure database connection and environment variables
 
 ### 1.3 Database Schema Migration
-- [ ] Create `ROLE` table with predefined roles (8 roles)
-- [ ] Create `DEPARTMENT` table with AHI's 10 departments
-- [ ] Create `STATUS_CODE` table with CASE, VISIT, and DECISION domain codes
-- [ ] Create `PACKAGE` table for PEME package definitions
-- [ ] Create `PATIENT` table (UUID primary key)
-- [ ] Create `COMPANY` table
-- [ ] Create `PEME_CASE` table (UUID primary key, all foreign keys)
-- [ ] Create `DEPARTMENT_VISIT` table (all foreign keys, timestamp fields)
-- [ ] Create `RESULT_ITEM` table
-- [ ] Create `PEME_DECISION` table (unique per case)
-- [ ] Create `USER_ACCOUNT` table (linked to Supabase Auth)
-- [ ] Create `AUDIT_LOG` table
+- [x] Create `ROLE` table with predefined roles (8 roles)
+- [x] Create `DEPARTMENT` table with AHI's 10 departments
+- [x] Create `STATUS_CODE` table with CASE, VISIT, and DECISION domain codes
+- [x] Create `PACKAGE` table for PEME package definitions
+- [x] Create `PATIENT` table (UUID primary key)
+- [x] Create `COMPANY` table
+- [x] Create `PEME_CASE` table (UUID primary key, all foreign keys)
+- [x] Create `DEPARTMENT_VISIT` table (all foreign keys, timestamp fields)
+- [x] Create `RESULT_ITEM` table
+- [x] Create `PEME_DECISION` table (unique per case)
+- [x] Create `USER_ACCOUNT` table (linked to Supabase Auth)
+- [x] Create `AUDIT_LOG` table
 - [ ] Define indexes on key columns (CaseID, PatientID, DepartmentID, status fields, timestamps)
 - [ ] Create package-to-department mapping table/config
-- [ ] Seed initial reference data (departments, roles, status codes, sample packages)
+- [~] Seed initial reference data (roles, departments, and status codes done; sample packages still pending)
 
 ### 1.4 Row Level Security (RLS)
-- [ ] Enable RLS on all tables
-- [ ] Write RLS policy: Reception/Billing — access all active cases
-- [ ] Write RLS policy: Triage Nurse — access cases pending triage
-- [ ] Write RLS policy: Department Staff — access own department queue only
-- [ ] Write RLS policy: Physician — access cases in For_Decision status
-- [ ] Write RLS policy: Releasing Staff — access cases in For_Releasing status
-- [ ] Write RLS policy: Client Representative — own company, Released + PortalVisible only
-- [ ] Write RLS policy: Patient — own case only (via PatientID match)
-- [ ] Write RLS policy: System Administrator — full access to config and audit tables
-- [ ] Test RLS policies with different user roles
+- [x] Enable RLS on all tables (baseline migration applied in hosted project on 2026-03-20)
+- [x] Write RLS policy: Reception/Billing — access all active cases (SELECT baseline)
+- [x] Write RLS policy: Triage Nurse — access cases pending triage (SELECT baseline)
+- [x] Write RLS policy: Department Staff — access own dept queue only (SELECT baseline; requires JWT `department_id` claim)
+- [x] Write RLS policy: Physician — access cases in For_Decision status (SELECT baseline)
+- [x] Write RLS policy: Releasing Staff — access cases in For_Releasing status (SELECT baseline)
+- [x] Write RLS policy: Client Representative — own company, Released + PortalVisible only (SELECT baseline with `WaiverSigned` gate)
+- [x] Write RLS policy: Patient — own case only (baseline own-row + case-scoped reads)
+- [x] Write RLS policy: System Administrator — full access to config and audit tables (SELECT baseline)
+- [x] Test RLS policies with different user roles (all 8 role probes plus seeded workflow-table write matrix validation now passing)
 
 ### 1.5 Frontend Foundation
-- [ ] Initialize Next.js project with TypeScript
-- [ ] Install and configure Tailwind CSS
-- [ ] Install Supabase client library (`@supabase/supabase-js`)
-- [ ] Set up Supabase auth context provider (React context)
-- [ ] Create shared layout components (navigation, sidebar, header, footer)
+- [x] Initialize Next.js project with TypeScript
+- [x] Install and configure Tailwind CSS (v4 + shadcn)
+- [x] Install Supabase client library (`@supabase/supabase-js`)
+- [x] Set up Supabase auth context provider (React context) using SSR-compatible Supabase session handling
+- [x] Create shared layout components (navigation, header, footer)
+- [x] Create landing page UI
+- [x] Create About page (public hospital information)
+- [x] Create Services page (public hospital information)
+- [x] Create Contact page (public hospital information)
+- [x] Create login page (patient portal — email based)
+- [x] Create sign-up page (patient portal — 9 fields)
 - [ ] Create login page (staff dashboard)
-- [ ] Create login page (patient portal — identifier-based)
 - [ ] Create login page (agency portal — username/password)
-- [ ] Implement protected route middleware (redirect unauthenticated users)
-- [ ] Implement role-based route guards (redirect unauthorized roles)
-- [ ] Create basic 404 and error pages
+- [x] Implement protected route middleware (redirect unauthenticated users)
+- [x] Implement role-based route guards (redirect unauthorized roles)
+- [x] Create generic dashboard placeholder
+- [~] Create basic fallback pages (unauthorized page done; custom 404/error page still pending)
 
 ### 1.6 CI/CD & Deployment
 - [ ] Set up Vercel project linked to GitHub repo
 - [ ] Configure automatic deployments on push to `main`
 - [ ] Set environment variables in Vercel dashboard
-- [ ] Verify successful frontend-to-backend API communication (health check)
-- [ ] Verify Supabase Auth login/logout flow end-to-end
+- [x] Verify successful frontend-to-backend API communication (health check)
+- [x] Verify Supabase Auth login/logout flow end-to-end (fresh confirmation-enabled signup replay now validated; auth lifecycle audit logging in place)
 - [ ] Test deployment on staging environment
 
 ### 1.7 Iteration 1 Review
 - [ ] Document any deviations from design
-- [ ] Verify all 12 tables created and seeded correctly
-- [ ] Verify RLS policies block unauthorized access
-- [ ] Verify auth flows (staff, patient, client rep)
-- [ ] Update `design-doc.md` if schema changed
-- [ ] Update `roadmap-todo.md` with completion status
+- [~] Verify all 12 tables created and seeded correctly (schema confirmed; roles/departments/status codes seeded; business data still pending)
+- [x] Verify RLS policies block unauthorized access (anon/browser-key and all-role seeded workflow write probes now validated)
+- [x] Verify auth flows (patient confirmation-enabled replay, role-based sign-in matrix, and auth lifecycle audit events validated)
+- [x] Update `design-doc.md` if schema changed (2026-03-21 overlay reconciliation added; baseline sections preserved)
+- [x] Update `roadmap-todo.md` with completion status
+
+### 1.8 Iteration 1 Current Snapshot (2026-03-14)
+- [x] Local Next.js 15 app scaffolded in the repo root
+- [x] Landing page UI completed
+- [x] About page UI completed
+- [x] Services page UI completed
+- [x] Contact page UI completed
+- [x] Patient sign-in UI completed
+- [x] Patient sign-up UI completed
+- [x] Patient check-email and resend-confirmation UI completed
+- [x] Generic dashboard placeholder completed
+- [x] Supabase frontend connectivity verified
+- [x] Reference data seeded for roles, departments, and status codes
+- [x] Temporary mock/local auth provider removed
+- [x] Real Supabase Auth session wiring completed
+- [x] Local Git boundary fix completed (`main...origin/main` now project-local only)
+- [x] Protected route middleware and role guards completed and aligned to role-based dashboard destinations
+- [~] Secure profile creation RPC and pending-completion RPC are hosted and validated on confirmed-user authenticated probes; fresh-signup replay is pending email rate-limit reset
+
+### 1.9 Security Audit Snapshot (2026-03-20)
+- [x] RLS/auth hardening audit completed (repository SQL + live browser-key probe)
+- [x] Confirmed only `pending_patient_signup` has local `ENABLE RLS` migration entry
+- [x] Confirmed no local `CREATE POLICY` statements are present in SQL migrations
+- [x] Confirmed pre-mitigation browser-key read access reached `user_account` and `patient` in the prior environment state
+- [x] Implement baseline RLS policies for all core tables
+- [x] Re-verify that browser-key table access is blocked except approved read-only surfaces
+
+### 1.10 RLS Baseline Migration Snapshot (2026-03-20)
+- [x] Added `supabase/migrations/20260320_baseline_core_rls.sql`
+- [x] Included `ENABLE RLS` statements for all 12 core schema tables
+- [x] Added baseline policies for reference reads plus authenticated own-row access on `user_account` and `patient`
+- [x] Hosted Supabase apply completed (`20260317`, `20260320`, `20260321`, `20260322`, `20260323`, and `20260324` recorded in remote migration history)
+- [x] Post-apply browser-key probes now deny direct reads on `patient`, `user_account`, and `pending_patient_signup`
+- [~] Role-specific policy depth and authenticated flow verification still pending
+
+### 1.11 Authenticated Validation Snapshot (2026-03-20)
+- [x] Reproduced and documented RPC ambiguity defects (`patientid`, `emailaddress`) during authenticated completion attempts
+- [x] Added and applied `20260322_create_patient_profile_ambiguity_fix.sql`
+- [x] Added and applied `20260323_complete_pending_profile_ambiguity_fix.sql`
+- [x] Verified authenticated `complete_patient_profile_from_pending()` success on a confirmed test account
+- [x] Verified own-row visibility (`user_account`, linked `patient`) and non-own `user_account` denial behavior
+- [~] Fresh confirmation-email signup replay still constrained by Supabase `over_email_send_rate_limit`
+
+### 1.12 Role-Scoped RLS SELECT Snapshot (2026-03-20)
+- [x] Added and applied `20260324_role_scoped_rls_select_baseline.sql`
+- [x] Added role-scoped SELECT policies on `company`, `package`, `peme_case`, `department_visit`, `result_item`, `peme_decision`, `patient`, `user_account`, and `audit_log`
+- [x] Added helper functions for role/company/patient context and case visibility evaluation
+- [x] Confirmed anon/browser-key denial for workflow tables (`company`, `package`, `peme_case`, `department_visit`, `result_item`, `peme_decision`, `audit_log`)
+- [x] Re-validated confirmed-user patient authenticated path after policy apply
+- [~] Department Staff claim provisioning and live staff/client/admin role-probe matrix still pending
+
+### 1.13 Route-Guard Alignment Snapshot (2026-03-20)
+- [x] Added shared role constants/helpers (`lib/supabase/roles.ts`)
+- [x] Updated middleware to enforce `/dashboard*` auth + role route guards
+- [x] Added `/dashboard` role-destination redirect in middleware
+- [x] Added Department Staff `department_id` claim check for `/dashboard/staff`
+- [x] Added signed-in redirect from patient sign-in/sign-up pages to `/dashboard`
+- [x] Verified compile and type integrity (`npm run lint`, `npm run build`)
+
+### 1.14 Live Role-Probe Matrix Snapshot (2026-03-20)
+- [x] Executed live `pg_policies` inventory probe in hosted Supabase
+- [x] Executed anon/browser-key table-access probe (`role`, `department`, `status_code` allowed; protected tables denied)
+- [x] Executed authenticated patient probe with expected own-row behavior and role RPC confirmation
+- [~] Re-ran linked DB baseline query for role-account listing (intermittent pooler circuit-breaker/timeouts observed)
+- [x] Completed staff/client/admin probe slices after credential bootstrap
+
+### 1.15 Role-Aware SQL Probe Bootstrap Snapshot (2026-03-20)
+- [x] Added and executed `scripts/supabase/bootstrap-role-probe-users.sql`
+- [x] Bootstrapped login-ready probe users for all 8 roles
+- [x] Linked role-aware `user_account` mappings plus role-dependent references (`company`, `patient`)
+- [x] Applied Department Staff JWT `department_id` metadata and verified via `rls_current_department_id()`
+- [x] Validated password sign-in success for all probe users (`AhiProbe!2026`)
+
+### 1.16 Patient Sign-Up PH Contact Auto-Format Snapshot (2026-03-20)
+- [x] Added shared PH mobile utility at `lib/phone.ts`
+- [x] Added auto-format on patient sign-up contact input (`+63 912 345 6789` display format)
+- [x] Added optional contact validation guard for valid PH mobile pattern
+- [x] Canonicalized submitted contact value to `+639123456789` before RPC profile calls
+- [x] Verified type and lint integrity on changed files (`eslint` targeted run + `tsc --noEmit`)
+
+### 1.17 Signup Required Contact + ID Type Snapshot (2026-03-20)
+- [x] Enforced `contactNumber` as required in patient sign-up required-field validation
+- [x] Added required `ID Type` selector in sign-up (`Passport`, `National ID`, `Driver's License`, `Other Government ID`)
+- [x] Kept `ID Number` required and normalized storage value as `TYPE::NUMBER`
+- [x] Added backend validation migration `20260325_signup_contact_and_identity_required.sql` for RPC-level enforcement
+- [x] Applied `20260325_signup_contact_and_identity_required.sql` to hosted Supabase
+- [x] Confirmed live RPC validation behavior (`22023` errors for missing contact and invalid `TYPE::NUMBER` format)
+- [x] Updated `scripts/supabase/validate-auth-e2e.mjs` payload contract to match identity/contact validation rules
+- [x] Verified compile and lint integrity (`eslint` targeted run + `tsc --noEmit`)
+
+### 1.18 Role-to-Dashboard Redirect Audit Snapshot (2026-03-20)
+- [x] Added redirect audit script `scripts/supabase/audit-role-dashboard-redirects.mjs`
+- [x] Added local server runner `scripts/supabase/run-role-redirect-audit-local.mjs`
+- [x] Verified signed-in `/dashboard` role-destination redirects for all 8 roles
+- [x] Verified signed-in `/auth/patient/sign-in` redirect behavior to `/dashboard`
+- [x] Result: `8/8` pass, `0` fail
+
+### 1.19 Protected Route Audit Snapshot (Priority Roles) (2026-03-20)
+- [x] Added script `scripts/supabase/audit-protected-routes-priority.mjs`
+- [x] Validated route protection for `Patient`, `Reception/Billing`, `Physician`, `System Administrator`
+- [x] Verified allowed path returns `200` and non-allowed paths redirect `307 -> /unauthorized?reason=role_mismatch`
+- [x] Result: `4/4` pass, `0` fail
+
+### 1.20 Role Feature Smoke Snapshot (Priority Roles) (2026-03-20)
+- [x] Added script `scripts/supabase/audit-role-smoke-priority.mjs`
+- [x] Validated role-page marker rendering on allowed dashboard paths for priority roles
+- [x] Result: `4/4` pass, `0` fail
+
+### 1.21 Protected Route Audit Snapshot (All 8 Roles) (2026-03-20)
+- [x] Added script `scripts/supabase/audit-protected-routes-all-roles.mjs`
+- [x] Validated route protection behavior for all core roles
+- [x] Verified allowed path returns `200` and non-allowed paths redirect `307 -> /unauthorized?reason=role_mismatch`
+- [x] Result: `8/8` pass, `0` fail
+
+### 1.22 Role Feature Smoke Snapshot (All 8 Roles) (2026-03-20)
+- [x] Added script `scripts/supabase/audit-role-smoke-all-roles.mjs`
+- [x] Validated role-page marker rendering on allowed dashboard paths for all core roles
+- [x] Result: `8/8` pass, `0` fail
+
+### 1.23 Redirect Audit Re-Run Snapshot (All 8 Roles) (2026-03-20)
+- [x] Re-ran `scripts/supabase/audit-role-dashboard-redirects.mjs` via local runner after all-role audit expansion
+- [x] Confirmed redirect baseline remains green
+- [x] Result: `8/8` pass, `0` fail
+
+### 1.24 Department Staff Missing-Claim Negative Probe Snapshot (2026-03-20)
+- [x] Added bootstrap SQL `scripts/supabase/bootstrap-deptstaff-missing-claim-probe.sql`
+- [x] Added audit script `scripts/supabase/audit-department-staff-missing-claim.mjs`
+- [x] Bootstrapped probe `probe.deptstaff.noclaim.20260320@ahi.local` without `department_id` claim
+- [x] Verified `/dashboard/staff` redirects to `/unauthorized?reason=missing_department_claim`
+- [x] Result: pass `1/1`, fail `0`
+
+### 1.25 Write-Policy Baseline Snapshot (2026-03-20)
+- [x] Added and applied `supabase/migrations/20260326_role_scoped_rls_write_baseline.sql`
+- [x] Added write-policy probe script `scripts/supabase/validate-write-policy-baseline.mjs`
+- [x] Added repeatable npm scripts for audits (`audit:roles:*`, `audit:write-policies`, `probe:deptstaff:noclaim:bootstrap`)
+- [x] Verified baseline write behavior:
+  - admin config-table writes allowed
+  - patient/reception config-table writes denied
+  - reception blocked from updating admin-created company row
+  - patient own audit-log insert allowed
+- [x] Result: pass `9/9`, fail `0`
+
+### 1.26 Workflow Write Matrix Snapshot (2026-03-21)
+- [x] Added `scripts/supabase/validate-workflow-write-matrix.mjs`
+- [x] Added repeatable npm scripts `audit:write:workflow` and `audit:write:all`
+- [x] Seeded realistic workflow probe states per run (`REGISTERED`, `FOR_DECISION`, `FOR_RELEASING`, `RELEASED`) and validated writes on `peme_case`, `department_visit`, `result_item`, `peme_decision`
+- [x] Verified role-scoped write allow/deny matrix with mutation checks for silent-deny updates
+- [x] Verified cleanup of probe decisions/results/visits/cases/packages after each run
+- [x] Result: pass `27/27`, fail `0`
+
+### 1.27 Auth Lifecycle Audit Logging Snapshot (2026-03-21)
+- [x] Added and applied `supabase/migrations/20260327_auth_audit_event_logging.sql`
+- [x] Added secure RPC `public.log_auth_audit_event(...)` with action whitelist and execute grants for `anon`, `authenticated`, `service_role`
+- [x] Wired auth UI/provider flows to log: `SIGNUP_STAGED`, `SIGNIN_SUCCESS`, `SIGNIN_FAILURE`, `EMAIL_CONFIRMED`, `PROFILE_COMPLETED`, `SIGNUP_CONFIRM_RESEND`
+- [x] Added validation script `scripts/supabase/validate-auth-audit-events.mjs`
+- [x] Added npm command `audit:auth:logs`
+- [x] Result: pass `10/10`, fail `0`
+
+### 1.28 Documentation Reconciliation Snapshot (2026-03-21)
+- [x] Reconciled README + memory-bank operational documents using additive overlays (no parent baseline deletions)
+- [x] Added design/runtime schema delta overlay in `memory-bank/design-doc.md` with canonical reference to `docs/database/schema.txt`
+- [x] Updated project working-memory metadata and superseded-note mapping in `memory-bank/project-working-memory-bank.md`
+- [x] Added dated reconciliation changelog `docs/changelog/2026-03-21-doc-reconciliation.md` for traceability
+- [x] Clarified risk-note interpretation for signup rate-limit state vs validated replay state
+- [x] Marked Iteration 1 review item for design-doc schema update as completed
+- [x] Remaining ordered tasks after docs: rerun `audit:auth:logs`, then rerun all-role route/redirect/smoke regression
+
+### 1.29 Ordered Validation Reruns After Doc Reconciliation (2026-03-21)
+- [x] Reran `npm run audit:auth:logs` -> pass `10/10`, fail `0`
+- [x] Reran `npm run audit:roles:all`
+- [x] Captured first-attempt local dev bootstrap issue (`EPERM` on `.next/trace`)
+- [x] Mitigated by terminating stale Node processes
+- [x] Confirmed successful retry outcomes:
+  - redirect audit pass `8/8`
+  - protected-route all-role audit pass `8/8`
+  - role smoke all-role audit pass `8/8`
+
+### 1.30 Repository Organization Cleanup Snapshot (2026-03-21)
+- [x] Fixed `.gitignore` heading typo for clean repository hygiene
+- [x] Added `docs/README.md` folder index
+- [x] Added `memory-bank/README.md` folder index and recommended reading order
+- [x] Updated root `README.md` quick navigation with new index links
+- [x] Added changelog record `docs/changelog/2026-03-21-repository-organization-cleanup.md`
+- [x] Verified lint remains passing after cleanup (`npm run lint`)
+
+### 1.31 Dashboard Planning Pack Snapshot (2026-03-21)
+- [x] Added role-feature functional spec:
+  - `docs/requirements/dashboard-role-feature-functional-spec.md`
+- [x] Added dashboard layout and navigation spec:
+  - `docs/requirements/dashboard-frontend-layout-navigation-spec.md`
+- [x] Added phased execution plan:
+  - `docs/requirements/dashboard-development-execution-plan.md`
+- [x] Added requirements index:
+  - `docs/requirements/README.md`
+- [x] Updated root and docs indexes with planning-pack links
+- [x] Added changelog trace:
+  - `docs/changelog/2026-03-21-dashboard-planning-pack.md`
+- [x] Next implementation focus remains pending approval:
+  - Phase 0 (`Dashboard` and `Account` global nav access + shared shell baseline)
+
+### 1.32 Memory-Bank Synchronization Snapshot (2026-03-21)
+- [x] Synced working-memory next-step recommendation to dashboard Phase 0 foundation task
+- [x] Updated stale auth-flow status wording from in-progress to completed where probe evidence already exists
+- [x] Added direct references in working memory to dashboard planning docs and changelog traces
+- [x] Updated risk register with dashboard UX/navigation risk tracking entry and mitigation direction
+- [x] Captured pre-implementation state before Phase 0 execution (superseded by Snapshot 1.33)
+
+### 1.33 Dashboard Phase 0 UX Foundation Snapshot (2026-03-21)
+- [x] Implemented auth-aware navbar actions for signed-in users:
+  - `Dashboard`
+  - `Account`
+  - `Sign Out`
+- [x] Added shared account route:
+  - `app/dashboard/account/page.tsx`
+- [x] Added shared dashboard-shell baseline in `app/dashboard/layout.tsx`:
+  - role-aware workspace header
+  - `Dashboard Home` + `Account` quick links
+- [x] Fixed stale route-state wording in working memory (`/auth/staff/sign-in`, `/auth/agency/sign-in` now marked implemented)
+- [x] Fixed manuscript-proofreading note to remove stale deleted-file source-path reference
+- [x] Verified lint passes after Phase 0 implementation (`npm run lint`)
+- [x] Verified build passes after Phase 0 implementation (`npm run build`)
+- [x] Verified role-route regression remains green after Phase 0 (`npm run audit:roles:all`)
+- [x] Verified auth lifecycle audit logging remains green after Phase 0 (`npm run audit:auth:logs`)
+- [x] Next implementation focus moved to Phase 1:
+  - Reception/Billing dashboard module buildout (pending approval)
+
+### 1.34 Dashboard Phase 1 Staff Role-Module Baseline Snapshot (2026-03-21)
+- [x] Replaced generic staff placeholder with role-module composition:
+  - `Reception/Billing`
+  - `Triage Nurse`
+  - `Department Staff`
+  - `Physician`
+  - `Releasing Staff`
+- [x] Added baseline workflow server actions:
+  - reception case creation with waiver-required validation and audit write
+  - triage completion status/timestamp update
+  - department visit status transitions with timestamp updates
+  - releasing action with decision/visit completion checklist guards
+- [x] Added reusable dashboard UI blocks:
+  - `metric-card`
+  - `status-badge`
+  - textarea input primitive
+- [x] Verified quality gates after implementation:
+  - `npm run lint`
+  - `npm run build`
+  - `npm run audit:roles:all`
+  - `npm run audit:auth:logs`
+- [~] Remaining Phase 1 gaps:
+  - package-to-department auto-visit bootstrap on case creation
+  - physician decision-entry form and additional-tests path
+  - releasing portal-visibility toggle controls
 
 ---
 
@@ -246,34 +505,34 @@
 > **Goal:** Build the core clinical workflow — case registration, department queues, result encoding, real-time updates, physician decisions, and releasing.
 
 ### 2.1 Reception/Billing Interface
-- [ ] Build patient search component (name, DOB, passport, government ID)
+- [x] Build patient search component (name, DOB, passport, government ID)
 - [ ] Build new patient registration form (required fields: name, DOB, sex, contact, ID)
-- [ ] Build PEME case creation form (company selector, package selector, category, rush flag, waiver signed checkbox)
-- [ ] Implement DPA waiver verification: case cannot be saved unless `WaiverSigned` is verified (FR 1.6)
-- [ ] Implement auto-generation of Case ID/Number on save
+- [x] Build PEME case creation form (company selector, package selector, category, rush flag, waiver signed checkbox)
+- [x] Implement DPA waiver verification: case cannot be saved unless `WaiverSigned` is verified (FR 1.6)
+- [x] Implement auto-generation of Case ID/Number on save
 - [ ] Implement auto-population of DepartmentVisit records based on package-dept mapping
-- [ ] Implement registration timestamp auto-recording
-- [ ] Build Reception/Billing dashboard (active case list with filters: date, company, rush, status)
+- [x] Implement registration timestamp auto-recording
+- [x] Build Reception/Billing dashboard (active case list with filters: date, company, rush, status)
 - [ ] Implement case edit restrictions (locked after Registered status except authorized users)
 - [ ] Implement soft-cancel for cases (no deletion; status change to Cancelled)
-- [ ] Write audit log entries for case creation and updates
+- [~] Write audit log entries for case creation and updates
 
 ### 2.2 Triage Nurse Interface
-- [ ] Build triage queue view (Registered/In_Progress cases, today's schedule)
-- [ ] Build rush flag filter on triage list
+- [x] Build triage queue view (Registered/In_Progress cases, today's schedule)
+- [~] Build rush flag filter on triage list
 - [ ] Build triage assessment form (vital signs, vision, observations)
-- [ ] Implement triage completion timestamp recording on submit
-- [ ] Implement case status transition: Registered → In_Progress after triage
+- [x] Implement triage completion timestamp recording on submit
+- [x] Implement case status transition: Registered → In_Progress after triage
 
 ### 2.3 Department Staff Interface (Manual-Pull Kanban)
-- [ ] Build department-specific pending list view (own dept visits only)
-- [ ] Display: patient name, Case ID, rush flag, queue number, visit status
-- [ ] Implement list sorting: rush first, then by TimePending
-- [ ] Implement visit status transitions: Pending → In_Progress → Completed
-- [ ] Implement skip action: Pending → Skipped (patient absent/late)
-- [ ] Implement re-queue action: Skipped → Pending (patient returns)
+- [x] Build department-specific pending list view (own dept visits only)
+- [x] Display: patient name, Case ID, rush flag, queue number, visit status
+- [~] Implement list sorting: rush first, then by TimePending
+- [x] Implement visit status transitions: Pending → In_Progress → Completed
+- [x] Implement skip action: Pending → Skipped (patient absent/late)
+- [x] Implement re-queue action: Skipped → Pending (patient returns)
 - [ ] Implement Pending → Cancelled transition
-- [ ] Auto-record timestamps: TimePending, TimeStarted, TimeCompleted
+- [~] Auto-record timestamps: TimePending, TimeStarted, TimeCompleted
 - [ ] Build clinical data encoding form (test results, flags, parameters per department)
 - [ ] Save encoded results as RESULT_ITEM records
 - [ ] Build read-only result summary view for completed visits
@@ -295,7 +554,7 @@
 - [ ] Display completion progress on all relevant dashboards
 
 ### 2.6 Physician Interface
-- [ ] Build physician dashboard (cases in For_Decision status)
+- [x] Build physician dashboard (cases in For_Decision status)
 - [ ] Build consolidated case summary view (demographics, company, package, all results grouped by dept)
 - [ ] Display auto-generated result collation (eliminates manual chart pulling)
 - [ ] Build fitness decision form (status dropdown: Fit / Unfit / Fit with Restrictions, remarks text)
@@ -308,13 +567,13 @@
 - [ ] Write audit log for decision actions
 
 ### 2.7 Releasing Staff Interface
-- [ ] Build releasing dashboard (cases in For_Releasing status)
-- [ ] Build release checklist view (all visits completed? decision present?)
-- [ ] Implement finalization guards (block if missing visits or decision)
-- [ ] Implement Release action: For_Releasing → Released (set timestamp + portalVisible=true)
-- [ ] Record releasing UserID and release timestamp
+- [x] Build releasing dashboard (cases in For_Releasing status)
+- [x] Build release checklist view (all visits completed? decision present?)
+- [x] Implement finalization guards (block if missing visits or decision)
+- [x] Implement Release action: For_Releasing → Released (set timestamp + portalVisible=true)
+- [~] Record releasing UserID and release timestamp
 - [ ] Build portal visibility toggle (hide/show with mandatory reason)
-- [ ] Write audit log for all release and visibility actions
+- [~] Write audit log for all release and visibility actions
 
 ### 2.8 System Admin Interface
 - [ ] Build user account management (create, lock, disable, reset password, view last login)
@@ -331,7 +590,7 @@
 - [ ] End-to-end test: full PEME lifecycle (Register → Triage → Dept Visits → Decision → Release)
 - [ ] Test real-time updates across multiple simultaneous browser sessions
 - [ ] Test package mapping and completion auto-detection
-- [ ] Test RLS policies with populated data for all roles
+- [~] Test RLS policies with populated data for all roles (baseline seeded workflow write matrix completed; rerun after Iteration 2 feature writes)
 - [ ] Document deviations and update `design-doc.md`
 - [ ] Update `roadmap-todo.md` with completion status
 
@@ -520,7 +779,9 @@
 
 | Iteration | Status | Key Deliverables |
 |---|---|---|
-| **1:** Infrastructure & Foundation | In Progress | Repository/GitHub Project setup complete; Supabase, DB schema, Auth, RLS, CI/CD, basic login pending implementation |
-| **2:** Active Encoding & Dashboards | Planned | All 6 staff dashboards, WebSocket real-time, full PEME lifecycle |
+| **1:** Infrastructure & Foundation | In Progress | Next.js app scaffold complete; landing/About/Services/Contact plus sign-in/sign-up UI complete; Supabase connectivity verified; roles/departments/status codes seeded; Supabase auth session wiring complete; baseline RLS plus RPC ambiguity fixes and role-scoped SELECT/write policies applied in hosted Supabase through `20260327`; middleware route protection aligned to role model and build/lint verified; role-aware probe bootstrap and all role sign-ins validated; seeded workflow write matrix validation passing (`27/27`); auth lifecycle audit logging validated (`10/10`); CI/CD and Iteration 2 workflow buildout remain pending |
+| **2:** Active Encoding & Dashboards | In Progress | Staff role-module baseline is implemented for Reception/Triage/Department/Physician/Releasing with guarded server actions; remaining work includes package-to-department visit bootstrap, physician decision form, admin/triage refinements, realtime subscriptions, and full PEME lifecycle completion |
 | **3:** Patient & Agency Portals | Planned | Patient portal, agency portal, email notifications, PDF certs, security hardening |
 | **4:** Completion & Deployment | Planned | Performance optimization, compliance, training, evaluation, production deploy |
+
+

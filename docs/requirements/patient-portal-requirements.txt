@@ -1,0 +1,13 @@
+List of requirements for the patient portal
+
+FOR PATIENTS / COMPANIES:
+- Must be viewable online.
+- Access should be available either to the individual patient or to the company for the relevant results.
+- Must clearly display a "FIT" or "UNFIT" label.
+
+FOR ENCODERS / STAFF:
+- We follow a streamlined workflow in which patients move from one station to another until they complete all required examinations. Please see the reference chart.
+- The system must be simple so staff can easily upload or input the required information.
+- It should function primarily as an encoding/upload system. It should not directly interfere with the programs or machines already in use.
+- It must be easy to use for non-technical staff members, many of whom are in their late 40s to 50s.
+- There may be times when the internet is unavailable. The team should consider whether the system can remain accessible until connectivity is restored. For now, we plan to maintain a backup internet connection as a contingency.
