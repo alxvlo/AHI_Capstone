@@ -219,19 +219,15 @@ If clinic policy mandates strict on-premises data residency:
 
 ---
 
-## 10. Delivery Operations & Planning Automation
+## 10. Delivery Operations & Planning
 
-### 10.1 GitHub Project Operations
-- **Project Board:** `AHI Capstone 2026 Delivery` (GitHub Project V2)
-- **Milestone Model:** 13 sprint milestones from 2026-03-01 to 2026-10-03
-- **Issue Set:** Iteration epics/stories/tasks (`#31`-`#62`) aligned to roadmap phases
-- **Timeline Fields:** `Start Date` and `Target Date` fields populated from sprint windows
-- **Assignment Policy:** Sprint-aware and globally-balanced issue ownership based on `memory-bank/profiles.md`
+### 10.1 Project Management
+- **Jira** (`SCRUM` project) is the sole source of truth for sprint planning, task tracking, and issue management.
+- **GitHub** is the sole source of truth for source code, version control, and PR reviews.
+- Branch naming, commits, and PRs must reference Jira keys (e.g., `SCRUM-31: description`).
+- See `memory-bank/guides/workflow-policy.md` for the full Jira + GitHub workflow policy.
 
 ### 10.2 Repository Automation Scripts
-- `scripts/github/publish-project.ps1` — creates/updates labels, milestones, issues, project, and project item links.
-- `scripts/github/fill-project-dates.ps1` — creates missing DATE fields and fills project timeline dates from milestone mapping.
-- `scripts/github/assign-ticket-owners.ps1` — applies role-fit assignees and balances workloads by sprint/date window and overall distribution.
+- `scripts/supabase/` — validation and audit scripts for RLS, auth, and workflow writes.
+- Key commands: `npm run audit:roles:all`, `npm run audit:write:all`, `npm run audit:auth:logs`.
 
-### 10.3 Seed Data for Planning
-- `project-management/github-seed.json` — canonical generated source for labels, milestones, and initial ticket set.

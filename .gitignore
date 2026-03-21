@@ -26,10 +26,11 @@ Thumbs.db
 # Build caches
 .cache/
 .turbo/
+tsconfig.tsbuildinfo
 
 # Local temp files
 *.tmp
 *.temp
 
-# Local source paper
-Intro to IT Research Paper.pdf
+# Binary documents (store on Google Drive, not in git)
+*.docx

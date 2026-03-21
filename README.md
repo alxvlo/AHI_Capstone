@@ -18,8 +18,7 @@ Real-Time PEME Monitoring and Result Access System for American Hospital Inc.
 - Dashboard role and feature spec: [memory-bank/requirements/dashboard-role-feature-functional-spec.md](memory-bank/requirements/dashboard-role-feature-functional-spec.md)
 - Dashboard layout and navigation spec: [memory-bank/requirements/dashboard-frontend-layout-navigation-spec.md](memory-bank/requirements/dashboard-frontend-layout-navigation-spec.md)
 - Schema snapshot: [memory-bank/database/schema.txt](memory-bank/database/schema.txt)
-- Manuscript proofreading notes: [memory-bank/manuscript/manuscript-proofreading-notes.md](memory-bank/manuscript/manuscript-proofreading-notes.md)
-- GitHub automation guide: [memory-bank/guides/github-setup.md](memory-bank/guides/github-setup.md)
+- Workflow policy: [memory-bank/guides/workflow-policy.md](memory-bank/guides/workflow-policy.md)
 
 ### Project Operations
 - **Jira** serves as the single source of truth for all project tracking, sprint planning, and task management.
@@ -31,8 +30,7 @@ Real-Time PEME Monitoring and Result Access System for American Hospital Inc.
 |- components/             -> shared UI, layout, and provider components
 |- lib/                    -> Supabase and app utility modules
 |- memory-bank/            -> unified architectural, documentation, and logic context hub
-|  |- manuscript/          -> manuscript notes and supporting references
-|  |- guides/              -> operational how-to guides
+|  |- guides/              -> workflow policies and operational how-to guides
 |  |- requirements/        -> requirement notes and scope constraints
 |  |- database/            -> schema snapshots and database references
 |  '- references/          -> supplementary PDF references
@@ -46,8 +44,6 @@ Real-Time PEME Monitoring and Result Access System for American Hospital Inc.
 - The public frontend now includes informational hospital pages for `About`, `Services`, and `Contact`, based on the official American Outpatient Clinic public site.
 - Before changing auth, routing, or data flow, read the memory-bank files first, especially `activeContext.md`, `design-doc.md`, and `auth-implementation-decision.md`.
 
-## Current Documentation Overlay (2026-03-21)
-- Parent-repo baseline documentation is intentionally preserved; no original sections were removed during reconciliation.
-- Canonical runtime schema remains:
-  - [memory-bank/database/schema.txt](memory-bank/database/schema.txt)
-- `memory-bank/design-doc.md` now includes a non-destructive overlay section that maps conceptual table definitions to current live schema types and auth integration behavior.
+## Documentation Notes
+- Canonical runtime schema: [memory-bank/database/schema.txt](memory-bank/database/schema.txt)
+- `memory-bank/design-doc.md` includes an overlay section mapping conceptual table definitions to current live schema types and auth integration behavior.
