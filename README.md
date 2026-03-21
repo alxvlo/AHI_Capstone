@@ -9,8 +9,6 @@ Real-Time PEME Monitoring and Result Access System for American Hospital Inc.
 - Project Initiation Document: [memory-bank/pid.md](memory-bank/pid.md)
 - Design document: [memory-bank/design-doc.md](memory-bank/design-doc.md)
 - Technology stack: [memory-bank/tech-stack.md](memory-bank/tech-stack.md)
-- Roadmap and tracker: [memory-bank/roadmap-todo.md](memory-bank/roadmap-todo.md)
-- Working memory bank: [memory-bank/project-working-memory-bank.md](memory-bank/project-working-memory-bank.md)
 - Auth implementation decision: [memory-bank/auth-implementation-decision.md](memory-bank/auth-implementation-decision.md)
 - Team profile mapping: [memory-bank/profiles.md](memory-bank/profiles.md)
 - Risk register: [memory-bank/risk-register.md](memory-bank/risk-register.md)
@@ -31,10 +29,8 @@ Real-Time PEME Monitoring and Result Access System for American Hospital Inc.
 - GitHub automation guide: [docs/guides/github-setup.md](docs/guides/github-setup.md)
 
 ### Project Operations
-- GitHub Project board: https://github.com/users/alxvlo/projects/4
-- Seed planning data: [project-management/github-seed.json](project-management/github-seed.json)
-- Automation scripts: [scripts/github/](scripts/github/)
-
+- **Jira** serves as the single source of truth for all project tracking, sprint planning, and task management.
+- The `memory-bank` is exclusively used for architectural context, decisions, and system knowledge—not for tracking task progress.
 ## Directory Structure
 
 ```text
@@ -52,14 +48,13 @@ Real-Time PEME Monitoring and Result Access System for American Hospital Inc.
 |  '- branding/            -> raw/source branding assets
 |- supabase/               -> local Supabase config and seed assets
 |- scripts/                -> automation and utility scripts
-'- project-management/     -> machine-readable planning artifacts
 ```
 
 ## Notes
 - Scope and constraints are governed by the PID and memory bank documents.
 - This repository now includes an active local Next.js patient-portal build alongside planning and governance artifacts.
 - The public frontend now includes informational hospital pages for `About`, `Services`, and `Contact`, based on the official American Outpatient Clinic public site.
-- Before changing auth, routing, or data flow, read the memory-bank files first, especially `roadmap-todo.md`, `project-working-memory-bank.md`, and `auth-implementation-decision.md`.
+- Before changing auth, routing, or data flow, read the memory-bank files first, especially `activeContext.md`, `design-doc.md`, and `auth-implementation-decision.md`.
 
 ## Current Documentation Overlay (2026-03-21)
 - Parent-repo baseline documentation is intentionally preserved; no original sections were removed during reconciliation.

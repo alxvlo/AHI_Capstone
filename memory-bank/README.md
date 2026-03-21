@@ -10,10 +10,6 @@ This folder is the project knowledge hub for planning, decisions, risks, and imp
   - Conceptual system design with implementation overlay notes.
 - `tech-stack.md`
   - Technology choices and environment baseline.
-- `roadmap-todo.md`
-  - Iteration roadmap and progress tracker.
-- `project-working-memory-bank.md`
-  - Session-level implementation state, evidence logs, and next-task sequencing.
 - `auth-implementation-decision.md`
   - Auth flow decisions and rationale.
 - `profiles.md`
@@ -23,11 +19,9 @@ This folder is the project knowledge hub for planning, decisions, risks, and imp
 
 ## Reading Order For New Sessions
 
-1. `project-working-memory-bank.md`
-2. `roadmap-todo.md`
-3. `risk-register.md`
-4. `design-doc.md`
-5. `pid.md`
+1. `risk-register.md`
+2. `design-doc.md`
+3. `pid.md`
 
 ## Related Dashboard Planning Docs
 
