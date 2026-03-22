@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { createReceptionCaseAction } from "@/app/dashboard/staff/actions";
+import { createReceptionCaseAction } from "@/features/dashboard/staff/actions";
 import { MetricCard } from "@/components/dashboard/shared/metric-card";
 import { StatusBadge } from "@/components/dashboard/shared/status-badge";
 import { Button } from "@/components/ui/button";
@@ -21,7 +21,7 @@ import {
   parseOptionalPositiveInt,
   pickJoined,
   resolveParam,
-} from "@/components/dashboard/staff/shared";
+} from "@/features/dashboard/staff/shared";
 
 type ReceptionModuleProps = {
   returnPath: string;

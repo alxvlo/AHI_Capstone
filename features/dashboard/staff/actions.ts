@@ -2,38 +2,25 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { ADMIN_ROLE } from "@/lib/supabase/roles";
+import {
+  resolveCurrentUserRoleContext,
+  type CurrentUserRoleContext,
+} from "@/lib/supabase/role-routing";
+import {
+  ADMIN_ROLE,
+  DEPARTMENT_STAFF_ROLE,
+  RECEPTION_ROLE,
+  RELEASING_ROLE,
+  TRIAGE_ROLE,
+} from "@/lib/supabase/roles";
 
 const STAFF_DASHBOARD_PATH = "/dashboard/staff";
-const RECEPTION_ROLE = "Reception/Billing";
-const TRIAGE_ROLE = "Triage Nurse";
-const DEPARTMENT_STAFF_ROLE = "Department Staff";
-const RELEASING_ROLE = "Releasing Staff";
-
-type JoinedRoleRecord = {
-  rolename?: string | null;
-};
 
 type ActionContext = {
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>;
+  supabase: CurrentUserRoleContext["supabase"];
   userId: string;
   role: string | null;
 };
-
-function extractRoleName(roleValue: JoinedRoleRecord | JoinedRoleRecord[] | null) {
-  if (!roleValue) {
-    return null;
-  }
-
-  if (Array.isArray(roleValue)) {
-    const firstRole = roleValue[0];
-
-    return typeof firstRole?.rolename === "string" ? firstRole.rolename : null;
-  }
-
-  return typeof roleValue.rolename === "string" ? roleValue.rolename : null;
-}
 
 function normalizeReturnPath(rawPath: string | null) {
   if (!rawPath) {
@@ -127,32 +114,15 @@ function isUuid(value: string) {
 }
 
 async function resolveActionContext(): Promise<ActionContext> {
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { supabase, userId, role } = await resolveCurrentUserRoleContext();
 
-  if (!user) {
+  if (!userId) {
     redirect("/auth/patient/sign-in");
   }
 
-  const { data: account } = await supabase
-    .from("user_account")
-    .select("role:roleid(rolename)")
-    .eq("userid", user.id)
-    .maybeSingle();
-
-  const role = extractRoleName(
-    (account as
-      | {
-          role?: JoinedRoleRecord | JoinedRoleRecord[] | null;
-        }
-      | null)?.role ?? null
-  );
-
   return {
     supabase,
-    userId: user.id,
+    userId,
     role,
   };
 }
@@ -171,7 +141,7 @@ function ensureAllowedRole(
 }
 
 async function getStatusId(
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  supabase: CurrentUserRoleContext["supabase"],
   domain: "CASE" | "VISIT",
   code: string
 ) {

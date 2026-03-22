@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import type { User } from "@supabase/supabase-js";
 import { getSupabaseAnonKey, getSupabaseUrl } from "@/lib/supabase/config";
+import { extractRoleName } from "@/lib/supabase/role-record";
 import {
   ADMIN_ROLE,
   CLIENT_ROLE,
@@ -26,23 +27,6 @@ function isDashboardPath(pathname: string) {
   return isPathMatch(pathname, "/dashboard");
 }
 
-function extractRoleName(
-  roleValue:
-    | { rolename?: string | null }
-    | Array<{ rolename?: string | null }>
-    | null
-) {
-  if (!roleValue) {
-    return null;
-  }
-
-  if (Array.isArray(roleValue)) {
-    return typeof roleValue[0]?.rolename === "string" ? roleValue[0].rolename : null;
-  }
-
-  return typeof roleValue.rolename === "string" ? roleValue.rolename : null;
-}
-
 function hasValidDepartmentClaim(user: User | null) {
   if (!user) {
     return false;
@@ -56,7 +40,9 @@ function hasValidDepartmentClaim(user: User | null) {
   }
 
   if (typeof rawDepartmentId === "string") {
-    return /^[0-9]+$/.test(rawDepartmentId);
+    const parsed = Number.parseInt(rawDepartmentId, 10);
+
+    return /^[0-9]+$/.test(rawDepartmentId) && Number.isInteger(parsed) && parsed > 0;
   }
 
   return false;

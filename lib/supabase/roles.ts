@@ -1,14 +1,18 @@
 export const PATIENT_ROLE = "Patient";
 export const ADMIN_ROLE = "System Administrator";
 export const CLIENT_ROLE = "Client Representative";
+export const RECEPTION_ROLE = "Reception/Billing";
+export const TRIAGE_ROLE = "Triage Nurse";
 export const DEPARTMENT_STAFF_ROLE = "Department Staff";
+export const PHYSICIAN_ROLE = "Physician";
+export const RELEASING_ROLE = "Releasing Staff";
 
 export const STAFF_ROLES = [
-  "Reception/Billing",
-  "Triage Nurse",
+  RECEPTION_ROLE,
+  TRIAGE_ROLE,
   DEPARTMENT_STAFF_ROLE,
-  "Physician",
-  "Releasing Staff",
+  PHYSICIAN_ROLE,
+  RELEASING_ROLE,
 ] as const;
 
 export function isStaffRole(role: string | null) {

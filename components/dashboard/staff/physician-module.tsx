@@ -6,7 +6,7 @@ import {
   CaseRow,
   formatTimestamp,
   pickJoined,
-} from "@/components/dashboard/staff/shared";
+} from "@/features/dashboard/staff/shared";
 
 type PhysicianModuleProps = {
   caseStatusIdByCode: Map<string, number>;

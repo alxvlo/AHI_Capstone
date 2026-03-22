@@ -13,11 +13,13 @@ import {
   buildReturnPath,
   parseDepartmentClaim,
   resolveParam,
-} from "@/components/dashboard/staff/shared";
+} from "@/features/dashboard/staff/shared";
 import { Card, CardContent } from "@/components/ui/card";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { DEPARTMENT_STAFF_ROLE } from "@/lib/supabase/roles";
-import { getCurrentUserRole, isStaffRole } from "@/lib/supabase/role-routing";
+import {
+  isStaffRole,
+  resolveCurrentUserRoleContext,
+} from "@/lib/supabase/role-routing";
 
 type StaffDashboardPageProps = {
   searchParams?: Promise<Record<string, SearchParamValue>>;
@@ -31,7 +33,7 @@ export default async function StaffDashboardPage({
   const flashNotice = resolveParam(resolvedSearchParams, "notice");
   const returnPath = buildReturnPath(resolvedSearchParams);
 
-  const { userId, role } = await getCurrentUserRole();
+  const { supabase, user, userId, role } = await resolveCurrentUserRoleContext();
 
   if (!userId) {
     redirect("/auth/patient/sign-in");
@@ -40,11 +42,6 @@ export default async function StaffDashboardPage({
   if (!isStaffRole(role)) {
     redirect("/unauthorized");
   }
-
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
 
   if (!user) {
     redirect("/auth/patient/sign-in");

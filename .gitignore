@@ -12,6 +12,11 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
+# Python caches / temporary backups
+__pycache__/
+*.py[cod]
+*.bak
+
 # Environment
 .env
 .env.*

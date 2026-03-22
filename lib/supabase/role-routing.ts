@@ -1,4 +1,9 @@
+import type { User } from "@supabase/supabase-js";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import {
+  extractRoleName,
+  type JoinedRoleRecord,
+} from "@/lib/supabase/role-record";
 import {
   ADMIN_ROLE,
   CLIENT_ROLE,
@@ -21,32 +26,21 @@ type CurrentUserRoleResult = {
   role: string | null;
 };
 
-type JoinedRoleRecord = {
-  rolename?: string | null;
+export type CurrentUserRoleContext = {
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>;
+  user: User | null;
+  userId: string | null;
+  role: string | null;
 };
 
-function extractRoleName(roleValue: JoinedRoleRecord | JoinedRoleRecord[] | null) {
-  if (!roleValue) {
-    return null;
-  }
-
-  if (Array.isArray(roleValue)) {
-    const firstRole = roleValue[0];
-
-    return typeof firstRole?.rolename === "string" ? firstRole.rolename : null;
-  }
-
-  return typeof roleValue.rolename === "string" ? roleValue.rolename : null;
-}
-
-export async function getCurrentUserRole(): Promise<CurrentUserRoleResult> {
+export async function resolveCurrentUserRoleContext(): Promise<CurrentUserRoleContext> {
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return { userId: null, role: null };
+    return { supabase, user: null, userId: null, role: null };
   }
 
   // Fetch role in a single joined query to reduce round trips on dashboard loads.
@@ -57,7 +51,7 @@ export async function getCurrentUserRole(): Promise<CurrentUserRoleResult> {
     .maybeSingle();
 
   if (accountError) {
-    return { userId: user.id, role: null };
+    return { supabase, user, userId: user.id, role: null };
   }
 
   const roleName = extractRoleName(
@@ -65,9 +59,11 @@ export async function getCurrentUserRole(): Promise<CurrentUserRoleResult> {
       ?.role ?? null
   );
 
-  if (!roleName) {
-    return { userId: user.id, role: null };
-  }
+  return { supabase, user, userId: user.id, role: roleName };
+}
 
-  return { userId: user.id, role: roleName };
+export async function getCurrentUserRole(): Promise<CurrentUserRoleResult> {
+  const { userId, role } = await resolveCurrentUserRoleContext();
+
+  return { userId, role };
 }

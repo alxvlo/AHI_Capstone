@@ -3,10 +3,18 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "eslint .",
+    "dev": "node ./node_modules/next/dist/bin/next dev",
+    "build": "node ./node_modules/next/dist/bin/next build",
+    "start": "node ./node_modules/next/dist/bin/next start",
+    "lint": "node ./node_modules/eslint/bin/eslint.js .",
+    "typecheck": "node ./node_modules/typescript/bin/tsc --noEmit",
+    "test": "node ./node_modules/vitest/vitest.mjs",
+    "test:run": "node ./node_modules/vitest/vitest.mjs run",
+    "test:watch": "node ./node_modules/vitest/vitest.mjs watch",
+    "test:coverage": "node ./node_modules/vitest/vitest.mjs run --coverage",
+    "qa:local": "npm run lint && npm run typecheck && npm run test:run",
+    "qa:ci": "npm run lint && npm run typecheck && npm run test:coverage",
+    "qa:supabase": "npm run audit:roles:all && npm run audit:write:all && npm run audit:auth:logs && npm run audit:auth:e2e",
     "seed:reference": "node --env-file=.env.local scripts/supabase/seed-reference-data.mjs",
     "probe:deptstaff:noclaim:bootstrap": "npx supabase db query --linked --file scripts/supabase/bootstrap-deptstaff-missing-claim-probe.sql",
     "audit:roles:redirect": "node scripts/supabase/run-role-redirect-audit-local.mjs scripts/supabase/audit-role-dashboard-redirects.mjs",
@@ -18,6 +26,7 @@
     "audit:write:workflow": "node --env-file=.env.local scripts/supabase/validate-workflow-write-matrix.mjs",
     "audit:write:all": "npm run audit:write-policies && npm run audit:write:workflow",
     "audit:auth:logs": "node --env-file=.env.local scripts/supabase/validate-auth-audit-events.mjs",
+    "audit:auth:e2e": "node --env-file=.env.local scripts/supabase/validate-auth-e2e.mjs",
     "probe:cleanup": "npx supabase db query --linked --file scripts/supabase/cleanup-probe-users.sql"
   },
   "dependencies": {
@@ -41,13 +50,20 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.1",
     "@tailwindcss/postcss": "^4.0.14",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
     "@types/node": "^22.13.10",
     "@types/react": "^19.0.10",
     "@types/react-dom": "^19.0.4",
+    "@vitejs/plugin-react": "^6.0.1",
+    "@vitest/coverage-v8": "^4.1.0",
     "eslint": "^9.22.0",
     "eslint-config-next": "^15.2.2",
+    "jsdom": "^29.0.1",
     "postcss": "^8.5.3",
     "tailwindcss": "^4.0.14",
-    "typescript": "^5.8.2"
+    "typescript": "^5.8.2",
+    "vitest": "^4.1.0"
   }
 }

@@ -3,26 +3,10 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Navbar } from "@/components/layout/navbar";
 import { Button } from "@/components/ui/button";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { getDashboardDestination } from "@/lib/supabase/roles";
-
-type JoinedRoleRecord = {
-  rolename?: string | null;
-};
-
-function extractRoleName(roleValue: JoinedRoleRecord | JoinedRoleRecord[] | null) {
-  if (!roleValue) {
-    return null;
-  }
-
-  if (Array.isArray(roleValue)) {
-    const firstRole = roleValue[0];
-
-    return typeof firstRole?.rolename === "string" ? firstRole.rolename : null;
-  }
-
-  return typeof roleValue.rolename === "string" ? roleValue.rolename : null;
-}
+import {
+  getDashboardDestination,
+  resolveCurrentUserRoleContext,
+} from "@/lib/supabase/role-routing";
 
 type DashboardLayoutProps = Readonly<{
   children: ReactNode;
@@ -31,25 +15,11 @@ type DashboardLayoutProps = Readonly<{
 export default async function DashboardLayout({
   children,
 }: DashboardLayoutProps) {
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { user, role } = await resolveCurrentUserRoleContext();
 
   if (!user) {
     redirect("/auth/patient/sign-in");
   }
-
-  const { data: account } = await supabase
-    .from("user_account")
-    .select("role:roleid(rolename)")
-    .eq("userid", user.id)
-    .maybeSingle();
-
-  const role = extractRoleName(
-    (account as { role?: JoinedRoleRecord | JoinedRoleRecord[] | null } | null)?.role ??
-      null
-  );
 
   const roleHomePath = getDashboardDestination(role) ?? "/dashboard";
 

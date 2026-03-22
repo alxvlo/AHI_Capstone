@@ -1,9 +1,12 @@
 import { StatusBadge } from "@/components/dashboard/shared/status-badge";
+import {
+  PHYSICIAN_ROLE,
+  RECEPTION_ROLE,
+  RELEASING_ROLE,
+  TRIAGE_ROLE,
+} from "@/lib/supabase/roles";
 
-export const RECEPTION_ROLE = "Reception/Billing";
-export const TRIAGE_ROLE = "Triage Nurse";
-export const PHYSICIAN_ROLE = "Physician";
-export const RELEASING_ROLE = "Releasing Staff";
+export { PHYSICIAN_ROLE, RECEPTION_ROLE, RELEASING_ROLE, TRIAGE_ROLE };
 
 export type SearchParamValue = string | string[] | undefined;
 

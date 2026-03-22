@@ -1,10 +1,10 @@
-import { releaseCaseAction } from "@/app/dashboard/staff/actions";
+import { releaseCaseAction } from "@/features/dashboard/staff/actions";
 import { MetricCard } from "@/components/dashboard/shared/metric-card";
 import { StatusBadge } from "@/components/dashboard/shared/status-badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { CaseRow, formatTimestamp, pickJoined } from "@/components/dashboard/staff/shared";
+import { CaseRow, formatTimestamp, pickJoined } from "@/features/dashboard/staff/shared";
 
 type ReleasingModuleProps = {
   returnPath: string;

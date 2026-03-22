@@ -2,12 +2,10 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { getDashboardDestination } from "@/lib/supabase/roles";
-
-type JoinedRoleRecord = {
-  rolename?: string | null;
-};
+import {
+  getDashboardDestination,
+  resolveCurrentUserRoleContext,
+} from "@/lib/supabase/role-routing";
 
 type UserAccountRecord = {
   userid: string;
@@ -18,22 +16,7 @@ type UserAccountRecord = {
   createdat: string;
   patientid: string | null;
   companyid: number | null;
-  role?: JoinedRoleRecord | JoinedRoleRecord[] | null;
 };
-
-function extractRoleName(roleValue: JoinedRoleRecord | JoinedRoleRecord[] | null) {
-  if (!roleValue) {
-    return null;
-  }
-
-  if (Array.isArray(roleValue)) {
-    const firstRole = roleValue[0];
-
-    return typeof firstRole?.rolename === "string" ? firstRole.rolename : null;
-  }
-
-  return typeof roleValue.rolename === "string" ? roleValue.rolename : null;
-}
 
 function formatTimestamp(value: string | null) {
   if (!value) {
@@ -56,10 +39,7 @@ function formatTimestamp(value: string | null) {
 }
 
 export default async function AccountPage() {
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { supabase, user, role } = await resolveCurrentUserRoleContext();
 
   if (!user) {
     redirect("/auth/patient/sign-in");
@@ -67,9 +47,7 @@ export default async function AccountPage() {
 
   const { data: account, error } = await supabase
     .from("user_account")
-    .select(
-      "userid, username, isactive, islocked, lastloginat, createdat, patientid, companyid, role:roleid(rolename)"
-    )
+    .select("userid, username, isactive, islocked, lastloginat, createdat, patientid, companyid")
     .eq("userid", user.id)
     .maybeSingle();
 
@@ -94,7 +72,6 @@ export default async function AccountPage() {
   }
 
   const typedAccount = account as UserAccountRecord | null;
-  const roleName = extractRoleName(typedAccount?.role ?? null);
   const displayName =
     (typeof user.user_metadata.full_name === "string" &&
       user.user_metadata.full_name.trim()) ||
@@ -102,7 +79,7 @@ export default async function AccountPage() {
     "User";
   const departmentClaim =
     user.app_metadata?.department_id ?? user.user_metadata?.department_id;
-  const dashboardHomePath = getDashboardDestination(roleName) ?? "/dashboard";
+  const dashboardHomePath = getDashboardDestination(role) ?? "/dashboard";
 
   return (
     <div className="space-y-6">
@@ -133,7 +110,7 @@ export default async function AccountPage() {
             </p>
             <p>
               <span className="font-medium text-foreground">Role:</span>{" "}
-              {roleName ?? "Not assigned"}
+              {role ?? "Not assigned"}
             </p>
           </CardContent>
         </Card>

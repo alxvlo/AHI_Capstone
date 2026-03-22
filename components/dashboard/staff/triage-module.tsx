@@ -1,4 +1,4 @@
-import { updateTriageCompletionAction } from "@/app/dashboard/staff/actions";
+import { updateTriageCompletionAction } from "@/features/dashboard/staff/actions";
 import { MetricCard } from "@/components/dashboard/shared/metric-card";
 import { StatusBadge } from "@/components/dashboard/shared/status-badge";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,7 @@ import {
   caseStatusTone,
   formatTimestamp,
   pickJoined,
-} from "@/components/dashboard/staff/shared";
+} from "@/features/dashboard/staff/shared";
 
 type TriageModuleProps = {
   returnPath: string;
