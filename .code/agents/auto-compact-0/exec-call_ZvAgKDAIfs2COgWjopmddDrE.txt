@@ -1,0 +1,1141 @@
+FILE: department-module.tsx
+import { updateDepartmentVisitStatusAction } from "@/features/dashboard/staff/actions";
+import { MetricCard } from "@/components/dashboard/shared/metric-card";
+import { StatusBadge } from "@/components/dashboard/shared/status-badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
+import {
+  DepartmentVisitRow,
+  caseStatusTone,
+  formatTimestamp,
+  pickJoined,
+} from "@/features/dashboard/staff/shared";
+
+type DepartmentModuleProps = {
+  returnPath: string;
+  userDepartmentClaim: number | null;
+};
+
+export async function DepartmentModule({
+  returnPath,
+  userDepartmentClaim,
+}: DepartmentModuleProps) {
+  const supabase = await createSupabaseServerClient();
+
+  if (!userDepartmentClaim) {
+    return (
+      <Card className="border-rose-300/70 bg-rose-50/40">
+        <CardHeader>
+          <CardTitle className="text-lg">Department Claim Required</CardTitle>
+        </CardHeader>
+        <CardContent className="text-sm text-rose-900">
+          Your account does not have a valid department claim. Contact a System
+          Administrator to assign `department_id` metadata before queue operations.
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const { data: departmentRaw } = await supabase
+    .from("department")
+    .select("departmentid, code, name")
+    .eq("departmentid", userDepartmentClaim)
+    .maybeSingle();
+
+  const departmentName = departmentRaw?.name ?? "Unknown Department";
+  const departmentCode = departmentRaw?.code ?? "N/A";
+
+  const { data: visitRowsRaw, error: visitError } = await supabase
+    .from("department_visit")
+    .select(
+      "visitid, caseid, queuenumber, timepending, timestarted, timecompleted, remarks, visitStatus:visitstatuscodeid(statuscodeid, code, label), pemeCase:caseid(caseid, casenumber, isrush, status:casestatuscodeid(code, label), patient:patientid(patientid, fullname))"
+    )
+    .eq("departmentid", userDepartmentClaim)
+    .order("timepending", { ascending: true })
+    .limit(40);
+  const visits = (visitRowsRaw ?? []) as DepartmentVisitRow[];
+
+  const pendingCount = visits.filter(
+    (visit) => pickJoined(visit.visitStatus)?.code === "PENDING"
+  ).length;
+  const inProgressCount = visits.filter(
+    (visit) => pickJoined(visit.visitStatus)?.code === "IN_PROGRESS"
+  ).length;
+  const skippedCount = visits.filter(
+    (visit) => pickJoined(visit.visitStatus)?.code === "SKIPPED"
+  ).length;
+  const completedCount = visits.filter(
+    (visit) => pickJoined(visit.visitStatus)?.code === "COMPLETED"
+  ).length;
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold tracking-tight">Department Queue</h2>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Scoped to <span className="font-semibold">{departmentName}</span> ({departmentCode}
+          ). Update visit status and track queue progression.
+        </p>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-4">
+        <MetricCard label="Pending" value={pendingCount} />
+        <MetricCard label="In Progress" value={inProgressCount} tone="warning" />
+        <MetricCard label="Skipped" value={skippedCount} tone="danger" />
+        <MetricCard label="Completed" value={completedCount} tone="positive" />
+      </div>
+
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg">Visit Queue Board</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {visitError ? (
+            <p className="text-sm text-destructive">
+              Unable to load department visits: {visitError.message}
+            </p>
+          ) : null}
+
+          {visits.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              No visits are queued for this department right now.
+            </p>
+          ) : (
+            <div className="overflow-x-auto rounded-md border">
+              <table className="min-w-full text-sm">
+                <thead className="bg-muted/50 text-left">
+                  <tr>
+                    <th className="px-3 py-2 font-semibold">Queue</th>
+                    <th className="px-3 py-2 font-semibold">Case</th>
+                    <th className="px-3 py-2 font-semibold">Patient</th>
+                    <th className="px-3 py-2 font-semibold">Visit Status</th>
+                    <th className="px-3 py-2 font-semibold">Time Pending</th>
+                    <th className="px-3 py-2 font-semibold">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {visits.map((visit) => {
+                    const visitStatus = pickJoined(visit.visitStatus);
+                    const caseInfo = pickJoined(visit.pemeCase);
+                    const patient = pickJoined(caseInfo?.patient);
+                    const visitStatusCode = visitStatus?.code ?? "";
+
+                    return (
+                      <tr key={visit.visitid} className="border-t align-top">
+                        <td className="px-3 py-2">{visit.queuenumber ?? "-"}</td>
+                        <td className="px-3 py-2">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">{caseInfo?.casenumber ?? "-"}</span>
+                            {caseInfo?.isrush ? (
+                              <StatusBadge label="RUSH" tone="warning" />
+                            ) : null}
+                          </div>
+                        </td>
+                        <td className="px-3 py-2">{patient?.fullname ?? "Unknown patient"}</td>
+                        <td className="px-3 py-2">
+                          <StatusBadge
+                            label={visitStatus?.label ?? (visitStatusCode || "Unknown")}
+                            tone={caseStatusTone(visitStatusCode || null)}
+                          />
+                        </td>
+                        <td className="px-3 py-2 text-muted-foreground">
+                          {formatTimestamp(visit.timepending)}
+                        </td>
+                        <td className="px-3 py-2">
+                          <div className="flex flex-wrap gap-2">
+                            {visitStatusCode === "PENDING" ? (
+                              <>
+                                <form action={updateDepartmentVisitStatusAction}>
+                                  <input type="hidden" name="visitId" value={visit.visitid} />
+                                  <input type="hidden" name="nextStatusCode" value="IN_PROGRESS" />
+                                  <input type="hidden" name="returnPath" value={returnPath} />
+                                  <Button type="submit" size="sm">
+                                    Start
+                                  </Button>
+                                </form>
+                                <form action={updateDepartmentVisitStatusAction}>
+                                  <input type="hidden" name="visitId" value={visit.visitid} />
+                                  <input type="hidden" name="nextStatusCode" value="SKIPPED" />
+                                  <input
+                                    type="hidden"
+                                    name="statusNote"
+                                    value="Skipped due to patient not present at call."
+                                  />
+                                  <input type="hidden" name="returnPath" value={returnPath} />
+                                  <Button type="submit" size="sm" variant="outline">
+                                    Skip
+                                  </Button>
+                                </form>
+                              </>
+                            ) : null}
+
+                            {visitStatusCode === "IN_PROGRESS" ? (
+                              <form action={updateDepartmentVisitStatusAction}>
+                                <input type="hidden" name="visitId" value={visit.visitid} />
+                                <input type="hidden" name="nextStatusCode" value="COMPLETED" />
+                                <input type="hidden" name="returnPath" value={returnPath} />
+                                <Button type="submit" size="sm">
+                                  Complete
+                                </Button>
+                              </form>
+                            ) : null}
+
+                            {visitStatusCode === "SKIPPED" ? (
+                              <form action={updateDepartmentVisitStatusAction}>
+                                <input type="hidden" name="visitId" value={visit.visitid} />
+                                <input type="hidden" name="nextStatusCode" value="PENDING" />
+                                <input type="hidden" name="returnPath" value={returnPath} />
+                                <Button type="submit" size="sm" variant="outline">
+                                  Re-Queue
+                                </Button>
+                              </form>
+                            ) : null}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+---
+FILE: physician-module.tsx
+import { MetricCard } from "@/components/dashboard/shared/metric-card";
+import { StatusBadge } from "@/components/dashboard/shared/status-badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
+import {
+  CaseRow,
+  formatTimestamp,
+  pickJoined,
+} from "@/features/dashboard/staff/shared";
+
+type PhysicianModuleProps = {
+  caseStatusIdByCode: Map<string, number>;
+};
+
+export async function PhysicianModule({
+  caseStatusIdByCode,
+}: PhysicianModuleProps) {
+  const supabase = await createSupabaseServerClient();
+  const forDecisionStatusId = caseStatusIdByCode.get("FOR_DECISION");
+
+  let decisionQueue: CaseRow[] = [];
+  let queueError: string | null = null;
+
+  if (!forDecisionStatusId) {
+    queueError = "FOR_DECISION status reference is missing.";
+  } else {
+    const { data: queueRows, error } = await supabase
+      .from("peme_case")
+      .select(
+        "caseid, casenumber, casecategory, isrush, registrationtimestamp, remarks, patient:patientid(patientid, fullname), company:companyid(companyid, name), package:packageid(packageid, packagename, category), status:casestatuscodeid(statuscodeid, code, label)"
+      )
+      .eq("casestatuscodeid", forDecisionStatusId)
+      .order("isrush", { ascending: false })
+      .order("registrationtimestamp", { ascending: true })
+      .limit(40);
+
+    decisionQueue = (queueRows ?? []) as CaseRow[];
+    queueError = error?.message ?? null;
+  }
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold tracking-tight">Physician Decision Board</h2>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Review consolidated case context and prepare fitness decisions.
+        </p>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-3">
+        <MetricCard label="For Decision" value={decisionQueue.length} />
+        <MetricCard
+          label="Rush Priority"
+          value={decisionQueue.filter((item) => item.isrush).length}
+          tone="warning"
+        />
+        <MetricCard
+          label="With Remarks"
+          value={decisionQueue.filter((item) => (item.remarks ?? "").length > 0).length}
+        />
+      </div>
+
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg">Decision Queue</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {queueError ? (
+            <p className="text-sm text-destructive">
+              Unable to load physician queue: {queueError}
+            </p>
+          ) : null}
+
+          {decisionQueue.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              No cases are currently waiting for physician decision.
+            </p>
+          ) : (
+            <div className="overflow-x-auto rounded-md border">
+              <table className="min-w-full text-sm">
+                <thead className="bg-muted/50 text-left">
+                  <tr>
+                    <th className="px-3 py-2 font-semibold">Case</th>
+                    <th className="px-3 py-2 font-semibold">Patient</th>
+                    <th className="px-3 py-2 font-semibold">Package</th>
+                    <th className="px-3 py-2 font-semibold">Company</th>
+                    <th className="px-3 py-2 font-semibold">Registered</th>
+                    <th className="px-3 py-2 font-semibold">Readiness</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {decisionQueue.map((caseRow) => {
+                    const patient = pickJoined(caseRow.patient);
+                    const packageInfo = pickJoined(caseRow.package);
+                    const company = pickJoined(caseRow.company);
+
+                    return (
+                      <tr key={caseRow.caseid} className="border-t">
+                        <td className="px-3 py-2">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">{caseRow.casenumber}</span>
+                            {caseRow.isrush ? (
+                              <StatusBadge label="RUSH" tone="warning" />
+                            ) : null}
+                          </div>
+                        </td>
+                        <td className="px-3 py-2">{patient?.fullname ?? "Unknown patient"}</td>
+                        <td className="px-3 py-2 text-muted-foreground">
+                          {packageInfo?.packagename ?? "Unknown package"}
+                        </td>
+                        <td className="px-3 py-2 text-muted-foreground">
+                          {company?.name ?? "Walk-in"}
+                        </td>
+                        <td className="px-3 py-2 text-muted-foreground">
+                          {formatTimestamp(caseRow.registrationtimestamp)}
+                        </td>
+                        <td className="px-3 py-2">
+                          <StatusBadge label="Decision Form Next" tone="neutral" />
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+---
+FILE: reception-module.tsx
+import Link from "next/link";
+import { createReceptionCaseAction } from "@/features/dashboard/staff/actions";
+import { MetricCard } from "@/components/dashboard/shared/metric-card";
+import { StatusBadge } from "@/components/dashboard/shared/status-badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
+import {
+  CaseRow,
+  CompanyRecord,
+  PackageRecord,
+  PatientRecord,
+  SearchParamValue,
+  StatusRecord,
+  caseStatusTone,
+  formatDateOnly,
+  formatTimestamp,
+  parseOptionalPositiveInt,
+  pickJoined,
+  resolveParam,
+} from "@/features/dashboard/staff/shared";
+
+type ReceptionModuleProps = {
+  returnPath: string;
+  caseStatuses: StatusRecord[];
+  caseStatusIdByCode: Map<string, number>;
+  searchParams: Record<string, SearchParamValue>;
+};
+
+export async function ReceptionModule({
+  returnPath,
+  caseStatuses,
+  caseStatusIdByCode,
+  searchParams,
+}: ReceptionModuleProps) {
+  const supabase = await createSupabaseServerClient();
+  const patientLookup = resolveParam(searchParams, "patientLookup");
+  const caseSearch = resolveParam(searchParams, "caseSearch");
+  const statusFilterCode = resolveParam(searchParams, "statusCode", "ALL").toUpperCase();
+  const rushFilter = resolveParam(searchParams, "rush", "ALL").toUpperCase();
+  const companyFilterRaw = resolveParam(searchParams, "companyId");
+  const fromDate = resolveParam(searchParams, "fromDate");
+  const companyFilterId = parseOptionalPositiveInt(companyFilterRaw);
+
+  const { data: packagesRaw, error: packageError } = await supabase
+    .from("package")
+    .select("packageid, packagename, category, isactive")
+    .eq("isactive", true)
+    .order("packagename", { ascending: true });
+  const packageOptions = (packagesRaw ?? []) as PackageRecord[];
+
+  const { data: companiesRaw, error: companyError } = await supabase
+    .from("company")
+    .select("companyid, name, isactive")
+    .eq("isactive", true)
+    .order("name", { ascending: true });
+  const companyOptions = (companiesRaw ?? []) as CompanyRecord[];
+
+  let patientLookupQuery = supabase
+    .from("patient")
+    .select(
+      "patientid, fullname, dateofbirth, governmentid, contactnumber, emailaddress"
+    )
+    .order("fullname", { ascending: true })
+    .limit(12);
+
+  if (patientLookup) {
+    const safeLookup = patientLookup.replace(/[,%]/g, " ").trim();
+
+    if (safeLookup.length > 0) {
+      patientLookupQuery = patientLookupQuery.or(
+        `fullname.ilike.%${safeLookup}%,governmentid.ilike.%${safeLookup}%,emailaddress.ilike.%${safeLookup}%`
+      );
+    }
+  }
+
+  const { data: patientMatchesRaw, error: patientError } = await patientLookupQuery;
+  const patientMatches = (patientMatchesRaw ?? []) as PatientRecord[];
+
+  let caseQuery = supabase
+    .from("peme_case")
+    .select(
+      "caseid, casenumber, casecategory, isrush, waiversigned, registrationtimestamp, triagecompletedtimestamp, releasedtimestamp, portalvisible, remarks, patient:patientid(patientid, fullname), company:companyid(companyid, name), package:packageid(packageid, packagename, category), status:casestatuscodeid(statuscodeid, code, label)"
+    )
+    .order("registrationtimestamp", { ascending: false })
+    .limit(40);
+
+  if (caseSearch) {
+    caseQuery = caseQuery.ilike("casenumber", `%${caseSearch}%`);
+  }
+
+  if (statusFilterCode !== "ALL") {
+    const statusId = caseStatusIdByCode.get(statusFilterCode);
+
+    if (statusId) {
+      caseQuery = caseQuery.eq("casestatuscodeid", statusId);
+    }
+  }
+
+  if (companyFilterId) {
+    caseQuery = caseQuery.eq("companyid", companyFilterId);
+  }
+
+  if (rushFilter === "YES") {
+    caseQuery = caseQuery.eq("isrush", true);
+  }
+
+  if (rushFilter === "NO") {
+    caseQuery = caseQuery.eq("isrush", false);
+  }
+
+  if (fromDate) {
+    caseQuery = caseQuery.gte("registrationtimestamp", `${fromDate}T00:00:00`);
+  }
+
+  const { data: casesRaw, error: casesError } = await caseQuery;
+  const cases = (casesRaw ?? []) as CaseRow[];
+
+  const todayDatePrefix = new Date().toISOString().slice(0, 10);
+  const activeCases = cases.filter((row) => {
+    const statusCode = pickJoined(row.status)?.code ?? "";
+
+    return statusCode !== "ARCHIVED" && statusCode !== "RELEASED";
+  });
+  const rushCases = cases.filter((row) => row.isrush).length;
+  const waiverPendingCases = cases.filter((row) => !row.waiversigned).length;
+  const todayRegisteredCases = cases.filter((row) =>
+    row.registrationtimestamp?.startsWith(todayDatePrefix)
+  ).length;
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold tracking-tight">Reception and Billing</h2>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Register cases, validate waiver compliance, and track active PEME intake.
+        </p>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <MetricCard label="Active Queue" value={activeCases.length} />
+        <MetricCard label="Rush Cases" value={rushCases} tone="warning" />
+        <MetricCard
+          label="Waiver Pending"
+          value={waiverPendingCases}
+          tone={waiverPendingCases > 0 ? "danger" : "positive"}
+        />
+        <MetricCard label="Registered Today" value={todayRegisteredCases} />
+      </div>
+
+      <div className="grid gap-6 xl:grid-cols-[1.1fr,1fr]">
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg">Patient Lookup</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <form className="flex flex-col gap-3 sm:flex-row">
+              <Input
+                name="patientLookup"
+                defaultValue={patientLookup}
+                placeholder="Search by full name, ID number, or email"
+              />
+              <Button type="submit">Search</Button>
+            </form>
+
+            {patientError ? (
+              <p className="text-sm text-destructive">
+                Unable to load patient records: {patientError.message}
+              </p>
+            ) : null}
+
+            {patientMatches.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                No patient records found. Create patient intake via account registration flow
+                first.
+              </p>
+            ) : (
+              <div className="overflow-x-auto rounded-md border">
+                <table className="min-w-full text-sm">
+                  <thead className="bg-muted/50 text-left">
+                    <tr>
+                      <th className="px-3 py-2 font-semibold">Patient</th>
+                      <th className="px-3 py-2 font-semibold">DOB</th>
+                      <th className="px-3 py-2 font-semibold">Government ID</th>
+                      <th className="px-3 py-2 font-semibold">Contact</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {patientMatches.map((patient) => (
+                      <tr key={patient.patientid} className="border-t">
+                        <td className="px-3 py-2">
+                          <p className="font-medium">{patient.fullname}</p>
+                          <p className="text-xs text-muted-foreground">{patient.patientid}</p>
+                        </td>
+                        <td className="px-3 py-2 text-muted-foreground">
+                          {formatDateOnly(patient.dateofbirth)}
+                        </td>
+                        <td className="px-3 py-2 text-muted-foreground">
+                          {patient.governmentid ?? "Not set"}
+                        </td>
+                        <td className="px-3 py-2 text-muted-foreground">
+                          {patient.contactnumber ?? "Not set"}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg">Create PEME Case</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form action={createReceptionCaseAction} className="space-y-4">
+              <input type="hidden" name="returnPath" value={returnPath} />
+              <div className="space-y-2">
+                <Label htmlFor="patientId">Patient</Label>
+                <select
+                  id="patientId"
+                  name="patientId"
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  required
+                >
+                  <option value="">Select patient from lookup</option>
+                  {patientMatches.map((patient) => (
+                    <option key={patient.patientid} value={patient.patientid}>
+                      {patient.fullname} ({patient.patientid.slice(0, 8)}...)
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="packageId">Package</Label>
+                <select
+                  id="packageId"
+                  name="packageId"
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  required
+                >
+                  <option value="">Select package</option>
+                  {packageOptions.map((pkg) => (
+                    <option key={pkg.packageid} value={pkg.packageid}>
+                      {pkg.packagename}
+                      {pkg.category ? ` (${pkg.category})` : ""}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="companyId">Company (Optional)</Label>
+                <select
+                  id="companyId"
+                  name="companyId"
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                >
+                  <option value="">Walk-in / No company</option>
+                  {companyOptions.map((company) => (
+                    <option key={company.companyid} value={company.companyid}>
+                      {company.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="caseCategory">Case Category</Label>
+                <select
+                  id="caseCategory"
+                  name="caseCategory"
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                >
+                  <option value="">Select category</option>
+                  <option value="LAND_BASED">Land-Based</option>
+                  <option value="SEA_BASED">Sea-Based</option>
+                  <option value="IMMIGRATION">Immigration</option>
+                  <option value="OTHER">Other</option>
+                </select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="remarks">Registration Notes</Label>
+                <Textarea id="remarks" name="remarks" placeholder="Optional intake notes" />
+              </div>
+              <label className="flex items-start gap-3 text-sm">
+                <input type="checkbox" name="isRush" className="mt-1 h-4 w-4" />
+                <span>Mark this case as rush priority.</span>
+              </label>
+              <label className="flex items-start gap-3 text-sm font-medium">
+                <input type="checkbox" name="waiverSigned" className="mt-1 h-4 w-4" required />
+                <span>DPA waiver confirmed and signed.</span>
+              </label>
+
+              {(packageError || companyError) && (
+                <p className="text-sm text-destructive">
+                  Reference data warning: package/company lookup may be incomplete.
+                </p>
+              )}
+              <Button type="submit" className="w-full">
+                Register PEME Case
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg">Active Case Tracker</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <form className="grid gap-3 md:grid-cols-5">
+            <Input name="caseSearch" defaultValue={caseSearch} placeholder="Case number" />
+            <select
+              name="statusCode"
+              defaultValue={statusFilterCode}
+              className="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
+            >
+              <option value="ALL">All statuses</option>
+              {caseStatuses.map((status) => (
+                <option key={status.statuscodeid} value={status.code}>
+                  {status.label ?? status.code}
+                </option>
+              ))}
+            </select>
+            <select
+              name="companyId"
+              defaultValue={companyFilterRaw}
+              className="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
+            >
+              <option value="">All companies</option>
+              {companyOptions.map((company) => (
+                <option key={company.companyid} value={company.companyid}>
+                  {company.name}
+                </option>
+              ))}
+            </select>
+            <select
+              name="rush"
+              defaultValue={rushFilter}
+              className="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
+            >
+              <option value="ALL">Rush and regular</option>
+              <option value="YES">Rush only</option>
+              <option value="NO">Regular only</option>
+            </select>
+            <Input type="date" name="fromDate" defaultValue={fromDate} />
+            <div className="md:col-span-5 flex flex-wrap gap-2">
+              <Button type="submit">Apply Filters</Button>
+              <Button variant="outline" type="button" asChild>
+                <Link href="/dashboard/staff">Reset Filters</Link>
+              </Button>
+            </div>
+          </form>
+
+          {casesError ? (
+            <p className="text-sm text-destructive">
+              Unable to load case list: {casesError.message}
+            </p>
+          ) : null}
+
+          {cases.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              No cases match the current filter set.
+            </p>
+          ) : (
+            <div className="overflow-x-auto rounded-md border">
+              <table className="min-w-full text-sm">
+                <thead className="bg-muted/50 text-left">
+                  <tr>
+                    <th className="px-3 py-2 font-semibold">Case</th>
+                    <th className="px-3 py-2 font-semibold">Patient</th>
+                    <th className="px-3 py-2 font-semibold">Company</th>
+                    <th className="px-3 py-2 font-semibold">Package</th>
+                    <th className="px-3 py-2 font-semibold">Status</th>
+                    <th className="px-3 py-2 font-semibold">Flags</th>
+                    <th className="px-3 py-2 font-semibold">Registered</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {cases.map((caseRow) => {
+                    const patient = pickJoined(caseRow.patient);
+                    const company = pickJoined(caseRow.company);
+                    const packageInfo = pickJoined(caseRow.package);
+                    const status = pickJoined(caseRow.status);
+
+                    return (
+                      <tr key={caseRow.caseid} className="border-t align-top">
+                        <td className="px-3 py-2">
+                          <p className="font-medium">{caseRow.casenumber}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {caseRow.casecategory ?? "Uncategorized"}
+                          </p>
+                        </td>
+                        <td className="px-3 py-2">{patient?.fullname ?? "Unknown patient"}</td>
+                        <td className="px-3 py-2 text-muted-foreground">
+                          {company?.name ?? "Walk-in"}
+                        </td>
+                        <td className="px-3 py-2 text-muted-foreground">
+                          {packageInfo?.packagename ?? "Unknown package"}
+                        </td>
+                        <td className="px-3 py-2">
+                          <StatusBadge
+                            label={status?.label ?? status?.code ?? "Unknown"}
+                            tone={caseStatusTone(status?.code ?? null)}
+                          />
+                        </td>
+                        <td className="px-3 py-2">
+                          <div className="flex flex-wrap gap-1">
+                            {caseRow.isrush ? (
+                              <StatusBadge label="RUSH" tone="warning" />
+                            ) : null}
+                            {!caseRow.waiversigned ? (
+                              <StatusBadge label="WAIVER PENDING" tone="danger" />
+                            ) : null}
+                            {caseRow.portalvisible ? (
+                              <StatusBadge label="PORTAL VISIBLE" tone="positive" />
+                            ) : null}
+                          </div>
+                        </td>
+                        <td className="px-3 py-2 text-muted-foreground">
+                          {formatTimestamp(caseRow.registrationtimestamp)}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+---
+FILE: releasing-module.tsx
+import { releaseCaseAction } from "@/features/dashboard/staff/actions";
+import { MetricCard } from "@/components/dashboard/shared/metric-card";
+import { StatusBadge } from "@/components/dashboard/shared/status-badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { CaseRow, formatTimestamp, pickJoined } from "@/features/dashboard/staff/shared";
+
+type ReleasingModuleProps = {
+  returnPath: string;
+  caseStatusIdByCode: Map<string, number>;
+  visitStatusIdByCode: Map<string, number>;
+};
+
+export async function ReleasingModule({
+  returnPath,
+  caseStatusIdByCode,
+  visitStatusIdByCode,
+}: ReleasingModuleProps) {
+  const supabase = await createSupabaseServerClient();
+  const forReleasingStatusId = caseStatusIdByCode.get("FOR_RELEASING");
+  const completedVisitStatusId = visitStatusIdByCode.get("COMPLETED");
+
+  let releaseQueue: CaseRow[] = [];
+  let queueError: string | null = null;
+
+  if (!forReleasingStatusId) {
+    queueError = "FOR_RELEASING status reference is missing.";
+  } else {
+    const { data: queueRows, error } = await supabase
+      .from("peme_case")
+      .select(
+        "caseid, casenumber, isrush, registrationtimestamp, remarks, patient:patientid(patientid, fullname), company:companyid(companyid, name), package:packageid(packageid, packagename, category), status:casestatuscodeid(statuscodeid, code, label)"
+      )
+      .eq("casestatuscodeid", forReleasingStatusId)
+      .order("isrush", { ascending: false })
+      .order("registrationtimestamp", { ascending: true })
+      .limit(40);
+
+    releaseQueue = (queueRows ?? []) as CaseRow[];
+    queueError = error?.message ?? null;
+  }
+
+  const caseIds = releaseQueue.map((item) => item.caseid);
+  const releaseReadinessByCaseId = new Map<
+    string,
+    {
+      totalVisits: number;
+      completedVisits: number;
+      hasDecision: boolean;
+      canRelease: boolean;
+    }
+  >();
+
+  if (caseIds.length > 0) {
+    const { data: visitRowsRaw } = await supabase
+      .from("department_visit")
+      .select("caseid, visitstatuscodeid")
+      .in("caseid", caseIds);
+
+    const { data: decisionRowsRaw } = await supabase
+      .from("peme_decision")
+      .select("caseid")
+      .in("caseid", caseIds);
+
+    const decisionCaseIdSet = new Set(
+      (decisionRowsRaw ?? []).map((row) => row.caseid as string)
+    );
+
+    const visitRows = (visitRowsRaw ?? []) as Array<{
+      caseid: string;
+      visitstatuscodeid: number;
+    }>;
+
+    for (const caseId of caseIds) {
+      const caseVisits = visitRows.filter((visit) => visit.caseid === caseId);
+      const completedVisits = caseVisits.filter(
+        (visit) => visit.visitstatuscodeid === completedVisitStatusId
+      ).length;
+      const totalVisits = caseVisits.length;
+      const hasDecision = decisionCaseIdSet.has(caseId);
+      const canRelease = hasDecision && totalVisits > 0 && completedVisits === totalVisits;
+
+      releaseReadinessByCaseId.set(caseId, {
+        totalVisits,
+        completedVisits,
+        hasDecision,
+        canRelease,
+      });
+    }
+  }
+
+  const releasableCount = Array.from(releaseReadinessByCaseId.values()).filter(
+    (item) => item.canRelease
+  ).length;
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold tracking-tight">Releasing Queue</h2>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Release only complete cases with physician decisions and full department completion.
+        </p>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-3">
+        <MetricCard label="For Releasing" value={releaseQueue.length} />
+        <MetricCard label="Release-Ready" value={releasableCount} tone="positive" />
+        <MetricCard
+          label="Pending Checks"
+          value={Math.max(releaseQueue.length - releasableCount, 0)}
+          tone={releaseQueue.length - releasableCount > 0 ? "warning" : "default"}
+        />
+      </div>
+
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg">Release Checklist</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {queueError ? (
+            <p className="text-sm text-destructive">
+              Unable to load releasing queue: {queueError}
+            </p>
+          ) : null}
+
+          {releaseQueue.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              No cases are queued for release right now.
+            </p>
+          ) : (
+            <div className="overflow-x-auto rounded-md border">
+              <table className="min-w-full text-sm">
+                <thead className="bg-muted/50 text-left">
+                  <tr>
+                    <th className="px-3 py-2 font-semibold">Case</th>
+                    <th className="px-3 py-2 font-semibold">Patient</th>
+                    <th className="px-3 py-2 font-semibold">Company</th>
+                    <th className="px-3 py-2 font-semibold">Decision</th>
+                    <th className="px-3 py-2 font-semibold">Visits</th>
+                    <th className="px-3 py-2 font-semibold">Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {releaseQueue.map((caseRow) => {
+                    const patient = pickJoined(caseRow.patient);
+                    const company = pickJoined(caseRow.company);
+                    const readiness = releaseReadinessByCaseId.get(caseRow.caseid) ?? {
+                      totalVisits: 0,
+                      completedVisits: 0,
+                      hasDecision: false,
+                      canRelease: false,
+                    };
+
+                    return (
+                      <tr key={caseRow.caseid} className="border-t align-top">
+                        <td className="px-3 py-2">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">{caseRow.casenumber}</span>
+                            {caseRow.isrush ? (
+                              <StatusBadge label="RUSH" tone="warning" />
+                            ) : null}
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            {formatTimestamp(caseRow.registrationtimestamp)}
+                          </p>
+                        </td>
+                        <td className="px-3 py-2">{patient?.fullname ?? "Unknown patient"}</td>
+                        <td className="px-3 py-2 text-muted-foreground">
+                          {company?.name ?? "Walk-in"}
+                        </td>
+                        <td className="px-3 py-2">
+                          <StatusBadge
+                            label={readiness.hasDecision ? "Available" : "Missing"}
+                            tone={readiness.hasDecision ? "positive" : "danger"}
+                          />
+                        </td>
+                        <td className="px-3 py-2">
+                          <StatusBadge
+                            label={`${readiness.completedVisits}/${readiness.totalVisits} completed`}
+                            tone={readiness.canRelease ? "positive" : "warning"}
+                          />
+                        </td>
+                        <td className="px-3 py-2">
+                          <form action={releaseCaseAction}>
+                            <input type="hidden" name="caseId" value={caseRow.caseid} />
+                            <input type="hidden" name="returnPath" value={returnPath} />
+                            <Button type="submit" size="sm" disabled={!readiness.canRelease}>
+                              Release Case
+                            </Button>
+                          </form>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+---
+FILE: triage-module.tsx
+import { updateTriageCompletionAction } from "@/features/dashboard/staff/actions";
+import { MetricCard } from "@/components/dashboard/shared/metric-card";
+import { StatusBadge } from "@/components/dashboard/shared/status-badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
+import {
+  CaseRow,
+  caseStatusTone,
+  formatTimestamp,
+  pickJoined,
+} from "@/features/dashboard/staff/shared";
+
+type TriageModuleProps = {
+  returnPath: string;
+  caseStatusIdByCode: Map<string, number>;
+};
+
+export async function TriageModule({
+  returnPath,
+  caseStatusIdByCode,
+}: TriageModuleProps) {
+  const supabase = await createSupabaseServerClient();
+  const triageStatusIds = [
+    caseStatusIdByCode.get("REGISTERED"),
+    caseStatusIdByCode.get("IN_PROGRESS"),
+  ].filter((value): value is number => typeof value === "number");
+
+  let triageCases: CaseRow[] = [];
+  let triageError: string | null = null;
+
+  if (triageStatusIds.length === 0) {
+    triageError = "Missing REGISTERED/IN_PROGRESS status references.";
+  } else {
+    const { data: triageCasesRaw, error } = await supabase
+      .from("peme_case")
+      .select(
+        "caseid, casenumber, casecategory, isrush, waiversigned, registrationtimestamp, triagecompletedtimestamp, remarks, patient:patientid(patientid, fullname), company:companyid(companyid, name), status:casestatuscodeid(statuscodeid, code, label)"
+      )
+      .in("casestatuscodeid", triageStatusIds)
+      .is("triagecompletedtimestamp", null)
+      .order("isrush", { ascending: false })
+      .order("registrationtimestamp", { ascending: true })
+      .limit(40);
+
+    triageCases = (triageCasesRaw ?? []) as CaseRow[];
+    triageError = error?.message ?? null;
+  }
+
+  const rushCount = triageCases.filter((item) => item.isrush).length;
+  const staleCases = triageCases.filter((item) => {
+    if (!item.registrationtimestamp) {
+      return false;
+    }
+
+    const registrationDate = new Date(item.registrationtimestamp);
+    const twoHoursMs = 2 * 60 * 60 * 1000;
+
+    return Date.now() - registrationDate.getTime() >= twoHoursMs;
+  }).length;
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold tracking-tight">Triage Operations</h2>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Review intake queue, prioritize rush cases, and mark triage completion.
+        </p>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-3">
+        <MetricCard label="Pending Triage" value={triageCases.length} />
+        <MetricCard label="Rush Priority" value={rushCount} tone="warning" />
+        <MetricCard
+          label="Waiting 2h+"
+          value={staleCases}
+          tone={staleCases > 0 ? "danger" : "default"}
+        />
+      </div>
+
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg">Triage Queue</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {triageError ? (
+            <p className="text-sm text-destructive">Unable to load triage queue: {triageError}</p>
+          ) : null}
+
+          {triageCases.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              No cases are waiting for triage at the moment.
+            </p>
+          ) : (
+            <div className="overflow-x-auto rounded-md border">
+              <table className="min-w-full text-sm">
+                <thead className="bg-muted/50 text-left">
+                  <tr>
+                    <th className="px-3 py-2 font-semibold">Case</th>
+                    <th className="px-3 py-2 font-semibold">Patient</th>
+                    <th className="px-3 py-2 font-semibold">Status</th>
+                    <th className="px-3 py-2 font-semibold">Registered</th>
+                    <th className="px-3 py-2 font-semibold">Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {triageCases.map((caseRow) => {
+                    const patient = pickJoined(caseRow.patient);
+                    const status = pickJoined(caseRow.status);
+
+                    return (
+                      <tr key={caseRow.caseid} className="border-t">
+                        <td className="px-3 py-2">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">{caseRow.casenumber}</span>
+                            {caseRow.isrush ? (
+                              <StatusBadge label="RUSH" tone="warning" />
+                            ) : null}
+                          </div>
+                        </td>
+                        <td className="px-3 py-2">{patient?.fullname ?? "Unknown patient"}</td>
+                        <td className="px-3 py-2">
+                          <StatusBadge
+                            label={status?.label ?? status?.code ?? "Unknown"}
+                            tone={caseStatusTone(status?.code ?? null)}
+                          />
+                        </td>
+                        <td className="px-3 py-2 text-muted-foreground">
+                          {formatTimestamp(caseRow.registrationtimestamp)}
+                        </td>
+                        <td className="px-3 py-2">
+                          <form action={updateTriageCompletionAction}>
+                            <input type="hidden" name="caseId" value={caseRow.caseid} />
+                            <input type="hidden" name="returnPath" value={returnPath} />
+                            <Button type="submit" size="sm">
+                              Mark Triage Complete
+                            </Button>
+                          </form>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+---

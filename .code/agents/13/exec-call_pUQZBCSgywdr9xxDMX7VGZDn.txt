@@ -1,0 +1,102 @@
+
+[32;1mFullName[0m
+[32;1m--------                                                                                                    [0m
+C:\Users\alxvlo\.antigravity                                                                                
+C:\Users\alxvlo\.bun                                                                                        
+C:\Users\alxvlo\.cache                                                                                      
+C:\Users\alxvlo\.cagent                                                                                     
+C:\Users\alxvlo\.chatgpt-local                                                                              
+C:\Users\alxvlo\.claude                                                                                     
+C:\Users\alxvlo\.code                                                                                       
+C:\Users\alxvlo\.codex                                                                                      
+C:\Users\alxvlo\.config                                                                                     
+C:\Users\alxvlo\.copilot                                                                                    
+C:\Users\alxvlo\.docker                                                                                     
+C:\Users\alxvlo\.gemini                                                                                     
+C:\Users\alxvlo\.jdks                                                                                       
+C:\Users\alxvlo\.local                                                                                      
+C:\Users\alxvlo\.mcp-auth                                                                                   
+C:\Users\alxvlo\.ms-ad                                                                                      
+C:\Users\alxvlo\.ollama                                                                                     
+C:\Users\alxvlo\.stacher                                                                                    
+C:\Users\alxvlo\.vscode                                                                                     
+C:\Users\alxvlo\.writerside                                                                                 
+C:\Users\alxvlo\3D Objects                                                                                  
+C:\Users\alxvlo\ansel                                                                                       
+C:\Users\alxvlo\AppData                                                                                     
+C:\Users\alxvlo\Application Data                                                                            
+C:\Users\alxvlo\ChatMock                                                                                    
+C:\Users\alxvlo\Contacts                                                                                    
+C:\Users\alxvlo\Cookies                                                                                     
+C:\Users\alxvlo\Desktop                                                                                     
+C:\Users\alxvlo\Documents                                                                                   
+C:\Users\alxvlo\Downloads                                                                                   
+C:\Users\alxvlo\Favorites                                                                                   
+C:\Users\alxvlo\firecrawl                                                                                   
+C:\Users\alxvlo\Links                                                                                       
+C:\Users\alxvlo\Local Settings                                                                              
+C:\Users\alxvlo\Local Sites                                                                                 
+C:\Users\alxvlo\Music                                                                                       
+C:\Users\alxvlo\My Documents                                                                                
+C:\Users\alxvlo\n8n-local                                                                                   
+C:\Users\alxvlo\NetHood                                                                                     
+C:\Users\alxvlo\OneDrive                                                                                    
+C:\Users\alxvlo\Pictures                                                                                    
+C:\Users\alxvlo\PrintHood                                                                                   
+C:\Users\alxvlo\Recent                                                                                      
+C:\Users\alxvlo\Recorded Calls                                                                              
+C:\Users\alxvlo\Saved Games                                                                                 
+C:\Users\alxvlo\Searches                                                                                    
+C:\Users\alxvlo\SendTo                                                                                      
+C:\Users\alxvlo\Start Menu                                                                                  
+C:\Users\alxvlo\Templates                                                                                   
+C:\Users\alxvlo\touhou_little_maid                                                                          
+C:\Users\alxvlo\Videos                                                                                      
+C:\Users\alxvlo\Zotero                                                                                      
+C:\Users\alxvlo\.claude.json                                                                                
+C:\Users\alxvlo\.gitconfig                                                                                  
+C:\Users\alxvlo\acli.exe                                                                                    
+C:\Users\alxvlo\battery-report.html                                                                         
+C:\Users\alxvlo\Database.kdbx                                                                               
+C:\Users\alxvlo\get-docker.sh                                                                               
+C:\Users\alxvlo\NTUSER.DAT                                                                                  
+C:\Users\alxvlo\ntuser.dat.LOG1                                                                             
+C:\Users\alxvlo\ntuser.dat.LOG2                                                                             
+C:\Users\alxvlo\NTUSER.DAT{4fb7d1fd-09d5-11f1-a985-ccfd2a223bfa}.TxR.0.regtrans-ms                          
+C:\Users\alxvlo\NTUSER.DAT{4fb7d1fd-09d5-11f1-a985-ccfd2a223bfa}.TxR.1.regtrans-ms                          
+C:\Users\alxvlo\NTUSER.DAT{4fb7d1fd-09d5-11f1-a985-ccfd2a223bfa}.TxR.2.regtrans-ms                          
+C:\Users\alxvlo\NTUSER.DAT{4fb7d1fd-09d5-11f1-a985-ccfd2a223bfa}.TxR.blf                                    
+C:\Users\alxvlo\NTUSER.DAT{4fb7d1fe-09d5-11f1-a985-ccfd2a223bfa}.TM.blf                                     
+C:\Users\alxvlo\NTUSER.DAT{4fb7d1fe-09d5-11f1-a985-ccfd2a223bfa}.TMContainer00000000000000000001.regtrans-ms
+C:\Users\alxvlo\NTUSER.DAT{4fb7d1fe-09d5-11f1-a985-ccfd2a223bfa}.TMContainer00000000000000000002.regtrans-ms
+C:\Users\alxvlo\ntuser.ini                                                                                  
+C:\Users\alxvlo\.config\cagent                                                                              
+C:\Users\alxvlo\.config\opencode                                                                            
+C:\Users\alxvlo\.codex\memories                                                                             
+C:\Users\alxvlo\.codex\rules                                                                                
+C:\Users\alxvlo\.codex\sessions                                                                             
+C:\Users\alxvlo\.codex\skills                                                                               
+C:\Users\alxvlo\.codex\tmp                                                                                  
+C:\Users\alxvlo\.codex\vendor_imports                                                                       
+C:\Users\alxvlo\.codex\.personality_migration                                                               
+C:\Users\alxvlo\.codex\auth.json                                                                            
+C:\Users\alxvlo\.codex\config.toml                                                                          
+C:\Users\alxvlo\.codex\logs_1.sqlite                                                                        
+C:\Users\alxvlo\.codex\logs_1.sqlite-shm                                                                    
+C:\Users\alxvlo\.codex\logs_1.sqlite-wal                                                                    
+C:\Users\alxvlo\.codex\models_cache.json                                                                    
+C:\Users\alxvlo\.codex\session_index.jsonl                                                                  
+C:\Users\alxvlo\.codex\state_5.sqlite                                                                       
+C:\Users\alxvlo\.code\debug_logs                                                                            
+C:\Users\alxvlo\.code\sessions                                                                              
+C:\Users\alxvlo\.code\skills                                                                                
+C:\Users\alxvlo\.code\state                                                                                 
+C:\Users\alxvlo\.code\usage                                                                                 
+C:\Users\alxvlo\.code\working                                                                               
+C:\Users\alxvlo\.code\cleanup-state.json                                                                    
+C:\Users\alxvlo\.code\cleanup.lock                                                                          
+C:\Users\alxvlo\.code\config.toml                                                                           
+C:\Users\alxvlo\.code\history.jsonl                                                                         
+C:\Users\alxvlo\.code\models_cache.json                                                                     
+C:\Users\alxvlo\.code\version.json                                                                          
+

@@ -1,0 +1,622 @@
+--- README.md ---
+   1: # AHI Capstone Repository
+   2: 
+   3: Internal collaboration repository for the American Hospital Inc. PEME monitoring and result access system.
+   4: 
+   5: This repo is optimized for team execution, planning, QA, and traceable delivery rather than public distribution. It contains the application code, Supabase migrations, test assets, and the project memory bank used to keep Jira, GitHub, and implementation aligned.
+   6: 
+   7: ## Project Summary
+   8: 
+   9: - **Project:** Real-Time PEME Monitoring and Result Access System for American Hospital Inc.
+  10: - **Primary goal:** Replace fragmented paper-heavy PEME tracking with role-based dashboards, secure portals, and real-time workflow visibility.
+  11: - **Current phase:** Iteration 2, Sprint 07 - lifecycle foundation and E2E readiness.
+  12: - **Team:** Keith Avellaneda, Deejay Clark Datu, Alexander Velo.
+  13: 
+  14: ## What Is In This Repository
+  15: 
+  16: - `app/` - Next.js App Router pages and route entrypoints.
+  17: - `components/` - reusable UI and dashboard presentation components.
+  18: - `features/` - feature-level business logic that should not live directly inside route files.
+  19: - `lib/` - shared utilities, Supabase access helpers, validation, and routing logic.
+  20: - `supabase/` - schema migrations, seed data, and hosted-project database changes.
+  21: - `scripts/` - local and seeded-environment audit/verification scripts.
+  22: - `tests/` - Vitest unit and integration coverage.
+  23: - `memory-bank/` - planning, architecture, workflow, and project-state documentation.
+  24: - `shared/`, `.agent/`, `.opencode/` - collaboration and local AI/tooling support files; not part of the deployed app runtime.
+  25: 
+  26: ## Canonical Docs
+  27: 
+  28: Start here when you need project context before changing code:
+  29: 
+  30: 1. `memory-bank/pid.md` - project scope, constraints, objectives, and success metrics.
+  31: 2. `memory-bank/design-doc.md` - architecture and system design decisions.
+  32: 3. `memory-bank/auth-implementation-decision.md` - current auth model and security rules.
+  33: 4. `memory-bank/activeContext.md` - current sprint focus and open implementation direction.
+  34: 5. `memory-bank/index.md` - map of the rest of the documentation set.
+  35: 6. `QA.md` - current QA baseline, coverage focus, and validation flow.
+  36: 
+  37: ## Tech Stack
+  38: 
+  39: - **Frontend:** Next.js 15, React 19, Tailwind CSS 4.
+  40: - **Backend/BaaS:** Supabase Auth, PostgreSQL, Realtime, RLS.
+  41: - **Testing:** Vitest, Testing Library.
+  42: - **CI:** GitHub Actions.
+  43: - **Deployment target:** Vercel or Netlify for the app, Supabase Cloud for backend services.
+  44: 
+  45: ## Local Setup
+  46: 
+  47: ### Prerequisites
+  48: 
+  49: - Node.js 22 recommended.
+  50: - npm.
+  51: - Supabase project access for local integration testing.
+  52: 
+  53: ### Install
+  54: 
+  55: ```bash
+  56: npm install
+  57: ```
+  58: 
+  59: ### Environment
+  60: 
+  61: Copy `.env.example` to `.env.local` and fill in the required values:
+  62: 
+  63: ```env
+  64: NEXT_PUBLIC_SUPABASE_URL=
+  65: NEXT_PUBLIC_SUPABASE_ANON_KEY=
+  66: SUPABASE_SERVICE_ROLE_KEY=
+  67: ```
+  68: 
+  69: Recommended local-only extras for scripts:
+  70: 
+  71: ```env
+  72: AHI_APP_BASE_URL=http://127.0.0.1:3000
+  73: AHI_PROBE_PASSWORD=
+  74: ```
+  75: 
+  76: Security notes:
+  77: 
+  78: - `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` are expected browser-visible values.
+  79: - `SUPABASE_SERVICE_ROLE_KEY` is sensitive and must remain server-only.
+  80: - Never commit `.env.local`.
+  81: - Prefer a dev or staging Supabase project over production for local work.
+  82: 
+  83: ### Run The App
+  84: 
+  85: ```bash
+  86: npm run dev
+  87: ```
+  88: 
+  89: Open `http://localhost:3000`.
+  90: 
+  91: ### Production-Style Run
+  92: 
+  93: ```bash
+  94: npm run build
+  95: npm run start
+  96: ```
+  97: 
+  98: ## Common Commands
+  99: 
+ 100: ```bash
+ 101: # Code quality
+ 102: npm run lint
+ 103: npm run typecheck
+ 104: 
+ 105: # Tests
+ 106: npm run test:run
+ 107: npm run test:coverage
+ 108: 
+ 109: # Local QA baseline
+ 110: npm run qa:local
+ 111: npm run qa:ci
+ 112: 
+ 113: # Supabase-backed audits
+ 114: npm run qa:supabase
+ 115: ```
+ 116: 
+ 117: Use `qa:supabase` only against a safe seeded environment.
+ 118: 
+ 119: ## Current Implementation State
+ 120: 
+ 121: Implemented or stabilized:
+ 122: 
+ 123: - Supabase-backed auth flow for patient signup/signin.
+ 124: - SSR-compatible session handling and role-aware redirects.
+ 125: - Dashboard guard middleware and role-protected routing.
+ 126: - Staff dashboard baseline for Reception, Triage, Department, Physician, and Releasing roles.
+ 127: - Vitest-based QA baseline and GitHub Actions QA workflow.
+ 128: 
+ 129: Still active / not yet complete:
+ 130: 
+ 131: - transactional visit bootstrap from `package_department` to `department_visit`
+ 132: - physician decision write flow and decision-entry completion
+ 133: - staged Supabase-backed end-to-end lifecycle validation
+ 134: - realtime multi-session validation
+ 135: 
+ 136: ## Team Workflow
+ 137: 
+ 138: This repo follows a Jira + GitHub collaboration model.
+ 139: 
+ 140: - **Jira** is the source of truth for planning, assignments, sprint state, and acceptance criteria.
+ 141: - **GitHub** is the source of truth for code, review, and merge history.
+ 142: - Every branch, commit, and PR should reference the Jira key.
+ 143: 
+ 144: Examples:
+ 145: 
+ 146: - Branch: `SCRUM-31-e2e-case-lifecycle`
+ 147: - Commit: `SCRUM-31: Wire lifecycle bootstrap path`
+ 148: - PR title: `[SCRUM-31] Wire lifecycle bootstrap path`
+ 149: 
+ 150: See `memory-bank/guides/workflow-policy.md` for the full policy.
+ 151: 
+ 152: ## Working Agreements
+ 153: 
+ 154: - Keep feature logic in `features/` or `lib/`, not buried inside route files.
+ 155: - Treat `memory-bank/` as the planning and context layer, not as disposable notes.
+ 156: - Do not commit generated artifacts such as `coverage/`, `node_modules/`, local caches, or `.env.local`.
+ 157: - Run `npm run qa:local` before opening a PR when your change affects app behavior.
+ 158: - If a change impacts workflow, security, or compliance, update the relevant memory-bank document as part of the same effort.
+ 159: 
+ 160: ## Repository Hygiene
+ 161: 
+ 162: Intentional non-app directories exist in this repo because it is also a collaboration workspace:
+ 163: 
+ 164: - `.agent/` and `.opencode/` store local agent/tooling configuration and shared references.
+ 165: - `memory-bank/` stores planning, governance, and implementation context.
+ 166: 
+ 167: Generated or disposable items should stay out of commits:
+ 168: 
+ 169: - `coverage/`
+ 170: - `node_modules/`
+ 171: - `tsconfig.tsbuildinfo`
+ 172: - `.env.local`
+ 173: - Python cache folders and one-off backup files
+ 174: 
+ 175: ## If You Are Picking Up Work Mid-Sprint
+ 176: 
+ 177: 1. Read `memory-bank/activeContext.md`.
+ 178: 2. Check the active Jira sprint and assigned ticket.
+ 179: 3. Review the relevant feature spec under `memory-bank/requirements/`.
+ 180: 4. Pull latest changes and run `npm run qa:local`.
+ 181: 5. Work on a Jira-keyed branch.
+ 182: 
+ 183: ## Ownership Snapshot
+ 184: 
+ 185: - **Clark** - backend architecture, Supabase, RLS, realtime, core engineering.
+ 186: - **Keith** - workflow logic, UI/UX, package mapping, user-facing behavior.
+ 187: - **Alexander** - CI/CD, documentation, security/compliance, repo coordination.
+ 188: 
+ 189: See `memory-bank/profiles.md` for the full workload guidance.
+ 190: 
+ 191: ## Notes
+ 192: 
+ 193: - This repository is not structured as a public open-source package.
+ 194: - The README is intended to help the internal team onboard quickly, coordinate work, and avoid losing context between sessions.
+--- QA.md ---
+   1: # QA Workflow
+   2: 
+   3: This repository now has an automated QA baseline focused on the highest-risk areas: auth, role routing, middleware guards, and shared workflow helpers.
+   4: 
+   5: ## Local Baseline
+   6: 
+   7: - `npm run lint` - static analysis
+   8: - `npm run typecheck` - TypeScript validation
+   9: - `npm run test:run` - one-shot Vitest run
+  10: - `npm run test:coverage` - targeted coverage report for auth and access-control code
+  11: - `npm run qa:local` - lint + typecheck + tests
+  12: - `npm run qa:ci` - lint + typecheck + coverage-enabled test run
+  13: 
+  14: ## Seeded Supabase Regression
+  15: 
+  16: Use these after loading `.env.local`, seeding reference data, and making the required probe users available. These checks are intended for local or staging environments and are not part of the default GitHub Actions job yet.
+  17: 
+  18: - `npm run audit:roles:all` - redirect and protected-route role checks
+  19: - `npm run audit:write:all` - write policy and workflow write validation
+  20: - `npm run audit:auth:logs` - auth audit log validation
+  21: - `npm run audit:auth:e2e` - end-to-end auth and profile setup validation
+  22: - `npm run qa:supabase` - full Supabase-backed regression bundle
+  23: 
+  24: ## Coverage Focus
+  25: 
+  26: The current automated suite covers:
+  27: 
+  28: - `components/providers/auth-provider.tsx`
+  29: - `lib/supabase/middleware.ts`
+  30: - `lib/supabase/roles.ts`
+  31: - `features/dashboard/staff/shared.tsx`
+  32: - input normalization helpers in `lib/phone.ts` and `lib/government-id.ts`
+  33: 
+  34: Vitest discovers both colocated `*.test`/`*.spec` files and files under `tests/`.
+  35: 
+  36: ## Next Expansion Targets
+  37: 
+  38: 1. Add server-action tests for `features/dashboard/staff/actions.ts`.
+  39: 2. Add browser E2E coverage for patient, staff, client, and admin dashboards.
+  40: 3. Raise enforced coverage thresholds once the workflow mutation suite is in place.
+--- package.json ---
+   1: {
+   2:   "name": "ahi-capstone-main",
+   3:   "version": "0.1.0",
+   4:   "private": true,
+   5:   "scripts": {
+   6:     "dev": "node ./node_modules/next/dist/bin/next dev",
+   7:     "build": "node ./node_modules/next/dist/bin/next build",
+   8:     "start": "node ./node_modules/next/dist/bin/next start",
+   9:     "lint": "node ./node_modules/eslint/bin/eslint.js .",
+  10:     "typecheck": "node ./node_modules/typescript/bin/tsc --noEmit",
+  11:     "test": "node ./node_modules/vitest/vitest.mjs",
+  12:     "test:run": "node ./node_modules/vitest/vitest.mjs run",
+  13:     "test:watch": "node ./node_modules/vitest/vitest.mjs watch",
+  14:     "test:coverage": "node ./node_modules/vitest/vitest.mjs run --coverage",
+  15:     "qa:local": "npm run lint && npm run typecheck && npm run test:run",
+  16:     "qa:ci": "npm run lint && npm run typecheck && npm run test:coverage",
+  17:     "qa:supabase": "npm run audit:roles:all && npm run audit:write:all && npm run audit:auth:logs && npm run audit:auth:e2e",
+  18:     "seed:reference": "node --env-file=.env.local scripts/supabase/seed-reference-data.mjs",
+  19:     "probe:deptstaff:noclaim:bootstrap": "npx supabase db query --linked --file scripts/supabase/bootstrap-deptstaff-missing-claim-probe.sql",
+  20:     "audit:roles:redirect": "node scripts/supabase/run-role-redirect-audit-local.mjs scripts/supabase/audit-role-dashboard-redirects.mjs",
+  21:     "audit:roles:protected:all": "node scripts/supabase/run-role-redirect-audit-local.mjs scripts/supabase/audit-protected-routes-all-roles.mjs",
+  22:     "audit:roles:smoke:all": "node scripts/supabase/run-role-redirect-audit-local.mjs scripts/supabase/audit-role-smoke-all-roles.mjs",
+  23:     "audit:roles:all": "npm run audit:roles:redirect && npm run audit:roles:protected:all && npm run audit:roles:smoke:all",
+  24:     "audit:roles:deptstaff:noclaim": "node scripts/supabase/run-role-redirect-audit-local.mjs scripts/supabase/audit-department-staff-missing-claim.mjs",
+  25:     "audit:write-policies": "node --env-file=.env.local scripts/supabase/validate-write-policy-baseline.mjs",
+  26:     "audit:write:workflow": "node --env-file=.env.local scripts/supabase/validate-workflow-write-matrix.mjs",
+  27:     "audit:write:all": "npm run audit:write-policies && npm run audit:write:workflow",
+  28:     "audit:auth:logs": "node --env-file=.env.local scripts/supabase/validate-auth-audit-events.mjs",
+  29:     "audit:auth:e2e": "node --env-file=.env.local scripts/supabase/validate-auth-e2e.mjs",
+  30:     "probe:cleanup": "npx supabase db query --linked --file scripts/supabase/cleanup-probe-users.sql"
+  31:   },
+  32:   "dependencies": {
+  33:     "@radix-ui/react-label": "^2.1.8",
+  34:     "@radix-ui/react-select": "^2.2.6",
+  35:     "@radix-ui/react-slot": "^1.2.4",
+  36:     "@radix-ui/react-toast": "^1.2.15",
+  37:     "@radix-ui/react-tooltip": "^1.2.8",
+  38:     "@supabase/ssr": "^0.9.0",
+  39:     "@supabase/supabase-js": "^2.49.4",
+  40:     "class-variance-authority": "^0.7.1",
+  41:     "clsx": "^2.1.1",
+  42:     "framer-motion": "^12.36.0",
+  43:     "lucide-react": "^0.577.0",
+  44:     "next": "^15.2.2",
+  45:     "react": "^19.0.0",
+  46:     "react-dom": "^19.0.0",
+  47:     "sonner": "^2.0.7",
+  48:     "tailwind-merge": "^3.5.0"
+  49:   },
+  50:   "devDependencies": {
+  51:     "@eslint/eslintrc": "^3.3.1",
+  52:     "@tailwindcss/postcss": "^4.0.14",
+  53:     "@testing-library/jest-dom": "^6.9.1",
+  54:     "@testing-library/react": "^16.3.2",
+  55:     "@testing-library/user-event": "^14.6.1",
+  56:     "@types/node": "^22.13.10",
+  57:     "@types/react": "^19.0.10",
+  58:     "@types/react-dom": "^19.0.4",
+  59:     "@vitejs/plugin-react": "^6.0.1",
+  60:     "@vitest/coverage-v8": "^4.1.0",
+  61:     "eslint": "^9.22.0",
+  62:     "eslint-config-next": "^15.2.2",
+  63:     "jsdom": "^29.0.1",
+  64:     "postcss": "^8.5.3",
+  65:     "tailwindcss": "^4.0.14",
+  66:     "typescript": "^5.8.2",
+  67:     "vitest": "^4.1.0"
+  68:   }
+  69: }
+--- middleware.ts ---
+   1: import type { NextRequest } from "next/server";
+   2: import { updateSession } from "@/lib/supabase/middleware";
+   3: 
+   4: export async function middleware(request: NextRequest) {
+   5:   return updateSession(request);
+   6: }
+   7: 
+   8: export const config = {
+   9:   matcher: [
+  10:     "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+  11:   ],
+  12: };
+--- vitest.config.ts ---
+   1: import path from "node:path";
+   2: import { fileURLToPath } from "node:url";
+   3: import react from "@vitejs/plugin-react";
+   4: import { defineConfig } from "vitest/config";
+   5: 
+   6: const __filename = fileURLToPath(import.meta.url);
+   7: const __dirname = path.dirname(__filename);
+   8: 
+   9: export default defineConfig({
+  10:   plugins: [react()],
+  11:   resolve: {
+  12:     alias: {
+  13:       "@": __dirname,
+  14:     },
+  15:   },
+  16:   test: {
+  17:     environment: "jsdom",
+  18:     setupFiles: ["./tests/setup/vitest.setup.ts"],
+  19:     include: [
+  20:       "tests/**/*.{test,spec}.{ts,tsx}",
+  21:       "app/**/*.{test,spec}.{ts,tsx}",
+  22:       "components/**/*.{test,spec}.{ts,tsx}",
+  23:       "lib/**/*.{test,spec}.{ts,tsx}",
+  24:     ],
+  25:     exclude: [".next/**", ".opencode/**", "coverage/**", "**/node_modules/**"],
+  26:     reporters: process.env.CI ? ["default"] : ["dot"],
+  27:     environmentOptions: {
+  28:       jsdom: {
+  29:         url: "http://localhost:3000",
+  30:       },
+  31:     },
+  32:     coverage: {
+  33:       provider: "v8",
+  34:       reporter: ["text", "html"],
+  35:       reportsDirectory: "./coverage",
+  36:       include: [
+  37:         "lib/phone.ts",
+  38:         "lib/government-id.ts",
+  39:         "lib/supabase/roles.ts",
+  40:         "lib/supabase/middleware.ts",
+  41:         "features/dashboard/staff/shared.tsx",
+  42:         "components/providers/auth-provider.tsx",
+  43:       ],
+  44:     },
+  45:   },
+  46: });
+--- .github/workflows/qa.yml ---
+   1: name: QA
+   2: 
+   3: on:
+   4:   pull_request:
+   5:   push:
+   6:     branches:
+   7:       - main
+   8: 
+   9: jobs:
+  10:   qa:
+  11:     runs-on: ubuntu-latest
+  12: 
+  13:     steps:
+  14:       - name: Checkout
+  15:         uses: actions/checkout@v4
+  16: 
+  17:       - name: Setup Node.js
+  18:         uses: actions/setup-node@v4
+  19:         with:
+  20:           node-version: 22
+  21:           cache: npm
+  22: 
+  23:       - name: Install dependencies
+  24:         run: npm ci --ignore-scripts
+  25: 
+  26:       - name: Run QA baseline
+  27:         run: npm run qa:ci
+  28: 
+  29:       - name: Upload coverage report
+  30:         if: always()
+  31:         uses: actions/upload-artifact@v4
+  32:         with:
+  33:           name: coverage-report
+  34:           path: coverage/
+--- features/dashboard/staff/actions.ts ---
+   1: "use server";
+   2: 
+   3: import { revalidatePath } from "next/cache";
+   4: import { redirect } from "next/navigation";
+   5: import {
+   6:   resolveCurrentUserRoleContext,
+   7:   type CurrentUserRoleContext,
+   8: } from "@/lib/supabase/role-routing";
+   9: import {
+  10:   ADMIN_ROLE,
+  11:   DEPARTMENT_STAFF_ROLE,
+  12:   RECEPTION_ROLE,
+  13:   RELEASING_ROLE,
+  14:   TRIAGE_ROLE,
+  15: } from "@/lib/supabase/roles";
+  16: 
+  17: const STAFF_DASHBOARD_PATH = "/dashboard/staff";
+  18: 
+  19: type ActionContext = {
+  20:   supabase: CurrentUserRoleContext["supabase"];
+  21:   userId: string;
+  22:   role: string | null;
+  23: };
+  24: 
+  25: function normalizeReturnPath(rawPath: string | null) {
+  26:   if (!rawPath) {
+  27:     return STAFF_DASHBOARD_PATH;
+  28:   }
+  29: 
+  30:   const trimmedPath = rawPath.trim();
+  31: 
+  32:   if (!trimmedPath.startsWith(STAFF_DASHBOARD_PATH)) {
+  33:     return STAFF_DASHBOARD_PATH;
+  34:   }
+  35: 
+  36:   return trimmedPath;
+  37: }
+  38: 
+  39: function truncateMessage(message: string, limit = 180) {
+  40:   if (message.length <= limit) {
+  41:     return message;
+  42:   }
+  43: 
+  44:   return `${message.slice(0, limit - 3)}...`;
+  45: }
+  46: 
+  47: function buildRedirectPath(
+  48:   returnPath: string,
+  49:   options: {
+  50:     notice?: string;
+  51:     error?: string;
+  52:   }
+  53: ) {
+  54:   const normalized = normalizeReturnPath(returnPath);
+  55:   const url = new URL(normalized, "http://localhost");
+  56:   url.searchParams.delete("notice");
+  57:   url.searchParams.delete("error");
+  58: 
+  59:   if (options.notice) {
+  60:     url.searchParams.set("notice", truncateMessage(options.notice));
+  61:   }
+  62: 
+  63:   if (options.error) {
+  64:     url.searchParams.set("error", truncateMessage(options.error));
+  65:   }
+  66: 
+  67:   const searchString = url.searchParams.toString();
+  68: 
+  69:   return searchString ? `${url.pathname}?${searchString}` : url.pathname;
+  70: }
+  71: 
+  72: function redirectWithNotice(returnPath: string, message: string): never {
+  73:   redirect(
+  74:     buildRedirectPath(returnPath, {
+  75:       notice: message,
+  76:     })
+  77:   );
+  78: }
+  79: 
+  80: function redirectWithError(returnPath: string, message: string): never {
+  81:   redirect(
+  82:     buildRedirectPath(returnPath, {
+  83:       error: message,
+  84:     })
+  85:   );
+  86: }
+  87: 
+  88: function normalizeText(value: FormDataEntryValue | null) {
+  89:   if (typeof value !== "string") {
+  90:     return "";
+  91:   }
+  92: 
+  93:   return value.trim();
+  94: }
+  95: 
+  96: function parseOptionalPositiveInt(value: string) {
+  97:   if (!value) {
+  98:     return null;
+  99:   }
+ 100: 
+ 101:   const parsed = Number.parseInt(value, 10);
+ 102: 
+ 103:   if (!Number.isInteger(parsed) || parsed <= 0) {
+ 104:     return null;
+ 105:   }
+ 106: 
+ 107:   return parsed;
+ 108: }
+ 109: 
+ 110: function isUuid(value: string) {
+ 111:   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+ 112:     value
+ 113:   );
+ 114: }
+ 115: 
+ 116: async function resolveActionContext(): Promise<ActionContext> {
+ 117:   const { supabase, userId, role } = await resolveCurrentUserRoleContext();
+ 118: 
+ 119:   if (!userId) {
+ 120:     redirect("/auth/patient/sign-in");
+ 121:   }
+ 122: 
+ 123:   return {
+ 124:     supabase,
+ 125:     userId,
+ 126:     role,
+ 127:   };
+ 128: }
+ 129: 
+ 130: function ensureAllowedRole(
+ 131:   role: string | null,
+ 132:   allowedRoles: readonly string[],
+ 133:   returnPath: string
+ 134: ) {
+ 135:   if (!role || !allowedRoles.includes(role)) {
+ 136:     redirectWithError(
+ 137:       returnPath,
+ 138:       "Your role is not allowed to perform this dashboard action."
+ 139:     );
+ 140:   }
+ 141: }
+ 142: 
+ 143: async function getStatusId(
+ 144:   supabase: CurrentUserRoleContext["supabase"],
+ 145:   domain: "CASE" | "VISIT",
+ 146:   code: string
+ 147: ) {
+ 148:   const { data: statusRow, error: statusError } = await supabase
+ 149:     .from("status_code")
+ 150:     .select("statuscodeid")
+ 151:     .eq("domain", domain)
+ 152:     .eq("code", code)
+ 153:     .eq("isactive", true)
+ 154:     .maybeSingle();
+ 155: 
+ 156:   if (statusError) {
+ 157:     return null;
+ 158:   }
+ 159: 
+ 160:   if (!statusRow || typeof statusRow.statuscodeid !== "number") {
+ 161:     return null;
+ 162:   }
+ 163: 
+ 164:   return statusRow.statuscodeid;
+ 165: }
+ 166: 
+ 167: function generateCaseNumber(attempt = 0) {
+ 168:   const now = new Date();
+ 169:   const datePart = now.toISOString().slice(0, 10).replace(/-/g, "");
+ 170:   const timePart = now.toISOString().slice(11, 19).replace(/:/g, "");
+ 171:   const randomPart = Math.floor(Math.random() * 900 + 100);
+ 172:   const attemptPart = attempt > 0 ? `-${attempt}` : "";
+ 173: 
+ 174:   return `AHI-${datePart}-${timePart}-${randomPart}${attemptPart}`.slice(0, 30);
+ 175: }
+ 176: 
+ 177: export async function createReceptionCaseAction(formData: FormData) {
+ 178:   const returnPath = normalizeReturnPath(normalizeText(formData.get("returnPath")));
+ 179:   const patientId = normalizeText(formData.get("patientId"));
+ 180:   const packageId = parseOptionalPositiveInt(normalizeText(formData.get("packageId")));
+ 181:   const companyId = parseOptionalPositiveInt(normalizeText(formData.get("companyId")));
+ 182:   const caseCategory = normalizeText(formData.get("caseCategory")).slice(0, 20);
+ 183:   const remarks = normalizeText(formData.get("remarks")).slice(0, 255);
+ 184:   const waiverSigned = formData.get("waiverSigned") === "on";
+ 185:   const isRush = formData.get("isRush") === "on";
+ 186: 
+ 187:   if (!patientId || !isUuid(patientId)) {
+ 188:     redirectWithError(returnPath, "Please select a valid patient before creating a case.");
+ 189:   }
+ 190: 
+ 191:   if (!packageId) {
+ 192:     redirectWithError(returnPath, "Please select a PEME package.");
+ 193:   }
+ 194: 
+ 195:   if (!waiverSigned) {
+ 196:     redirectWithError(
+ 197:       returnPath,
+ 198:       "DPA waiver confirmation is required before case registration."
+ 199:     );
+ 200:   }
+ 201: 
+ 202:   const { supabase, userId, role } = await resolveActionContext();
+ 203:   ensureAllowedRole(role, [RECEPTION_ROLE, ADMIN_ROLE], returnPath);
+ 204: 
+ 205:   const registeredStatusId = await getStatusId(supabase, "CASE", "REGISTERED");
+ 206: 
+ 207:   if (!registeredStatusId) {
+ 208:     redirectWithError(
+ 209:       returnPath,
+ 210:       "Unable to find the REGISTERED case status. Please check status seed data."
+ 211:     );
+ 212:   }
+ 213: 
+ 214:   let insertedCase:
+ 215:     | {
+ 216:         caseid: string;
+ 217:         casenumber: string;
+ 218:       }
+ 219:     | null = null;
+ 220: 

@@ -1,149 +1,151 @@
-# Full-Stack Engineer Agent
+# Repository Agent Guide
 
-You are a **professional software contractor** and **Full-Stack Engineer**.
+This repository is a Next.js 15 + React 19 + TypeScript app for American Hospital Inc.'s PEME portal.
+Use this file as the repo-specific source of truth for commands, code style, and agent behavior.
 
-## Core Principles
+## Stack And Runtime
+- App framework: Next.js App Router.
+- UI: React 19, Tailwind CSS 4, Radix UI primitives, `class-variance-authority`.
+- Backend/BaaS: Supabase Auth + PostgreSQL + RLS.
+- Testing: Vitest + Testing Library + `jsdom`.
+- Linting: ESLint 9 with `next/core-web-vitals` and `next/typescript`.
+- Type safety: `tsconfig.json` has `strict: true`.
+- Package manager: use `npm` at repo root; `package-lock.json` is canonical.
+- Node version baseline: 22.x in README and CI.
 
-| # | Principle | Description |
-|---|-----------|-------------|
-| 1 | **Scope-bound** | Do exactly what's requested, don't expand scope unilaterally |
-| 2 | **Clarify-first** | Ask immediately when requirements are ambiguous or incomplete |
-| 3 | **Transparent** | Explain all technical decisions clearly |
-| 4 | **Quality-over-speed** | Prioritize quality over completion speed |
-| 5 | **Maintainable** | Ensure code is maintainable long-term |
+## External Rule Files
+- No `.cursor/rules/`, `.cursorrules`, or `.github/copilot-instructions.md` files were present when this guide was generated.
+- Treat this `AGENTS.md` as the effective agent instruction file for the repository.
+- Ignore `.opencode/` unless the task is specifically about local agent tooling; it is not app runtime code.
 
----
+## Repo Layout
+- `app/`: Next.js route entrypoints, layouts, loading/error boundaries, and page-level orchestration.
+- `components/`: reusable UI and view components.
+- `features/`: feature-specific logic and server actions; keep workflow code here instead of bloating route files.
+- `lib/`: shared utilities, validation, content constants, and Supabase helpers.
+- `tests/`: Vitest suites and shared setup.
+- `scripts/`: one-off or regression scripts, especially Supabase audits.
+- `supabase/`: database changes and related assets.
+- `memory-bank/`: project context, architecture, and workflow docs.
+- `README.md` and `QA.md`: high-signal references before changing behavior or test flow.
 
-## Task Classification
+## Common Commands
+Run all commands from the repo root.
 
-When receiving a request, **identify the task type** before proceeding:
+```bash
+npm install
+npm run dev
+npm run build
+npm run start
+npm run lint
+npm run typecheck
+npm run test
+npm run test:run
+npm run test:watch
+npm run test:coverage
+npm run qa:local
+npm run qa:ci
+npm run qa:supabase
+npm run audit:roles:all
+npm run audit:write:all
+npm run audit:auth:logs
+npm run audit:auth:e2e
+```
 
-### Development Tasks
+Notes:
+- `qa:local` = lint + typecheck + `test:run`.
+- `qa:ci` = lint + typecheck + coverage-enabled tests.
+- Use Supabase audit commands only on a safe seeded environment, not production.
 
-| Type | Keywords (EN) | Keywords (VI) | Action |
-|:----:|---------------|---------------|--------|
-| **CONSULT** | should, recommend, compare, suggest, advise | nen, goi y, tu van, so sanh | Compare 2-3 options, wait for confirmation |
-| **BUILD** | create, make, build, add, implement, write | tao, lam, xay dung, them, viet | Confirm scope, code in order: Types -> Logic -> UI |
-| **DEBUG** | error, bug, not working, fix, crash, broken | loi, bug, khong chay, sua, crash | Analyze root cause, fix, suggest prevention |
-| **OPTIMIZE** | slow, refactor, clean, improve, optimize | cham, refactor, toi uu, cai thien | Measure baseline, improve, compare before/after |
-| **LEARN** | explain, how does, what is, why, understand | giai thich, la gi, tai sao, huong dan | Explain concept with examples |
-| **REVIEW** | review, check, audit, evaluate, assess | review, kiem tra, danh gia | Analyze code quality, suggest improvements |
-| **MIGRATE** | upgrade, migrate, update version, convert | nang cap, migrate, cap nhat version | Plan migration steps, handle breaking changes |
+## Single-Test Commands
 
-### Security & Operations Tasks
+```bash
+npm run test:run -- tests/lib/phone.test.ts
+npm run test:run -- -t "phone helpers"
+npm run test:run -- tests/lib/phone.test.ts -t "extracts Philippine mobile digits"
+```
 
-| Type | Keywords (EN) | Keywords (VI) | Action |
-|:----:|---------------|---------------|--------|
-| **PENTEST** | pentest, security test, find vuln, scan, bug bounty | pentest, kiem thu bao mat, tim loi | Load mode-pentest, follow methodology phases |
-| **EXPLOIT** | exploit, PoC, payload, reverse shell, RCE | exploit, khai thac, payload | Load mode-exploit, develop & test safely |
-| **TOOL_DEV** | script, automate, CLI tool, scanner | script, tu dong hoa, cong cu | Load mode-tool-dev, create with proper structure |
-| **DEPLOY** | deploy, release, production, VPS, cloud | deploy, phat hanh, production | Load cloud-deployment-expert, follow checklist |
-| **SERVER_CONFIG** | nginx, firewall, ssl, systemd, server setup | cau hinh server, ssl, firewall | Load linux-server-expert, security-first |
-| **SYSTEM_DESIGN** | architecture, scale, microservices, design | kien truc, mo rong, thiet ke | Load system-design-expert, analyze requirements |
+- Vitest discovers files in `tests/` plus colocated `*.test` / `*.spec` files under `app/`, `components/`, and `lib/`.
+- Shared test setup lives in `tests/setup/vitest.setup.ts`.
+- `test:coverage` writes to `coverage/` and currently focuses on selected high-risk files, not full-repo thresholds.
 
-**When unclear:** Ask the user to clarify task type.
+## Code Style
+- Follow existing formatting; no Prettier, Biome, or `npm run format` script is configured.
+- Use double quotes, semicolons, and trailing commas in multi-line arrays, objects, and imports.
+- Keep functions small and branch early with guard clauses instead of deep nesting.
+- Prefer focused helpers for normalization, parsing, validation, and mapping.
+- Use comments sparingly; only document non-obvious framework constraints or edge cases.
+- Do not edit generated output such as `.next/`, `coverage/`, `node_modules/`, or `tsconfig.tsbuildinfo`.
 
-**Complex tasks:** Process sequentially (e.g., Consult -> Build, Debug -> Optimize).
+## Imports
+- Prefer absolute repo imports via `@/` instead of long relative paths.
+- Group imports as framework/external packages first, then internal `@/` modules, then side-effect imports such as CSS when required.
+- Use `import type` for type-only imports.
+- Prefer named exports for reusable modules.
+- Default exports are normal for Next route files (`page.tsx`, `layout.tsx`, `error.tsx`, `loading.tsx`, `not-found.tsx`) and config files.
 
----
+## TypeScript And Types
+- Keep `strict` TypeScript happy; do not introduce `any`.
+- Prefer `type` for unions, props, tuples, and local aliases.
+- Use `interface` when a shape is intended to be extended or describes a larger contract, as in `AuthProvider`.
+- Use `Readonly<{ ... }>` for page and layout props when the object is not mutated.
+- Narrow unknown values from form data, query params, Supabase payloads, and environment variables before using them.
+- Keep type assertions localized and justified; Supabase query results sometimes need small `as` casts after runtime checks.
+- `satisfies` is welcome for fixtures or config-shaped objects when it improves validation without widening types.
 
-## Communication Style
+## Naming
+- Files use kebab-case unless a framework file name is fixed by Next.
+- React components, providers, and exported UI primitives use PascalCase.
+- Hooks use `useX` names.
+- Utilities, parser functions, server actions, and local variables use camelCase.
+- Constants use UPPER_SNAKE_CASE.
+- Server actions should read like verbs and usually end in `Action`.
+- Tests use `*.test.ts`, `*.test.tsx`, `*.spec.ts`, or `*.spec.tsx`.
 
-| Principle | Description |
-|-----------|-------------|
-| **Clear** | Avoid jargon unless necessary |
-| **Concise** | Direct, no fluff - get straight to the point |
-| **Structured** | Use headers, lists, tables for readability |
-| **Actionable** | Specific guidance that can be executed immediately |
-| **Honest** | Acknowledge limitations, don't guess |
+## React, Next.js, And UI
+- Server components are the default; only add `"use client"` when hooks, browser APIs, or interactive handlers are required.
+- Put `"use server"` at the top of server action modules.
+- Keep page files thin: fetch data, perform access checks, and delegate UI/workflow to `components/` and `features/`.
+- Route files commonly use async components and may await `searchParams`.
+- Reusable styling lives in Tailwind class strings; use `cn()` from `lib/utils.ts` for class merging.
+- Variant-heavy UI should follow the existing `cva` + `VariantProps` pattern used in `components/ui/button.tsx`.
+- Preserve the current visual system unless the task explicitly asks for redesign.
 
-### Response Length
+## Supabase And Data Access
+- Use the existing helpers in `lib/supabase/` instead of instantiating raw clients ad hoc.
+- Required env vars: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`; `SUPABASE_SERVICE_ROLE_KEY` is server-only.
+- Fail fast for missing env vars with explicit thrown errors, matching `lib/supabase/config.ts`.
+- Normalize and validate user inputs before writes: trim text, lowercase emails, parse ints, validate UUIDs, and sanitize phone or ID fields.
+- Keep auth, role resolution, and redirect logic consistent with `lib/supabase/middleware.ts` and `lib/supabase/role-routing.ts`.
+- Prefer query-efficient lookups over extra round trips when the data shape supports it.
 
-| Context | Length |
-|---------|--------|
-| Quick question | 1-3 sentences |
-| Explanation | 1-2 paragraphs + code |
-| Tutorial/Guide | Structured with headers |
-| Code delivery | Code + brief explanation |
-| Debugging | Analysis + fix + prevention |
+## Error Handling
+- Use early returns or redirects for expected user-facing failures.
+- In server actions, validate first and redirect with safe `notice` or `error` query messages rather than exposing raw exceptions to users.
+- In client auth flows, return structured `{ success, error }` objects for expected failures instead of throwing.
+- Throw real `Error` objects for missing configuration or impossible states.
+- Avoid silent `catch` blocks; if a framework edge case forces one, keep it tiny and explain why in a comment.
+- Log only at boundaries where it helps debugging or auditability; do not leave casual `console.log` statements in production code.
 
-### Language
+## Testing Conventions
+- Use Vitest APIs from `vitest` and Testing Library for React behavior.
+- Prefer deterministic unit or integration tests over snapshot-heavy tests.
+- Build mocks with small factory helpers instead of repeating large object literals.
+- Reset mocks between tests with `vi.clearAllMocks()` or rely on shared cleanup where appropriate.
+- Mock Supabase clients at the module boundary with `vi.mock(...)`.
+- For hooks and providers, follow the existing `renderHook` + `act` + `waitFor` style.
 
-- Match user's language (English/Vietnamese/Other)
-- **Keep technical terms in English** (code, variables, function names)
+## Workflow And Repo Hygiene
+- If behavior changes, update tests in the same task whenever practical.
+- Run at least `npm run qa:local` before handing off non-trivial changes.
+- Use a safe seeded environment for Supabase audit scripts; never point destructive checks at production by default.
+- Never commit secrets, `.env.local`, or generated artifacts.
+- If a task affects workflow, auth, or system design, check whether a `memory-bank/` doc should be updated too.
+- Branches, commits, and PR titles should reference the Jira key when one exists.
 
-### Formatting
-
-Use Markdown: code blocks with syntax highlighting, tables for comparisons, diff blocks for changes, mermaid for diagrams.
-
----
-
-## Pre-Delivery Checklist
-
-### Code Quality (All Languages)
-
-- [ ] No loose typing (`any`, raw `Object`, `interface{}` abuse)
-- [ ] No hardcoded magic numbers/strings (use constants/env)
-- [ ] Complete error handling (no silent failures)
-- [ ] Clear naming (self-documenting code)
-- [ ] No duplicate code (DRY principle)
-- [ ] No debug statements left (console.log, print, etc.)
-
-### Security (Critical)
-
-- [ ] No hardcoded secrets/credentials/API keys
-- [ ] Environment variables for sensitive config
-- [ ] Input validation present
-- [ ] SQL injection prevention (parameterized queries)
-- [ ] XSS prevention (output escaping)
-
-### Structure
-
-- [ ] Correct folder structure for the framework
-- [ ] Correct naming convention for the language
-- [ ] < 200 lines/file, < 50 lines/function (recommended)
-- [ ] Single Responsibility Principle
-
-### Severity Priority
-
-| Level | Items |
-|-------|-------|
-| `[!] HIGH` | Security vulnerabilities, hardcoded secrets, crashes, data loss |
-| `[*] MED` | Missing error handling, no input validation, performance issues |
-| `[-] LOW` | Code style, additional docs, minor optimizations |
-
----
-
-## Special Situations
-
-### Scope Too Large
-> "This is a large feature. Let me break it into phases:
-> Phase 1: [core] -> Phase 2: [enhancements] -> Phase 3: [polish]"
-
-### Conflicts with Existing Code
-> "This might conflict with [existing]. Should I: A) Extend it, or B) Create separate?"
-
-### Unsure About Approach
-> "I'm not 100% certain about this. Here's my best understanding: [explanation]. Would you like me to verify?"
-
-### Receiving Feedback
-- **Accepting:** "Thank you. I will adjust as follows: [specific changes]"
-- **Disagreeing:** "I understand. However, I suggest [X] because [reason]. Would you like to discuss?"
-
----
-
-## Loading Specialized Knowledge
-
-Use the `skill` tool to load domain-specific expertise when needed. Available skills include:
-
-**Frontend:** react-expert, nextjs-expert, css-expert, ui-ux-pro-max, accessibility-expert
-**Backend:** nodejs-expert, nestjs-expert, rest-api-expert, auth-expert
-**Database:** prisma-expert, database-expert, postgres-expert, mongodb-expert, redis-expert
-**Testing:** testing-expert, jest-expert, vitest-expert, playwright-expert
-**DevOps:** devops-expert, docker-expert, github-actions-expert, git-expert, monitoring-expert
-**Infrastructure:** linux-server-expert, cloud-deployment-expert, system-design-expert
-**Security:** pentest-expert, web-security-expert, exploit-dev-expert, python-security-tools, bash-automation
-**Modes:** mode-pentest, mode-exploit, mode-tool-dev, mode-build, mode-debug, mode-optimize
-**Code Quality:** code-review, refactoring-expert, typescript-expert
-
-The agent will automatically identify and load appropriate skills based on the task context.
+## Quick Checklist
+- Read `README.md` and `QA.md` if you need repo context.
+- Use `npm`, not bun, for app-level commands.
+- Prefer `@/` imports, named exports, strict types, and guard clauses.
+- Keep pages thin, features cohesive, and Supabase access centralized.
+- Start with the smallest relevant test command.
