@@ -42,7 +42,57 @@ Start here when you need project context before changing code:
 - **CI:** GitHub Actions.
 - **Deployment target:** Vercel or Netlify for the app, Supabase Cloud for backend services.
 
-## Local Setup
+## Handover & Environment Setup Tutorial
+
+If you are a new developer or taking over this project on a fresh machine, follow this tutorial to mirror the exact application, tooling, and MCP (Model Context Protocol) configurations used by the team.
+
+### 1. Prerequisites
+
+1.  **Node.js 22+**: [Download and install Node.js](https://nodejs.org/).
+2.  **Git**: [Download and install Git](https://git-scm.com/).
+3.  **Docker Desktop**: [Download and install Docker Desktop](https://www.docker.com/products/docker-desktop/). Ensure it is running and you have access to the `docker mcp` CLI.
+4.  **Obsidian (Optional but Recommended)**: Used for the project memory bank and agent integration. Install [Obsidian](https://obsidian.md/).
+
+### 2. Workspace Directory Structure
+
+To ensure the local MCP activation scripts work out-of-the-box, create a unified workspace folder (e.g., `C:\Users\YourName\workspace`) and clone the required repositories side-by-side:
+
+```bash
+mkdir workspace
+cd workspace
+
+# 1. Main Application Repository (This repo)
+git clone <repository-url> Repo
+
+# 2. Firecrawl (Required for AI Web Scraping MCP)
+git clone https://github.com/mendableai/firecrawl.git
+
+# 3. n8n (Required for AI Workflow Automation MCP)
+git clone https://github.com/n8n-io/n8n.git n8n-local
+```
+
+### 3. Activating MCPs (Agent Tooling)
+
+This repository contains custom scripts in the `mcp-tools/` directory to manage Docker-based MCP servers (Firecrawl, n8n, Obsidian, etc.).
+
+Because `mcp-tools` is inside `Repo/mcp-tools`, the scripts automatically look for `firecrawl` and `n8n-local` in the parent directory (your `workspace/` folder). If you followed the structure above, no script changes are needed. *(If you place them elsewhere, update the `$firecrawlDir` and `$n8nDir` variables in `mcp-enable.ps1` and `mcp-disable.ps1`).*
+
+Open PowerShell, navigate to the `mcp-tools` directory, and run the tools:
+
+```powershell
+cd Repo\mcp-tools
+
+# Enable all MCPs and start their background Docker containers
+.\mcp-enable.ps1 all
+
+# Check the status of your MCP servers and support ports
+.\mcp-status.ps1
+
+# (When done working) Disable all MCPs and stop the containers
+.\mcp-disable.ps1 all -StopSupport
+```
+
+### 4. Application Local Setup
 
 ### Prerequisites
 
