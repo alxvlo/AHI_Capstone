@@ -71,13 +71,34 @@ git clone https://github.com/mendableai/firecrawl.git
 git clone https://github.com/atlassian/mcp-server-atlassian.git atlassian-mcp
 ```
 
-### 3. Activating MCPs (Agent Tooling)
+### 3. Credentials & Configuration
+
+Before starting the MCPs, you must configure your local environment variables and credentials so the AI agents can access your accounts.
+
+**A. Firecrawl (Web Scraping)**
+No strict authentication is needed for local development, but you should ensure the default environment file is ready:
+```bash
+cd firecrawl
+cp .env.example .env
+```
+
+**B. Atlassian (Jira Integration)**
+The Atlassian MCP requires your Jira credentials to read and update tickets.
+1. Go to your [Atlassian Security settings](https://id.atlassian.com/manage-profile/security/api-tokens) and click **Create API token**. Save this token.
+2. In your Docker Desktop MCP extension (or wherever your local `docker mcp` config lives), you will need to provide these environment variables to the Atlassian server:
+   - `ATLASSIAN_API_TOKEN`: The token you just created.
+   - `ATLASSIAN_EMAIL`: The email address associated with your Jira account.
+   - `ATLASSIAN_SITE`: Your Jira cloud URL (e.g., `https://your-domain.atlassian.net`).
+
+### 4. Activating MCPs (Agent Tooling)
 
 This repository contains custom scripts in the `mcp-tools/` directory to manage Docker-based MCP servers (Firecrawl, etc.).
 
+**Prerequisite:** Ensure Docker Desktop is currently running on your machine.
+
 Because `mcp-tools` is inside `Repo/mcp-tools`, the scripts automatically look for `firecrawl` in the parent directory (your `workspace/` folder). If you followed the structure above, no script changes are needed. *(If you place them elsewhere, update the `$firecrawlDir` variables in `mcp-enable.ps1` and `mcp-disable.ps1`).*
 
-Open PowerShell, navigate to the `mcp-tools` directory, and run the tools:
+Open PowerShell as Administrator, navigate to the `mcp-tools` directory, and run the tools:
 
 ```powershell
 cd Repo\mcp-tools
@@ -92,7 +113,7 @@ cd Repo\mcp-tools
 .\mcp-disable.ps1 all -StopSupport
 ```
 
-### 4. Application Local Setup
+### 5. Application Local Setup
 
 ### Prerequisites
 
