@@ -85,10 +85,17 @@ cp .env.example .env
 **B. Atlassian (Jira Integration)**
 The Atlassian MCP requires your Jira credentials to read and update tickets.
 1. Go to your [Atlassian Security settings](https://id.atlassian.com/manage-profile/security/api-tokens) and click **Create API token**. Save this token.
-2. In your Docker Desktop MCP extension (or wherever your local `docker mcp` config lives), you will need to provide these environment variables to the Atlassian server:
+2. Open **Docker Desktop**, navigate to the **MCP (Model Context Protocol)** extension or settings tab.
+3. Find the **atlassian** server in your list of MCPs (or add it from the catalog).
+4. Edit the configuration for the Atlassian server to include these environment variables:
    - `ATLASSIAN_API_TOKEN`: The token you just created.
    - `ATLASSIAN_EMAIL`: The email address associated with your Jira account.
-   - `ATLASSIAN_SITE`: Your Jira cloud URL (e.g., `https://your-domain.atlassian.net`).
+   - `ATLASSIAN_SITE`: Your Jira cloud URL (e.g., `https://alexvelo799.atlassian.net`).
+
+Alternatively, if you prefer the CLI, you can set it via:
+```bash
+docker mcp config set atlassian '{"ATLASSIAN_API_TOKEN": "your-token", "ATLASSIAN_EMAIL": "your-email", "ATLASSIAN_SITE": "https://your-domain.atlassian.net"}'
+```
 
 ### 4. Activating MCPs (Agent Tooling)
 
