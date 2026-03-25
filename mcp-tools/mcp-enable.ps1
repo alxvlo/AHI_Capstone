@@ -6,12 +6,9 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-$knownServers = @("context7", "firecrawl", "n8n", "obsidian", "playwright", "stripe")
+$knownServers = @("context7", "firecrawl", "playwright", "stripe", "atlassian")
 $userHome = Split-Path -Parent $PSScriptRoot
 $firecrawlDir = Join-Path $userHome "firecrawl"
-$n8nDir = Join-Path $userHome "n8n-local"
-$obsidianExe = Join-Path $env:LOCALAPPDATA "Programs\Obsidian\Obsidian.exe"
-$obsidianVault = "OpenCode Vault"
 
 function Resolve-ServerList {
   param([string[]]$InputServers)
@@ -54,17 +51,6 @@ function Start-SupportForServer {
   switch ($Server) {
     "firecrawl" {
       Invoke-ComposeUp -Directory $firecrawlDir -Label "Firecrawl"
-    }
-    "n8n" {
-      Invoke-ComposeUp -Directory $n8nDir -Label "n8n"
-    }
-    "obsidian" {
-      if (Test-Path $obsidianExe) {
-        Start-Process $obsidianExe "obsidian://open?vault=OpenCode%20Vault" | Out-Null
-        Write-Host "Started Obsidian vault '$obsidianVault'."
-      } else {
-        Write-Host "Obsidian executable not found at $obsidianExe"
-      }
     }
   }
 }

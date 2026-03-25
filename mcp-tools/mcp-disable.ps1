@@ -7,10 +7,9 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-$knownServers = @("context7", "firecrawl", "n8n", "obsidian", "playwright", "stripe")
+$knownServers = @("context7", "firecrawl", "playwright", "stripe", "atlassian")
 $userHome = Split-Path -Parent $PSScriptRoot
 $firecrawlDir = Join-Path $userHome "firecrawl"
-$n8nDir = Join-Path $userHome "n8n-local"
 
 function Resolve-ServerList {
   param([string[]]$InputServers)
@@ -53,12 +52,6 @@ function Stop-SupportForServer {
   switch ($Server) {
     "firecrawl" {
       Invoke-ComposeStop -Directory $firecrawlDir -Label "Firecrawl"
-    }
-    "n8n" {
-      Invoke-ComposeStop -Directory $n8nDir -Label "n8n"
-    }
-    "obsidian" {
-      Write-Host "Obsidian support is manual. Close the Obsidian app if you want its Local REST API offline."
     }
   }
 }

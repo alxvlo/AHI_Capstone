@@ -67,15 +67,15 @@ git clone <repository-url> Repo
 # 2. Firecrawl (Required for AI Web Scraping MCP)
 git clone https://github.com/mendableai/firecrawl.git
 
-# 3. n8n (Required for AI Workflow Automation MCP)
-git clone https://github.com/n8n-io/n8n.git n8n-local
+# 3. Atlassian (Required for Jira Integration)
+git clone https://github.com/atlassian/mcp-server-atlassian.git atlassian-mcp
 ```
 
 ### 3. Activating MCPs (Agent Tooling)
 
-This repository contains custom scripts in the `mcp-tools/` directory to manage Docker-based MCP servers (Firecrawl, n8n, Obsidian, etc.).
+This repository contains custom scripts in the `mcp-tools/` directory to manage Docker-based MCP servers (Firecrawl, etc.).
 
-Because `mcp-tools` is inside `Repo/mcp-tools`, the scripts automatically look for `firecrawl` and `n8n-local` in the parent directory (your `workspace/` folder). If you followed the structure above, no script changes are needed. *(If you place them elsewhere, update the `$firecrawlDir` and `$n8nDir` variables in `mcp-enable.ps1` and `mcp-disable.ps1`).*
+Because `mcp-tools` is inside `Repo/mcp-tools`, the scripts automatically look for `firecrawl` in the parent directory (your `workspace/` folder). If you followed the structure above, no script changes are needed. *(If you place them elsewhere, update the `$firecrawlDir` variables in `mcp-enable.ps1` and `mcp-disable.ps1`).*
 
 Open PowerShell, navigate to the `mcp-tools` directory, and run the tools:
 
