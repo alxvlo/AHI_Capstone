@@ -12,6 +12,58 @@ import {
   isStaffRole,
 } from "@/lib/supabase/roles";
 
+const AUTH_RATE_LIMIT_WINDOW_MS = 60_000;
+const AUTH_RATE_LIMIT_MAX_REQUESTS = 10;
+
+interface RateLimitEntry {
+  timestamps: number[];
+}
+
+const ipRequestMap = new Map<string, RateLimitEntry>();
+
+function isAuthPath(pathname: string) {
+  return pathname.startsWith("/auth/");
+}
+
+function getClientIp(request: NextRequest) {
+  return (
+    request.headers.get("x-forwarded-for")?.split(",")[0].trim() ??
+    request.headers.get("x-real-ip") ??
+    "unknown"
+  );
+}
+
+function applyAuthRateLimit(request: NextRequest): NextResponse | null {
+  const { pathname } = request.nextUrl;
+
+  if (!isAuthPath(pathname)) {
+    return null;
+  }
+
+  const ip = getClientIp(request);
+  const now = Date.now();
+  const entry = ipRequestMap.get(ip);
+
+  if (!entry) {
+    ipRequestMap.set(ip, { timestamps: [now] });
+    return null;
+  }
+
+  entry.timestamps = entry.timestamps.filter(
+    (ts) => now - ts < AUTH_RATE_LIMIT_WINDOW_MS,
+  );
+
+  if (entry.timestamps.length >= AUTH_RATE_LIMIT_MAX_REQUESTS) {
+    return NextResponse.json(
+      { error: "Too many requests. Please try again later." },
+      { status: 429 },
+    );
+  }
+
+  entry.timestamps.push(now);
+  return null;
+}
+
 const AUTH_ENTRY_PATHS = new Set([
   "/auth/patient/sign-in",
   "/auth/patient/sign-up",
@@ -74,6 +126,12 @@ function createRedirectResponse(
 }
 
 export async function updateSession(request: NextRequest) {
+  const rateLimitResponse = applyAuthRateLimit(request);
+
+  if (rateLimitResponse) {
+    return rateLimitResponse;
+  }
+
   let response = NextResponse.next({
     request,
   });

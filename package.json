@@ -16,6 +16,7 @@
     "qa:ci": "npm run lint && npm run typecheck && npm run test:coverage",
     "qa:supabase": "npm run audit:roles:all && npm run audit:write:all && npm run audit:auth:logs && npm run audit:auth:e2e",
     "seed:reference": "node --env-file=.env.local scripts/supabase/seed-reference-data.mjs",
+    "probe:bootstrap": "node --env-file=.env.local scripts/supabase/bootstrap-role-probe-users.mjs",
     "probe:deptstaff:noclaim:bootstrap": "npx supabase db query --linked --file scripts/supabase/bootstrap-deptstaff-missing-claim-probe.sql",
     "audit:roles:redirect": "node scripts/supabase/run-role-redirect-audit-local.mjs scripts/supabase/audit-role-dashboard-redirects.mjs",
     "audit:roles:protected:all": "node scripts/supabase/run-role-redirect-audit-local.mjs scripts/supabase/audit-protected-routes-all-roles.mjs",
@@ -27,7 +28,8 @@
     "audit:write:all": "npm run audit:write-policies && npm run audit:write:workflow",
     "audit:auth:logs": "node --env-file=.env.local scripts/supabase/validate-auth-audit-events.mjs",
     "audit:auth:e2e": "node --env-file=.env.local scripts/supabase/validate-auth-e2e.mjs",
-    "probe:cleanup": "npx supabase db query --linked --file scripts/supabase/cleanup-probe-users.sql"
+    "probe:cleanup": "npx supabase db query --linked --file scripts/supabase/cleanup-probe-users.sql",
+    "qa:security": "docker run --rm -t zaproxy/zap-stable zap-baseline.py -t http://host.docker.internal:3000"
   },
   "dependencies": {
     "@radix-ui/react-label": "^2.1.8",

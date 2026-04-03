@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
@@ -48,6 +48,7 @@ interface AuthContextType {
   signup: (payload: SignupPayload) => Promise<SignupResult>;
   retryAccountSetup: () => Promise<AuthResult>;
   resendSignupConfirmation: (email: string) => Promise<AuthResult>;
+  resetPassword: (email: string) => Promise<AuthResult>;
   logout: () => Promise<AuthResult>;
 }
 
@@ -63,12 +64,23 @@ function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
 }
 
+const SESSION_TIMEOUT_MS = 15 * 60 * 1000;
+const LAST_ACTIVE_KEY = "ahi_last_active_time";
+
 function getEmailRedirectTo() {
   if (typeof window === "undefined") {
     return undefined;
   }
 
   return `${window.location.origin}/auth/patient/sign-in?confirmed=1`;
+}
+
+function getPasswordResetRedirectTo() {
+  if (typeof window === "undefined") {
+    return undefined;
+  }
+
+  return `${window.location.origin}/auth/patient/update-password`;
 }
 
 function formatLoginError(message: string) {
@@ -175,6 +187,68 @@ export function AuthProvider({
       subscription.unsubscribe();
     };
   }, [supabase]);
+
+  const logoutAndRedirect = useCallback(async () => {
+    await supabase.auth.signOut();
+    setUser(null);
+
+    if (typeof window !== "undefined") {
+      window.location.href = "/";
+    }
+  }, [supabase]);
+
+  const logoutAndRedirectRef = useRef(logoutAndRedirect);
+  logoutAndRedirectRef.current = logoutAndRedirect;
+
+  useEffect(() => {
+    if (!user) {
+      return;
+    }
+
+    function touchActivity() {
+      localStorage.setItem(LAST_ACTIVE_KEY, String(Date.now()));
+    }
+
+    touchActivity();
+
+    const events: Array<keyof WindowEventMap> = ["mousemove", "keydown", "touchstart"];
+
+    for (const event of events) {
+      window.addEventListener(event, touchActivity, { passive: true });
+    }
+
+    const intervalId = setInterval(() => {
+      const raw = localStorage.getItem(LAST_ACTIVE_KEY);
+      const lastActive = raw ? Number(raw) : Date.now();
+
+      if (Date.now() - lastActive >= SESSION_TIMEOUT_MS) {
+        void logoutAndRedirectRef.current();
+      }
+    }, 30_000);
+
+    function handleStorageChange(event: StorageEvent) {
+      if (event.key !== LAST_ACTIVE_KEY) {
+        return;
+      }
+
+      const lastActive = event.newValue ? Number(event.newValue) : Date.now();
+
+      if (Date.now() - lastActive >= SESSION_TIMEOUT_MS) {
+        void logoutAndRedirectRef.current();
+      }
+    }
+
+    window.addEventListener("storage", handleStorageChange);
+
+    return () => {
+      for (const event of events) {
+        window.removeEventListener(event, touchActivity);
+      }
+
+      clearInterval(intervalId);
+      window.removeEventListener("storage", handleStorageChange);
+    };
+  }, [user]);
 
   async function logAuthAuditEvent(
     actionType: string,
@@ -496,6 +570,25 @@ export function AuthProvider({
     return { success: true };
   };
 
+  const resetPassword = async (email: string): Promise<AuthResult> => {
+    const normalizedEmail = normalizeEmail(email);
+    const { error } = await supabase.auth.resetPasswordForEmail(
+      normalizedEmail,
+      { redirectTo: getPasswordResetRedirectTo() }
+    );
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    await logAuthAuditEvent("PASSWORD_RESET_REQUEST", {
+      username: normalizedEmail,
+      details: "Password reset email requested.",
+    });
+
+    return { success: true };
+  };
+
   const logout = async (): Promise<AuthResult> => {
     const { error } = await supabase.auth.signOut();
 
@@ -504,6 +597,10 @@ export function AuthProvider({
     }
 
     setUser(null);
+
+    if (typeof window !== "undefined") {
+      localStorage.removeItem(LAST_ACTIVE_KEY);
+    }
 
     return { success: true };
   };
@@ -517,6 +614,7 @@ export function AuthProvider({
         signup,
         retryAccountSetup,
         resendSignupConfirmation,
+        resetPassword,
         logout,
       }}
     >

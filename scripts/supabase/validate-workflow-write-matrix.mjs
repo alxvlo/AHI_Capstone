@@ -4,7 +4,12 @@ const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_KEY =
   process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-const PROBE_PASSWORD = process.env.AHI_PROBE_PASSWORD ?? "AhiProbe!2026";
+const PROBE_PASSWORD = process.env.AHI_PROBE_PASSWORD;
+
+if (!PROBE_PASSWORD) {
+  console.error("Missing AHI_PROBE_PASSWORD in environment.");
+  process.exit(1);
+}
 
 if (!SUPABASE_URL || !SUPABASE_KEY) {
   console.error(

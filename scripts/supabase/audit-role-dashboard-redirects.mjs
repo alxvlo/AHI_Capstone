@@ -5,7 +5,12 @@ const SUPABASE_KEY =
   process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const APP_BASE_URL = process.env.AHI_APP_BASE_URL ?? "http://127.0.0.1:3001";
-const PROBE_PASSWORD = process.env.AHI_PROBE_PASSWORD ?? "AhiProbe!2026";
+const PROBE_PASSWORD = process.env.AHI_PROBE_PASSWORD;
+
+if (!PROBE_PASSWORD) {
+  console.error("Missing AHI_PROBE_PASSWORD in environment.");
+  process.exit(1);
+}
 
 const PROBE_USERS = [
   { label: "Patient", email: "probe.patient.20260320@ahi.local" },

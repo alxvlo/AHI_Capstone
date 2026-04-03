@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
-import { useAuth } from "@/components/providers/auth-provider";
+import { useRouter } from "next/navigation";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,59 +19,45 @@ import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 
-export default function PatientSignInPage() {
-  const [email, setEmail] = useState("");
+export default function UpdatePasswordPage() {
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { login, user, isLoading } = useAuth();
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const emailConfirmed = searchParams.get("confirmed") === "1";
-
-  useEffect(() => {
-    if (!isLoading && user) {
-      router.replace("/dashboard");
-    }
-  }, [isLoading, router, user]);
+  const [supabase] = useState(() => createSupabaseBrowserClient());
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
-    if (!email || !password) {
-      toast.error("Please fill in all fields");
+    if (!password || !confirmPassword) {
+      toast.error("Please fill in both password fields.");
+      return;
+    }
+
+    if (password.length < 8) {
+      toast.error("Password must be at least 8 characters long.");
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      toast.error("Passwords do not match.");
       return;
     }
 
     setIsSubmitting(true);
 
-    const result = await login(email, password);
+    const { error } = await supabase.auth.updateUser({ password });
 
     setIsSubmitting(false);
 
-    if (result.success) {
-      toast.success("Welcome back!");
-      if (result.error) {
-        toast.info(result.error);
-      }
-      router.push("/dashboard");
-      router.refresh();
+    if (error) {
+      toast.error(error.message);
       return;
     }
 
-    if (
-      result.error?.toLowerCase().includes("confirm your email") &&
-      email.trim()
-    ) {
-      toast.error(result.error);
-      router.push(
-        `/auth/patient/check-email?email=${encodeURIComponent(
-          email.trim().toLowerCase()
-        )}`
-      );
-      return;
-    }
-
-    toast.error(result.error ?? "Invalid credentials");
+    toast.success("Your password has been updated. Redirecting to sign in...");
+    await supabase.auth.signOut();
+    router.push("/auth/patient/sign-in");
   }
 
   return (
@@ -96,47 +82,34 @@ export default function PatientSignInPage() {
                 strokeWidth={3}
               />
             </Link>
-            <CardTitle className="text-2xl">Welcome Back</CardTitle>
+            <CardTitle className="text-2xl">Update Password</CardTitle>
             <CardDescription>
-              Sign in to your American Hospital account
+              Enter your new password below to complete the reset.
             </CardDescription>
-            {emailConfirmed ? (
-              <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-                Your email has been confirmed. Sign in to continue.
-              </p>
-            ) : null}
           </CardHeader>
           <form onSubmit={handleSubmit}>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="new-password">New Password</Label>
                 <Input
-                  id="email"
-                  type="email"
-                  placeholder="you@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="rounded-xl"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <Input
-                  id="password"
+                  id="new-password"
                   type="password"
-                  placeholder="Enter your password"
+                  placeholder="Enter new password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="rounded-xl"
                 />
               </div>
-              <div className="text-right">
-                <Link
-                  href="/auth/patient/forgot-password"
-                  className="text-sm font-medium text-primary hover:underline"
-                >
-                  Forgot Password?
-                </Link>
+              <div className="space-y-2">
+                <Label htmlFor="confirm-password">Confirm Password</Label>
+                <Input
+                  id="confirm-password"
+                  type="password"
+                  placeholder="Confirm new password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="rounded-xl"
+                />
               </div>
             </CardContent>
             <CardFooter className="flex flex-col gap-3">
@@ -145,15 +118,14 @@ export default function PatientSignInPage() {
                 disabled={isSubmitting}
                 className="w-full rounded-xl shadow-md shadow-primary/20"
               >
-                {isSubmitting ? "Signing In..." : "Sign In"}
+                {isSubmitting ? "Updating..." : "Update Password"}
               </Button>
               <p className="text-sm text-muted-foreground">
-                Don&apos;t have an account?{" "}
                 <Link
-                  href="/auth/patient/sign-up"
+                  href="/auth/patient/sign-in"
                   className="font-semibold text-primary hover:underline"
                 >
-                  Sign Up
+                  Back to Sign In
                 </Link>
               </p>
             </CardFooter>
