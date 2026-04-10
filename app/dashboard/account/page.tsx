@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { DashboardHeader } from "@/components/dashboard/shell/dashboard-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -54,12 +55,11 @@ export default async function AccountPage() {
   if (error) {
     return (
       <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold">Account</h1>
-          <p className="mt-2 text-muted-foreground">
-            We could not load your account details right now.
-          </p>
-        </div>
+        <DashboardHeader
+          title="Account"
+          role={role}
+          description="We could not load your account details right now."
+        />
         <Card>
           <CardContent className="pt-6">
             <p className="text-sm text-muted-foreground">
@@ -83,12 +83,16 @@ export default async function AccountPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Account</h1>
-        <p className="mt-2 text-muted-foreground">
-          Review your profile, role context, and account access status.
-        </p>
-      </div>
+      <DashboardHeader
+        title="Account"
+        role={role}
+        description="Review your profile, role context, and account access status."
+        quickActions={
+          <Button variant="outline" size="sm" asChild>
+            <Link href={dashboardHomePath}>Dashboard Home</Link>
+          </Button>
+        }
+      />
 
       <div className="grid gap-4 md:grid-cols-2">
         <Card>

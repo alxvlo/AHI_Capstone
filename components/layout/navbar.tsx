@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/components/providers/auth-provider";
 import { SiteLogo } from "@/components/layout/site-logo";
 import { publicNavLinks } from "@/lib/content/public-site";
@@ -15,6 +15,8 @@ export function Navbar() {
   const { user, logout } = useAuth();
   const [isSigningOut, setIsSigningOut] = useState(false);
   const router = useRouter();
+  const pathname = usePathname();
+  const isDashboardRoute = pathname?.startsWith("/dashboard");
 
   async function handleLogout() {
     setIsSigningOut(true);
@@ -57,12 +59,16 @@ export function Navbar() {
         <div className="flex items-center gap-2">
           {user ? (
             <>
-              <Button variant="ghost" size="sm" asChild>
-                <Link href="/dashboard">Dashboard</Link>
-              </Button>
-              <Button variant="ghost" size="sm" asChild>
-                <Link href="/dashboard/account">Account</Link>
-              </Button>
+              {!isDashboardRoute ? (
+                <>
+                  <Button variant="ghost" size="sm" asChild>
+                    <Link href="/dashboard">Dashboard</Link>
+                  </Button>
+                  <Button variant="ghost" size="sm" asChild>
+                    <Link href="/dashboard/account">Account</Link>
+                  </Button>
+                </>
+              ) : null}
               <div className="flex items-center gap-2 rounded-full border bg-secondary/60 px-3.5 py-1.5 text-sm font-medium text-secondary-foreground">
                 <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/15 text-primary">
                   <User className="h-3.5 w-3.5" />

@@ -1,4 +1,7 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
+import { DashboardHeader } from "@/components/dashboard/shell/dashboard-header";
+import { FlashToast } from "@/components/dashboard/shared/flash-toast";
 import { ReceptionModule } from "@/components/dashboard/staff/reception-module";
 import { TriageModule } from "@/components/dashboard/staff/triage-module";
 import { DepartmentModule } from "@/components/dashboard/staff/department-module";
@@ -20,6 +23,7 @@ import {
   isStaffRole,
   resolveCurrentUserRoleContext,
 } from "@/lib/supabase/role-routing";
+import { Button } from "@/components/ui/button";
 
 type StaffDashboardPageProps = {
   searchParams?: Promise<Record<string, SearchParamValue>>;
@@ -81,15 +85,18 @@ export default async function StaffDashboardPage({
 
   return (
     <div className="space-y-6">
-      <div className="rounded-xl border border-primary/20 bg-gradient-to-r from-primary/10 via-background to-accent/20 p-6">
-        <h1 className="text-3xl font-bold tracking-tight">Staff Dashboard</h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Role detected: <span className="font-semibold text-foreground">{role}</span>
-        </p>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Queue Overview and role workflow controls.
-        </p>
-      </div>
+      <FlashToast notice={flashNotice} error={flashError} />
+
+      <DashboardHeader
+        title="Staff Dashboard"
+        role={role}
+        description="Queue overview and role workflow controls."
+        quickActions={
+          <Button variant="outline" size="sm" asChild>
+            <Link href="/dashboard/staff">Refresh Queue</Link>
+          </Button>
+        }
+      />
 
       {flashNotice ? (
         <Card className="border-emerald-300/70 bg-emerald-50/40">
@@ -118,6 +125,8 @@ export default async function StaffDashboardPage({
         <TriageModule
           returnPath={returnPath}
           caseStatusIdByCode={caseStatusIdByCode}
+          searchParams={resolvedSearchParams}
+          flashNotice={flashNotice}
         />
       ) : null}
 
@@ -127,11 +136,16 @@ export default async function StaffDashboardPage({
           userDepartmentClaim={parseDepartmentClaim(
             user.app_metadata?.department_id ?? user.user_metadata?.department_id
           )}
+          searchParams={resolvedSearchParams}
         />
       ) : null}
 
       {role === PHYSICIAN_ROLE ? (
-        <PhysicianModule caseStatusIdByCode={caseStatusIdByCode} />
+        <PhysicianModule
+          returnPath={returnPath}
+          caseStatusIdByCode={caseStatusIdByCode}
+          searchParams={resolvedSearchParams}
+        />
       ) : null}
 
       {role === RELEASING_ROLE ? (

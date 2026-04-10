@@ -1,4 +1,4 @@
-# Repository Agent Guide
+/# Repository Agent Guide
 
 This repository is a Next.js 15 + React 19 + TypeScript app for American Hospital Inc.'s PEME portal.
 Use this file as the repo-specific source of truth for commands, code style, and agent behavior.

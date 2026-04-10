@@ -1,8 +1,14 @@
-import { releaseCaseAction } from "@/features/dashboard/staff/actions";
+import {
+  releaseCaseAction,
+  togglePortalVisibilityAction,
+} from "@/features/dashboard/staff/actions";
 import { MetricCard } from "@/components/dashboard/shared/metric-card";
 import { StatusBadge } from "@/components/dashboard/shared/status-badge";
+import { DataTableContainer } from "@/components/dashboard/shared/data-table-container";
+import { ReleasingHistory } from "@/components/dashboard/staff/releasing-history";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { CaseRow, formatTimestamp, pickJoined } from "@/features/dashboard/staff/shared";
 
@@ -19,8 +25,10 @@ export async function ReleasingModule({
 }: ReleasingModuleProps) {
   const supabase = await createSupabaseServerClient();
   const forReleasingStatusId = caseStatusIdByCode.get("FOR_RELEASING");
+  const releasedStatusId = caseStatusIdByCode.get("RELEASED");
   const completedVisitStatusId = visitStatusIdByCode.get("COMPLETED");
 
+  // --- Release Queue (FOR_RELEASING cases) ---
   let releaseQueue: CaseRow[] = [];
   let queueError: string | null = null;
 
@@ -41,6 +49,7 @@ export async function ReleasingModule({
     queueError = error?.message ?? null;
   }
 
+  // --- Release readiness check ---
   const caseIds = releaseQueue.map((item) => item.caseid);
   const releaseReadinessByCaseId = new Map<
     string,
@@ -94,12 +103,30 @@ export async function ReleasingModule({
     (item) => item.canRelease
   ).length;
 
+  // --- Recently released cases (for visibility management) ---
+  let releasedCases: (CaseRow & { portalvisible: boolean | null })[] = [];
+  let releasedError: string | null = null;
+
+  if (releasedStatusId) {
+    const { data: releasedRows, error } = await supabase
+      .from("peme_case")
+      .select(
+        "caseid, casenumber, isrush, registrationtimestamp, releasedtimestamp, portalvisible, remarks, patient:patientid(patientid, fullname), company:companyid(companyid, name), status:casestatuscodeid(statuscodeid, code, label)"
+      )
+      .eq("casestatuscodeid", releasedStatusId)
+      .order("releasedtimestamp", { ascending: false })
+      .limit(20);
+
+    releasedCases = (releasedRows ?? []) as (CaseRow & { portalvisible: boolean | null })[];
+    releasedError = error?.message ?? null;
+  }
+
   return (
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold tracking-tight">Releasing Queue</h2>
         <p className="mt-2 text-sm text-muted-foreground">
-          Release only complete cases with physician decisions and full department completion.
+          Release complete cases and manage portal visibility for released records.
         </p>
       </div>
 
@@ -113,92 +140,156 @@ export async function ReleasingModule({
         />
       </div>
 
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-lg">Release Checklist</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {queueError ? (
-            <p className="text-sm text-destructive">
-              Unable to load releasing queue: {queueError}
-            </p>
-          ) : null}
+      {/* Release Queue Table */}
+      <DataTableContainer
+        title="Release Checklist"
+        description="Only cases with all visits completed and a physician decision can be released."
+        errorTitle="Unable to load releasing queue"
+        errorMessage={queueError}
+        isEmpty={releaseQueue.length === 0}
+        emptyTitle="No cases queued for release"
+        emptyMessage="Cases will appear here once they reach FOR_RELEASING status."
+      >
+        <table className="min-w-full text-sm">
+          <thead className="bg-muted/50 text-left">
+            <tr>
+              <th className="px-3 py-2 font-semibold">Case</th>
+              <th className="px-3 py-2 font-semibold">Patient</th>
+              <th className="px-3 py-2 font-semibold">Company</th>
+              <th className="px-3 py-2 font-semibold">Decision</th>
+              <th className="px-3 py-2 font-semibold">Visits</th>
+              <th className="px-3 py-2 font-semibold">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {releaseQueue.map((caseRow) => {
+              const patient = pickJoined(caseRow.patient);
+              const company = pickJoined(caseRow.company);
+              const readiness = releaseReadinessByCaseId.get(caseRow.caseid) ?? {
+                totalVisits: 0,
+                completedVisits: 0,
+                hasDecision: false,
+                canRelease: false,
+              };
 
-          {releaseQueue.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              No cases are queued for release right now.
-            </p>
-          ) : (
-            <div className="overflow-x-auto rounded-md border">
-              <table className="min-w-full text-sm">
-                <thead className="bg-muted/50 text-left">
-                  <tr>
-                    <th className="px-3 py-2 font-semibold">Case</th>
-                    <th className="px-3 py-2 font-semibold">Patient</th>
-                    <th className="px-3 py-2 font-semibold">Company</th>
-                    <th className="px-3 py-2 font-semibold">Decision</th>
-                    <th className="px-3 py-2 font-semibold">Visits</th>
-                    <th className="px-3 py-2 font-semibold">Action</th>
+              return (
+                <tr key={caseRow.caseid} className="border-t align-top">
+                  <td className="px-3 py-2">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">{caseRow.casenumber}</span>
+                      {caseRow.isrush ? (
+                        <StatusBadge label="RUSH" tone="warning" />
+                      ) : null}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {formatTimestamp(caseRow.registrationtimestamp)}
+                    </p>
+                  </td>
+                  <td className="px-3 py-2">{patient?.fullname ?? "Unknown patient"}</td>
+                  <td className="px-3 py-2 text-muted-foreground">
+                    {company?.name ?? "Walk-in"}
+                  </td>
+                  <td className="px-3 py-2">
+                    <StatusBadge
+                      label={readiness.hasDecision ? "Available" : "Missing"}
+                      tone={readiness.hasDecision ? "positive" : "danger"}
+                    />
+                  </td>
+                  <td className="px-3 py-2">
+                    <StatusBadge
+                      label={`${readiness.completedVisits}/${readiness.totalVisits} completed`}
+                      tone={readiness.canRelease ? "positive" : "warning"}
+                    />
+                  </td>
+                  <td className="px-3 py-2">
+                    <form action={releaseCaseAction}>
+                      <input type="hidden" name="caseId" value={caseRow.caseid} />
+                      <input type="hidden" name="returnPath" value={returnPath} />
+                      <Button type="submit" size="sm" disabled={!readiness.canRelease}>
+                        Release Case
+                      </Button>
+                    </form>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </DataTableContainer>
+
+      {/* Portal Visibility Management for Released Cases */}
+      {releasedCases.length > 0 ? (
+        <DataTableContainer
+          title="Portal Visibility Management"
+          description="Toggle portal visibility for released cases. A reason is required for each change."
+          errorTitle="Unable to load released cases"
+          errorMessage={releasedError}
+          isEmpty={releasedCases.length === 0}
+          emptyTitle="No released cases"
+          emptyMessage="Released cases will appear here for visibility management."
+        >
+          <table className="min-w-full text-sm">
+            <thead className="bg-muted/50 text-left">
+              <tr>
+                <th className="px-3 py-2 font-semibold">Case</th>
+                <th className="px-3 py-2 font-semibold">Patient</th>
+                <th className="px-3 py-2 font-semibold">Released</th>
+                <th className="px-3 py-2 font-semibold">Portal</th>
+                <th className="px-3 py-2 font-semibold">Toggle</th>
+              </tr>
+            </thead>
+            <tbody>
+              {releasedCases.map((caseRow) => {
+                const patient = pickJoined(caseRow.patient);
+
+                return (
+                  <tr key={caseRow.caseid} className="border-t align-top">
+                    <td className="px-3 py-2 font-medium">{caseRow.casenumber}</td>
+                    <td className="px-3 py-2">{patient?.fullname ?? "Unknown"}</td>
+                    <td className="px-3 py-2 text-muted-foreground">
+                      {formatTimestamp(caseRow.releasedtimestamp)}
+                    </td>
+                    <td className="px-3 py-2">
+                      <StatusBadge
+                        label={caseRow.portalvisible ? "Visible" : "Hidden"}
+                        tone={caseRow.portalvisible ? "positive" : "neutral"}
+                      />
+                    </td>
+                    <td className="px-3 py-2">
+                      <form
+                        action={togglePortalVisibilityAction}
+                        className="flex items-end gap-2"
+                      >
+                        <input type="hidden" name="caseId" value={caseRow.caseid} />
+                        <input type="hidden" name="returnPath" value={returnPath} />
+                        <div className="space-y-1">
+                          <Label htmlFor={`reason-${caseRow.caseid}`} className="sr-only">
+                            Reason
+                          </Label>
+                          <Input
+                            id={`reason-${caseRow.caseid}`}
+                            name="reason"
+                            placeholder="Reason for change"
+                            required
+                            maxLength={255}
+                            className="h-8 w-44 text-xs"
+                          />
+                        </div>
+                        <Button type="submit" variant="outline" size="sm">
+                          {caseRow.portalvisible ? "Hide" : "Show"}
+                        </Button>
+                      </form>
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {releaseQueue.map((caseRow) => {
-                    const patient = pickJoined(caseRow.patient);
-                    const company = pickJoined(caseRow.company);
-                    const readiness = releaseReadinessByCaseId.get(caseRow.caseid) ?? {
-                      totalVisits: 0,
-                      completedVisits: 0,
-                      hasDecision: false,
-                      canRelease: false,
-                    };
+                );
+              })}
+            </tbody>
+          </table>
+        </DataTableContainer>
+      ) : null}
 
-                    return (
-                      <tr key={caseRow.caseid} className="border-t align-top">
-                        <td className="px-3 py-2">
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium">{caseRow.casenumber}</span>
-                            {caseRow.isrush ? (
-                              <StatusBadge label="RUSH" tone="warning" />
-                            ) : null}
-                          </div>
-                          <p className="text-xs text-muted-foreground">
-                            {formatTimestamp(caseRow.registrationtimestamp)}
-                          </p>
-                        </td>
-                        <td className="px-3 py-2">{patient?.fullname ?? "Unknown patient"}</td>
-                        <td className="px-3 py-2 text-muted-foreground">
-                          {company?.name ?? "Walk-in"}
-                        </td>
-                        <td className="px-3 py-2">
-                          <StatusBadge
-                            label={readiness.hasDecision ? "Available" : "Missing"}
-                            tone={readiness.hasDecision ? "positive" : "danger"}
-                          />
-                        </td>
-                        <td className="px-3 py-2">
-                          <StatusBadge
-                            label={`${readiness.completedVisits}/${readiness.totalVisits} completed`}
-                            tone={readiness.canRelease ? "positive" : "warning"}
-                          />
-                        </td>
-                        <td className="px-3 py-2">
-                          <form action={releaseCaseAction}>
-                            <input type="hidden" name="caseId" value={caseRow.caseid} />
-                            <input type="hidden" name="returnPath" value={returnPath} />
-                            <Button type="submit" size="sm" disabled={!readiness.canRelease}>
-                              Release Case
-                            </Button>
-                          </form>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      {/* Released Today History */}
+      <ReleasingHistory />
     </div>
   );
 }

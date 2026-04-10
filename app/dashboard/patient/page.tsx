@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { DashboardHeader } from "@/components/dashboard/shell/dashboard-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   getCurrentUserRole,
@@ -18,13 +19,11 @@ export default async function PatientDashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Patient Dashboard</h1>
-        <p className="mt-2 text-muted-foreground">
-          Welcome to your portal. This screen will host PEME progress and
-          released results in later milestones.
-        </p>
-      </div>
+      <DashboardHeader
+        title="Patient Dashboard"
+        role={role}
+        description="Welcome to your portal. This screen will host PEME progress and released results in later milestones."
+      />
 
       <div className="grid gap-4 md:grid-cols-3">
         <Card>

@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { DashboardHeader } from "@/components/dashboard/shell/dashboard-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   CLIENT_ROLE,
@@ -18,13 +19,11 @@ export default async function ClientDashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Client Representative Dashboard</h1>
-        <p className="mt-2 text-muted-foreground">
-          Agency-side tracking and released-case access modules will be expanded
-          in upcoming milestones.
-        </p>
-      </div>
+      <DashboardHeader
+        title="Client Representative Dashboard"
+        role={role}
+        description="Agency-side tracking and released-case access modules will be expanded in upcoming milestones."
+      />
 
       <div className="grid gap-4 md:grid-cols-3">
         <Card>

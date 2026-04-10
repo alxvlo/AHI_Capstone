@@ -68,6 +68,25 @@ export type CaseRow = {
   status?: JoinedRecord<StatusRecord>;
 };
 
+export type TriageAssessmentPayload = {
+  bp_systolic: number;
+  bp_diastolic: number;
+  heart_rate: number;
+  temperature_c: number;
+  weight_kg: number;
+  height_cm: number;
+  vision_left: string;
+  vision_right: string;
+  observations: string;
+};
+
+export type TriageAssessmentRecord = TriageAssessmentPayload & {
+  assessmentid: number;
+  caseid: string;
+  recorded_by: string;
+  recorded_at: string;
+};
+
 export type DepartmentVisitRow = {
   visitid: number;
   caseid: string;
@@ -197,6 +216,10 @@ export function caseStatusTone(
     return "positive";
   }
 
+  if (code === "FIT_WITH_RESTRICTIONS") {
+    return "warning";
+  }
+
   if (
     code === "PENDING" ||
     code === "IN_PROGRESS" ||
@@ -218,7 +241,14 @@ export function buildReturnPath(params: Record<string, SearchParamValue>) {
   const urlSearchParams = new URLSearchParams();
 
   for (const [key, rawValue] of Object.entries(params)) {
-    if (key === "notice" || key === "error") {
+    if (
+      key === "notice" ||
+      key === "error" ||
+      key === "panelCaseId" ||
+      key === "decisionCaseId" ||
+      key === "resultVisitId" ||
+      key === "triageCaseId"
+    ) {
       continue;
     }
 

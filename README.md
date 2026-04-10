@@ -8,7 +8,7 @@ This repo is optimized for team execution, planning, QA, and traceable delivery 
 
 - **Project:** Real-Time PEME Monitoring and Result Access System for American Hospital Inc.
 - **Primary goal:** Replace fragmented paper-heavy PEME tracking with role-based dashboards, secure portals, and real-time workflow visibility.
-- **Current phase:** Iteration 2, Sprint 07 - lifecycle foundation and E2E readiness.
+- **Current phase:** Phase 2 (External Portals), Jira Sprint 08/09 sequence active.
 - **Team:** Keith Avellaneda, Deejay Clark Datu, Alexander Velo.
 
 ## What Is In This Repository
@@ -21,18 +21,20 @@ This repo is optimized for team execution, planning, QA, and traceable delivery 
 - `scripts/` - local and seeded-environment audit/verification scripts.
 - `tests/` - Vitest unit and integration coverage.
 - `memory-bank/` - planning, architecture, workflow, and project-state documentation.
-- `shared/`, `.agent/`, `.opencode/` - collaboration and local AI/tooling support files; not part of the deployed app runtime.
+- `.agent/`, `.opencode/` - collaboration and local AI/tooling support files; not part of the deployed app runtime.
 
 ## Canonical Docs
 
 Start here when you need project context before changing code:
 
-1. `memory-bank/pid.md` - project scope, constraints, objectives, and success metrics.
-2. `memory-bank/design-doc.md` - architecture and system design decisions.
-3. `memory-bank/auth-implementation-decision.md` - current auth model and security rules.
-4. `memory-bank/activeContext.md` - current sprint focus and open implementation direction.
-5. `memory-bank/index.md` - map of the rest of the documentation set.
-6. `QA.md` - current QA baseline, coverage focus, and validation flow.
+1. `DEVELOPMENT-PLAN.md` - master plan with all phases, slices, and step-by-step execution details.
+2. `memory-bank/current-sprint.md` - what we're working on right now (current phase, Jira sprint order, next ticket).
+3. `memory-bank/slice-progress.md` - completed slice tracking with verification results.
+4. `memory-bank/pid.md` - project scope, constraints, objectives, and success metrics.
+5. `memory-bank/design-doc.md` - architecture and system design decisions.
+6. `memory-bank/auth-implementation-decision.md` - current auth model and security rules.
+7. `memory-bank/index.md` - map of the rest of the documentation set.
+8. `QA.md` - current QA baseline, coverage focus, and validation flow.
 
 ## Tech Stack
 
@@ -201,15 +203,16 @@ Implemented or stabilized:
 - Supabase-backed auth flow for patient signup/signin.
 - SSR-compatible session handling and role-aware redirects.
 - Dashboard guard middleware and role-protected routing.
-- Staff dashboard baseline for Reception, Triage, Department, Physician, and Releasing roles.
+- Phase 1 staff dashboards complete (all 8 slices: shared primitives + triage vitals + lifecycle RPC + releasing enhancements).
 - Vitest-based QA baseline and GitHub Actions QA workflow.
 
 Still active / not yet complete:
 
-- transactional visit bootstrap from `package_department` to `department_visit`
-- physician decision write flow and decision-entry completion
-- staged Supabase-backed end-to-end lifecycle validation
-- realtime multi-session validation
+- `SCRUM-33`: Patient portal progress tracker and result view (Slice 9).
+- `SCRUM-34`: Patient portal PDF download entrypoint (subject to existing PDF/template blockers).
+- `SCRUM-40`: Portal mobile optimization (`360-428px`).
+- `SCRUM-35`: Agency portal DPA-gated search and result access (Slice 10).
+- `SCRUM-36`, `SCRUM-37`, `SCRUM-38`: queued in Sprint 09 per current sprint ordering.
 
 ## Team Workflow
 
@@ -240,6 +243,7 @@ See `memory-bank/guides/workflow-policy.md` for the full policy.
 Intentional non-app directories exist in this repo because it is also a collaboration workspace:
 
 - `.agent/` and `.opencode/` store local agent/tooling configuration and shared references.
+- `.agent/.shared/` is the canonical location for shared agent assets used by local workflows.
 - `memory-bank/` stores planning, governance, and implementation context.
 
 Generated or disposable items should stay out of commits:
@@ -252,7 +256,7 @@ Generated or disposable items should stay out of commits:
 
 ## If You Are Picking Up Work Mid-Sprint
 
-1. Read `memory-bank/activeContext.md`.
+1. Read `memory-bank/current-sprint.md`.
 2. Check the active Jira sprint and assigned ticket.
 3. Review the relevant feature spec under `memory-bank/requirements/`.
 4. Pull latest changes and run `npm run qa:local`.
