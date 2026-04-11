@@ -1,77 +1,113 @@
 # Current Sprint
 
-**Last Updated:** 2026-04-10
-**Phase:** Phase 1 — Staff Dashboards (COMPLETE)
-**Next Phase:** Phase 2 — External Portals (Sprint-Ordered Execution)
+**Last Updated:** 2026-04-10  
+**Phase:** Phase 4 - Backend Wiring and Storage  
+**Current Focus:** Slice 13 (Supabase Storage wiring)
 
 ---
 
-## What We're Working On
+## Current State
 
-Phase 1 (Staff Dashboards) is **complete** — all 8 slices delivered.
+Completed major slices:
+- Phase 1 (Slices 1-8) complete.
+- Phase 2 external portal work complete (`SCRUM-33`, `SCRUM-34`, `SCRUM-40`, `SCRUM-35`).
+- Phase 3 admin dashboard baseline (Slice 11) now implemented.
 
-Execution order is now resequenced to match Jira Sprint 08/09 while preserving existing feature details, acceptance intent, and blocker notes from the development plan.
+Execution has been reprioritized per request to continue Admin + backend wiring before Sprint 09 email/PDF/deployment work.
 
-## Sprint-Ordered Queue (Jira-Aligned)
+## Reprioritized Active Queue
 
-### Sprint 08 (Current Queue)
+### Immediate (Now)
 
-1. `SCRUM-33` — Patient portal progress tracker and result view (maps to Slice 9)
-2. `SCRUM-34` — Patient portal PDF certificate download (planned item; still constrained by AHI template/file-format blockers)
-3. `SCRUM-40` — Mobile-responsive optimization for portals (`360–428px`)
+1. **Slice 13** - Storage integration wiring (`result-files`) and policy-safe surfaces.
+2. **Slice 14** - Realtime queue/portal subscriptions.
+3. **Slice 15** - End-to-end lifecycle validation sweep.
 
-### Sprint 09 (Next Queue)
+### Deferred Sprint 09 Items (Temporarily Skipped)
 
-1. `SCRUM-35` — Agency portal search and DPA-gated result access (maps to Slice 10)
-2. `SCRUM-36` — Email notification pipeline on case release (feature definition unchanged; integration details remain in plan)
-3. `SCRUM-37` — PDF certificate and transmittal generation (feature definition unchanged; blocked by AHI Sections 2–3)
-4. `SCRUM-38` — Deployment authorization request (release/governance step)
+1. `SCRUM-36` - Email notification pipeline on release
+2. `SCRUM-37` - PDF certificate and transmittal generation
+3. `SCRUM-38` - Deployment authorization request
 
-## Phase 1 Summary
+## Recently Completed: Slice 11 (Admin Dashboard)
 
-| Slice | What | Status |
-|---|---|---|
-| 1 | Shared DashboardHeader | Done |
-| 2 | Shared DataTableContainer | Done |
-| 3 | Shared ActionPanel | Done |
-| 4 | Physician decision entry | Done |
-| 5 | Department result encoding | Done |
-| — | Cross-role stability hardening | Done |
-| 6 | Triage vitals capture | Done |
-| 7 | Lifecycle RPC (atomic case bootstrap) | Done |
-| 8 | Releasing enhancements | Done |
-
-## Next Up: SCRUM-33 (Slice 9 — Patient Portal)
-
-**What:** Replace patient placeholder with case tracker, detailed results, exam progress, and file access scaffolding.
+**Delivered scope:**
+- Replaced admin placeholder with functional tab modules:
+  - Overview
+  - Users
+  - Reference Data
+  - Audit Logs
+- Added admin write actions for:
+  - user account updates (role/company/active/locked),
+  - department create/update,
+  - package create/update,
+  - company create/update,
+  - package-department mapping activate/deactivate.
+- Added audit logging for admin write operations.
+- Added backend migration to enable admin-only `user_account` updates:
+  - `supabase/migrations/20260410_admin_user_account_update_policy.sql`
 
 **Key files:**
-- `app/dashboard/patient/page.tsx` — replace placeholder
-- `components/dashboard/patient/` — case tracker, exam progress, result summary, result files
-- `features/dashboard/patient/actions.ts` — patient-specific read actions
+- `app/dashboard/admin/page.tsx`
+- `features/dashboard/admin/actions.ts`
+- `features/dashboard/admin/shared.ts`
+- `components/dashboard/admin/user-table.tsx`
+- `components/dashboard/admin/reference-panel.tsx`
+- `components/dashboard/admin/audit-log-viewer.tsx`
+- `supabase/migrations/20260410_admin_user_account_update_policy.sql`
+- `tests/features/dashboard/admin/shared.test.ts`
 
-**See:** [DEVELOPMENT-PLAN.md — Slice 9](../DEVELOPMENT-PLAN.md#slice-9--patient-portal-next-scrum-33) for full step-by-step.
+**Verification:** `npm run qa:local` - passed.
+
+## Recently Completed: Slice 12 (Remaining Server Actions)
+
+**Delivered scope:**
+- Added missing reception and physician server actions:
+  - `createReceptionPatientAction` (patient master record fallback for reception walk-ins),
+  - `softCancelCaseAction` (allowed-state soft cancel to `ARCHIVED`),
+  - `requestAdditionalTestsAction` (physician additional-test workflow with new visit queueing).
+- Added workflow status synchronization after department visit transitions so case-level status remains aligned:
+  - auto-promote to `FOR_DECISION` when all visits complete,
+  - fallback from `FOR_DECISION` when visits are reopened/incomplete.
+- Wired UI for new actions:
+  - reception patient registration form and case control panel,
+  - physician additional test request panel with department selection + reason.
+- Added policy migration for reception/admin patient write path:
+  - `supabase/migrations/20260410_reception_patient_write_policy.sql`.
+- Extended staff helper tests for `PENDING_ADDITIONAL_TESTS` tone handling.
+
+**Key files:**
+- `features/dashboard/staff/actions.ts`
+- `components/dashboard/staff/reception-module.tsx`
+- `components/dashboard/staff/physician-module.tsx`
+- `features/dashboard/staff/shared.tsx`
+- `tests/components/dashboard/staff/shared.test.tsx`
+- `supabase/migrations/20260410_reception_patient_write_policy.sql`
+
+**Verification:** `npm run qa:local` - passed.
+
+## Next Up: Slice 13
+
+**What:** Implement Supabase Storage result file upload/download wiring with role-safe access boundaries.
 
 ## Plan Structure (Unchanged)
 
-- **Phase 3:** Admin Dashboard (Slice 11)
-- **Phase 4:** Backend Wiring & Storage (Slices 12-15)
+- **Phase 4:** Backend Wiring and Storage (Slices 12-15)
 - **Phase 5:** Integrations (Slices 16-17)
-- **Phase 6:** Security, Testing & DevOps (Slices 18-20)
-- **Phase 7:** Polish & Compliance (Slice 21)
+- **Phase 6:** Security, Testing and DevOps (Slices 18-20)
+- **Phase 7:** Polish and Compliance (Slice 21)
 
 ## Active Objectives
 
-1. Keep module UX consistent using shared primitives (DashboardHeader, DataTableContainer, ActionPanel).
-2. Preserve role guards, auditability, and return-path behavior while expanding portals.
-3. Run lint/typecheck/test gates after every slice.
-4. Update this file and `slice-progress.md` after every completed slice.
+1. Keep admin and portal behavior consistent with RBAC and RLS constraints.
+2. Continue backend-wiring completion before deferred integrations.
+3. Run lint/typecheck/tests on every slice.
+4. Keep this file and `slice-progress.md` synchronized after each completion.
 
 ## Open Decisions
 
-- Realtime WebSocket subscriptions are still defined under the Phase 4 implementation section unless explicitly pulled forward.
-- Email and PDF work is now sprint-queued (`SCRUM-36`, `SCRUM-37`) but still subject to existing integration and template/file-format constraints.
-- AHI Sections 2-4 answers remain external blockers for file formats and PDF templates.
+- Deferred Sprint 09 items (`SCRUM-36/37/38`) remain queued and can be resumed after Slice 12-15 progression.
+- PDF details remain constrained by AHI template/signature dependencies.
 
 ## Plan References
 

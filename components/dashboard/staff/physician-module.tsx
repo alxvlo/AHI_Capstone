@@ -1,5 +1,8 @@
 import Link from "next/link";
-import { submitPhysicianDecisionAction } from "@/features/dashboard/staff/actions";
+import {
+  requestAdditionalTestsAction,
+  submitPhysicianDecisionAction,
+} from "@/features/dashboard/staff/actions";
 import { ActionPanel } from "@/components/dashboard/shared/action-panel";
 import { DataTableContainer } from "@/components/dashboard/shared/data-table-container";
 import { MetricCard } from "@/components/dashboard/shared/metric-card";
@@ -49,6 +52,12 @@ type PhysicianResultItemRow = {
   }>;
 };
 
+type DepartmentOption = {
+  departmentid: number;
+  code: string | null;
+  name: string;
+};
+
 function buildDecisionPanelHref(returnPath: string, caseId: string) {
   const separator = returnPath.includes("?") ? "&" : "?";
 
@@ -63,6 +72,12 @@ export async function PhysicianModule({
   const supabase = await createSupabaseServerClient();
   const forDecisionStatusId = caseStatusIdByCode.get("FOR_DECISION");
   const decisionCaseId = resolveParam(searchParams, "decisionCaseId");
+  const { data: departmentOptionsRaw } = await supabase
+    .from("department")
+    .select("departmentid, code, name")
+    .eq("isactive", true)
+    .order("name", { ascending: true });
+  const departmentOptions = (departmentOptionsRaw ?? []) as DepartmentOption[];
 
   let decisionQueue: CaseRow[] = [];
   let queueError: string | null = null;
@@ -428,6 +443,66 @@ export async function PhysicianModule({
 
                   <Button type="submit" className="w-full sm:w-auto">
                     {existingDecision ? "Update Decision" : "Submit Decision"}
+                  </Button>
+                </form>
+              )}
+            </section>
+
+            <section className="space-y-3 rounded-lg border bg-muted/20 p-4">
+              <h3 className="text-sm font-semibold">Request Additional Tests</h3>
+              <p className="text-xs text-muted-foreground">
+                Queue new department visits and move the case back to additional-test
+                workflow for completion.
+              </p>
+              {!canSubmitDecision ? (
+                <p className="rounded-md border border-amber-300/70 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                  Additional test requests are available only while the case is in
+                  FOR_DECISION status.
+                </p>
+              ) : departmentOptions.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  No active departments are available for additional testing.
+                </p>
+              ) : (
+                <form action={requestAdditionalTestsAction} className="space-y-4">
+                  <input type="hidden" name="returnPath" value={returnPath} />
+                  <input type="hidden" name="caseId" value={panelCase.caseid} />
+
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {departmentOptions.map((department) => (
+                      <label
+                        key={department.departmentid}
+                        className="flex items-start gap-2 rounded-md border bg-background p-2 text-sm"
+                      >
+                        <input
+                          type="checkbox"
+                          name="departmentIds"
+                          value={department.departmentid}
+                          className="mt-1 h-4 w-4"
+                        />
+                        <span>
+                          <span className="font-medium">
+                            {department.code ?? "DEPT"}
+                          </span>
+                          <span className="text-muted-foreground"> - {department.name}</span>
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="additionalTestReason">Reason</Label>
+                    <Textarea
+                      id="additionalTestReason"
+                      name="reason"
+                      placeholder="Explain why additional tests are required."
+                      required
+                      maxLength={255}
+                    />
+                  </div>
+
+                  <Button type="submit" variant="outline">
+                    Request Additional Tests
                   </Button>
                 </form>
               )}

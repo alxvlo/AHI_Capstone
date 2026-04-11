@@ -1,7 +1,9 @@
 import Link from "next/link";
 import {
   bootstrapCaseVisitsAction,
+  createReceptionPatientAction,
   createReceptionCaseAction,
+  softCancelCaseAction,
 } from "@/features/dashboard/staff/actions";
 import { MetricCard } from "@/components/dashboard/shared/metric-card";
 import { StatusBadge } from "@/components/dashboard/shared/status-badge";
@@ -182,6 +184,12 @@ export async function ReceptionModule({
   }
 
   const todayDatePrefix = new Date().toISOString().slice(0, 10);
+  const panelStatusCode = pickJoined(panelCase?.status)?.code ?? null;
+  const canCancelPanelCase =
+    panelStatusCode === "REGISTERED" ||
+    panelStatusCode === "IN_PROGRESS" ||
+    panelStatusCode === "PENDING_ADDITIONAL_TESTS" ||
+    panelStatusCode === "FOR_DECISION";
   const activeCases = cases.filter((row) => {
     const statusCode = pickJoined(row.status)?.code ?? "";
 
@@ -272,6 +280,75 @@ export async function ReceptionModule({
                 </table>
               </div>
             )}
+
+            <section className="rounded-md border bg-muted/20 p-4">
+              <h3 className="text-sm font-semibold">Register New Patient (Walk-In)</h3>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Creates a patient master record for reception case registration. This does
+                not automatically create portal credentials.
+              </p>
+              <form action={createReceptionPatientAction} className="mt-4 space-y-3">
+                <input type="hidden" name="returnPath" value={returnPath} />
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="space-y-2 sm:col-span-2">
+                    <Label htmlFor="fullName">Full Name</Label>
+                    <Input id="fullName" name="fullName" required />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="dateOfBirth">Date of Birth</Label>
+                    <Input id="dateOfBirth" name="dateOfBirth" type="date" required />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="sex">Sex</Label>
+                    <select
+                      id="sex"
+                      name="sex"
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                      required
+                    >
+                      <option value="">Select sex</option>
+                      <option value="Male">Male</option>
+                      <option value="Female">Female</option>
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="nationality">Nationality</Label>
+                    <Input id="nationality" name="nationality" defaultValue="Filipino" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="contactNumber">Contact Number</Label>
+                    <Input
+                      id="contactNumber"
+                      name="contactNumber"
+                      placeholder="+63 912 345 6789"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2 sm:col-span-2">
+                    <Label htmlFor="emailAddress">Email Address</Label>
+                    <Input
+                      id="emailAddress"
+                      name="emailAddress"
+                      type="email"
+                      placeholder="patient@example.com"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2 sm:col-span-2">
+                    <Label htmlFor="governmentId">Government ID / Passport</Label>
+                    <Input
+                      id="governmentId"
+                      name="governmentId"
+                      placeholder="Passport::P1234567"
+                      required
+                    />
+                  </div>
+                </div>
+                <Button type="submit" variant="outline" className="w-full sm:w-auto">
+                  Register Patient
+                </Button>
+              </form>
+            </section>
           </CardContent>
         </Card>
 
@@ -677,6 +754,38 @@ export async function ReceptionModule({
                     </tbody>
                   </table>
                 </div>
+              )}
+            </section>
+
+            <section className="space-y-3">
+              <h3 className="text-sm font-semibold">Case Control</h3>
+              {canCancelPanelCase ? (
+                <div className="rounded-md border border-rose-300/70 bg-rose-50 p-3">
+                  <p className="text-sm text-rose-900">
+                    Soft-cancel will archive this case and mark non-completed visits as
+                    cancelled.
+                  </p>
+                  <form action={softCancelCaseAction} className="mt-3 space-y-2">
+                    <input type="hidden" name="caseId" value={panelCase.caseid} />
+                    <input type="hidden" name="returnPath" value={returnPath} />
+                    <Label htmlFor="cancelReason">Cancellation Reason</Label>
+                    <Textarea
+                      id="cancelReason"
+                      name="reason"
+                      placeholder="Enter reason for case cancellation."
+                      required
+                      maxLength={255}
+                    />
+                    <Button type="submit" size="sm" variant="destructive">
+                      Cancel and Archive Case
+                    </Button>
+                  </form>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  This case is in {panelStatusCode ?? "an unsupported status"} and cannot
+                  be cancelled from reception controls.
+                </p>
               )}
             </section>
           </div>

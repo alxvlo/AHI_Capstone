@@ -88,7 +88,7 @@ export default async function AccountPage() {
         role={role}
         description="Review your profile, role context, and account access status."
         quickActions={
-          <Button variant="outline" size="sm" asChild>
+          <Button variant="outline" size="sm" className="h-11 px-4 sm:h-9 sm:px-3" asChild>
             <Link href={dashboardHomePath}>Dashboard Home</Link>
           </Button>
         }
@@ -179,10 +179,10 @@ export default async function AccountPage() {
               out securely from any page.
             </p>
             <div className="flex flex-wrap gap-2">
-              <Button variant="outline" size="sm" asChild>
+              <Button variant="outline" size="sm" className="h-11 px-4 sm:h-9 sm:px-3" asChild>
                 <Link href={dashboardHomePath}>Go to Dashboard Home</Link>
               </Button>
-              <Button variant="outline" size="sm" asChild>
+              <Button variant="outline" size="sm" className="h-11 px-4 sm:h-9 sm:px-3" asChild>
                 <Link href="/auth/patient/sign-in">Open Sign-In Page</Link>
               </Button>
             </div>

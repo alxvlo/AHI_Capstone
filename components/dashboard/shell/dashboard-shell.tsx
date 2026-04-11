@@ -42,6 +42,7 @@ export function DashboardShell({
             <Button
               variant="outline"
               size="sm"
+              className="h-11 px-4"
               onClick={() => setMobileNavOpen(true)}
               aria-label="Open dashboard navigation"
             >
@@ -75,6 +76,7 @@ export function DashboardShell({
           <Button
             variant="outline"
             size="icon"
+            className="h-11 w-11"
             onClick={() => setMobileNavOpen(false)}
             aria-label="Close dashboard navigation"
           >
@@ -92,4 +94,3 @@ export function DashboardShell({
     </>
   );
 }
-

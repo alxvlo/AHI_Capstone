@@ -14,6 +14,7 @@ import {
   RELEASING_ROLE,
   TRIAGE_ROLE,
 } from "@/lib/supabase/roles";
+import { normalizePhilippineMobileForStorage } from "@/lib/phone";
 
 const STAFF_DASHBOARD_PATH = "/dashboard/staff";
 
@@ -126,10 +127,109 @@ const FITNESS_DECISION_CODES = new Set([
   "FIT_WITH_RESTRICTIONS",
 ]);
 
+const RECEPTION_ALLOWED_CASE_CANCEL_CODES = new Set([
+  "REGISTERED",
+  "IN_PROGRESS",
+  "PENDING_ADDITIONAL_TESTS",
+  "FOR_DECISION",
+]);
+
 function isUuid(value: string) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
     value
   );
+}
+
+function isLikelyEmail(value: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
+
+function parseDepartmentIdsFromForm(formData: FormData) {
+  const rawValues = formData.getAll("departmentIds");
+  const ids = rawValues
+    .map((rawValue) => parseOptionalPositiveInt(normalizeText(rawValue)))
+    .filter((value): value is number => typeof value === "number");
+
+  return Array.from(new Set(ids));
+}
+
+async function syncCaseWorkflowStatusAfterVisitUpdate(
+  supabase: CurrentUserRoleContext["supabase"],
+  caseId: string
+) {
+  const forDecisionStatusId = await getStatusId(supabase, "CASE", "FOR_DECISION");
+  const inProgressStatusId = await getStatusId(supabase, "CASE", "IN_PROGRESS");
+  const pendingAdditionalStatusId = await getStatusId(
+    supabase,
+    "CASE",
+    "PENDING_ADDITIONAL_TESTS"
+  );
+  const completedVisitStatusId = await getStatusId(supabase, "VISIT", "COMPLETED");
+
+  if (!forDecisionStatusId || !inProgressStatusId || !completedVisitStatusId) {
+    return;
+  }
+
+  const { data: caseRow, error: caseError } = await supabase
+    .from("peme_case")
+    .select("casestatuscodeid")
+    .eq("caseid", caseId)
+    .maybeSingle();
+
+  if (caseError || !caseRow) {
+    return;
+  }
+
+  const mutableStatuses = new Set(
+    [inProgressStatusId, pendingAdditionalStatusId, forDecisionStatusId].filter(
+      (statusId): statusId is number => typeof statusId === "number"
+    )
+  );
+
+  if (!mutableStatuses.has(caseRow.casestatuscodeid)) {
+    return;
+  }
+
+  const { count: totalVisits, error: totalError } = await supabase
+    .from("department_visit")
+    .select("visitid", { count: "exact", head: true })
+    .eq("caseid", caseId);
+
+  if (totalError || !totalVisits || totalVisits < 1) {
+    return;
+  }
+
+  const { count: completedVisits, error: completedError } = await supabase
+    .from("department_visit")
+    .select("visitid", { count: "exact", head: true })
+    .eq("caseid", caseId)
+    .eq("visitstatuscodeid", completedVisitStatusId);
+
+  if (completedError || typeof completedVisits !== "number") {
+    return;
+  }
+
+  const allVisitsCompleted = completedVisits === totalVisits;
+
+  if (allVisitsCompleted && caseRow.casestatuscodeid !== forDecisionStatusId) {
+    await supabase
+      .from("peme_case")
+      .update({ casestatuscodeid: forDecisionStatusId })
+      .eq("caseid", caseId);
+    return;
+  }
+
+  if (
+    !allVisitsCompleted &&
+    caseRow.casestatuscodeid === forDecisionStatusId &&
+    inProgressStatusId
+  ) {
+    const fallbackStatusId = pendingAdditionalStatusId ?? inProgressStatusId;
+    await supabase
+      .from("peme_case")
+      .update({ casestatuscodeid: fallbackStatusId })
+      .eq("caseid", caseId);
+  }
 }
 
 async function resolveActionContext(): Promise<ActionContext> {
@@ -181,6 +281,118 @@ async function getStatusId(
   }
 
   return statusRow.statuscodeid;
+}
+
+export async function createReceptionPatientAction(formData: FormData) {
+  const returnPath = normalizeReturnPath(normalizeText(formData.get("returnPath")));
+  const fullName = normalizeText(formData.get("fullName")).slice(0, 100);
+  const dateOfBirth = normalizeText(formData.get("dateOfBirth"));
+  const sex = normalizeText(formData.get("sex")).slice(0, 10);
+  const nationality = normalizeText(formData.get("nationality")).slice(0, 50);
+  const contactNumberRaw = normalizeText(formData.get("contactNumber"));
+  const emailAddressRaw = normalizeText(formData.get("emailAddress")).toLowerCase();
+  const governmentId = normalizeText(formData.get("governmentId")).slice(0, 50);
+
+  if (!fullName) {
+    redirectWithError(returnPath, "Full name is required for patient registration.");
+  }
+
+  if (!dateOfBirth) {
+    redirectWithError(returnPath, "Date of birth is required for patient registration.");
+  }
+
+  const parsedDob = new Date(`${dateOfBirth}T00:00:00`);
+
+  if (Number.isNaN(parsedDob.getTime()) || parsedDob > new Date()) {
+    redirectWithError(returnPath, "Please provide a valid date of birth.");
+  }
+
+  if (!sex) {
+    redirectWithError(returnPath, "Sex is required for patient registration.");
+  }
+
+  const normalizedContactNumber = normalizePhilippineMobileForStorage(contactNumberRaw);
+
+  if (!normalizedContactNumber) {
+    redirectWithError(
+      returnPath,
+      "Contact number must be a valid Philippine mobile number (e.g. +639123456789)."
+    );
+  }
+
+  if (!emailAddressRaw || !isLikelyEmail(emailAddressRaw)) {
+    redirectWithError(returnPath, "A valid email address is required.");
+  }
+
+  if (!governmentId) {
+    redirectWithError(returnPath, "Government ID or passport is required.");
+  }
+
+  if (!/^[^:]+::[^:]+$/.test(governmentId)) {
+    redirectWithError(
+      returnPath,
+      "Government ID must use TYPE::NUMBER format (e.g. Passport::P1234567)."
+    );
+  }
+
+  const { supabase, userId, role } = await resolveActionContext();
+  ensureAllowedRole(role, [RECEPTION_ROLE, ADMIN_ROLE], returnPath);
+
+  const { data: existingPatient, error: existingPatientError } = await supabase
+    .from("patient")
+    .select("patientid")
+    .eq("governmentid", governmentId)
+    .maybeSingle();
+
+  if (existingPatientError) {
+    redirectWithError(
+      returnPath,
+      `Unable to validate duplicate patient record: ${existingPatientError.message}`
+    );
+  }
+
+  if (existingPatient?.patientid) {
+    redirectWithError(
+      returnPath,
+      "A patient record with the same government ID already exists."
+    );
+  }
+
+  const { data: insertedPatient, error: insertError } = await supabase
+    .from("patient")
+    .insert({
+      fullname: fullName,
+      dateofbirth: dateOfBirth,
+      sex,
+      nationality: nationality || null,
+      contactnumber: normalizedContactNumber,
+      emailaddress: emailAddressRaw,
+      governmentid: governmentId,
+      updatedat: new Date().toISOString(),
+    })
+    .select("patientid, fullname")
+    .maybeSingle();
+
+  if (insertError || !insertedPatient) {
+    redirectWithError(
+      returnPath,
+      `Patient registration failed: ${insertError?.message ?? "No patient record was created."}`
+    );
+  }
+
+  await supabase.from("audit_log").insert({
+    userid: userId,
+    actiontype: "PATIENT_REGISTERED_BY_RECEPTION",
+    entityname: "patient",
+    entityid: insertedPatient.patientid,
+    details: `Reception registered patient ${insertedPatient.fullname} (${insertedPatient.patientid}).`,
+  });
+
+  revalidatePath(STAFF_DASHBOARD_PATH);
+  redirectWithNotice(
+    returnPath,
+    `Patient ${insertedPatient.fullname} was registered and is now available for case creation.`
+  );
 }
 
 export async function createReceptionCaseAction(formData: FormData) {
@@ -242,6 +454,126 @@ export async function createReceptionCaseAction(formData: FormData) {
     returnPath,
     `Case ${caseNumber} was created with ${visitCount} department visits.`
   );
+}
+
+export async function softCancelCaseAction(formData: FormData) {
+  const returnPath = normalizeReturnPath(normalizeText(formData.get("returnPath")));
+  const caseId = normalizeText(formData.get("caseId"));
+  const reason = normalizeText(formData.get("reason")).slice(0, 255);
+
+  if (!caseId || !isUuid(caseId)) {
+    redirectWithError(returnPath, "Invalid case selected for cancellation.");
+  }
+
+  if (!reason) {
+    redirectWithError(returnPath, "Cancellation reason is required.");
+  }
+
+  const { supabase, userId, role } = await resolveActionContext();
+  ensureAllowedRole(role, [RECEPTION_ROLE, ADMIN_ROLE], returnPath);
+
+  const archivedStatusId = await getStatusId(supabase, "CASE", "ARCHIVED");
+  const releasedStatusId = await getStatusId(supabase, "CASE", "RELEASED");
+  const forReleasingStatusId = await getStatusId(supabase, "CASE", "FOR_RELEASING");
+  const cancelledVisitStatusId = await getStatusId(supabase, "VISIT", "CANCELLED");
+  const completedVisitStatusId = await getStatusId(supabase, "VISIT", "COMPLETED");
+
+  if (!archivedStatusId) {
+    redirectWithError(returnPath, "Unable to resolve ARCHIVED case status.");
+  }
+
+  const { data: caseRow, error: caseReadError } = await supabase
+    .from("peme_case")
+    .select("caseid, casenumber, casestatuscodeid")
+    .eq("caseid", caseId)
+    .maybeSingle();
+
+  if (caseReadError || !caseRow) {
+    redirectWithError(
+      returnPath,
+      `Unable to load selected case: ${caseReadError?.message ?? "Case not found."}`
+    );
+  }
+
+  if (caseRow.casestatuscodeid === archivedStatusId) {
+    redirectWithNotice(returnPath, `Case ${caseRow.casenumber} is already archived.`);
+  }
+
+  if (
+    (releasedStatusId && caseRow.casestatuscodeid === releasedStatusId) ||
+    (forReleasingStatusId && caseRow.casestatuscodeid === forReleasingStatusId)
+  ) {
+    redirectWithError(
+      returnPath,
+      `Case ${caseRow.casenumber} can no longer be cancelled at this workflow stage.`
+    );
+  }
+
+  const { data: statusRow } = await supabase
+    .from("status_code")
+    .select("code")
+    .eq("domain", "CASE")
+    .eq("statuscodeid", caseRow.casestatuscodeid)
+    .maybeSingle();
+  const currentStatusCode = statusRow?.code ?? null;
+
+  if (!currentStatusCode || !RECEPTION_ALLOWED_CASE_CANCEL_CODES.has(currentStatusCode)) {
+    redirectWithError(
+      returnPath,
+      `Case ${caseRow.casenumber} is in ${currentStatusCode ?? "an unsupported"} status and cannot be cancelled.`
+    );
+  }
+
+  if (cancelledVisitStatusId) {
+    let visitUpdateQuery = supabase
+      .from("department_visit")
+      .update({
+        visitstatuscodeid: cancelledVisitStatusId,
+        timecompleted: new Date().toISOString(),
+        remarks: `Case cancelled: ${reason}`.slice(0, 255),
+      })
+      .eq("caseid", caseId)
+      .neq("visitstatuscodeid", cancelledVisitStatusId);
+
+    if (completedVisitStatusId) {
+      visitUpdateQuery = visitUpdateQuery.neq("visitstatuscodeid", completedVisitStatusId);
+    }
+
+    const { error: visitUpdateError } = await visitUpdateQuery;
+
+    if (visitUpdateError) {
+      redirectWithError(
+        returnPath,
+        `Case cancellation failed while updating visits: ${visitUpdateError.message}`
+      );
+    }
+  }
+
+  const { error: caseUpdateError } = await supabase
+    .from("peme_case")
+    .update({
+      casestatuscodeid: archivedStatusId,
+      portalvisible: false,
+    })
+    .eq("caseid", caseId);
+
+  if (caseUpdateError) {
+    redirectWithError(
+      returnPath,
+      `Case cancellation failed: ${caseUpdateError.message}`
+    );
+  }
+
+  await supabase.from("audit_log").insert({
+    userid: userId,
+    actiontype: "PEME_CASE_SOFT_CANCELLED",
+    entityname: "peme_case",
+    entityid: caseRow.caseid,
+    details: `Case ${caseRow.casenumber} archived by reception/admin. Reason: ${reason}`,
+  });
+
+  revalidatePath(STAFF_DASHBOARD_PATH);
+  redirectWithNotice(returnPath, `Case ${caseRow.casenumber} was cancelled and archived.`);
 }
 
 export async function bootstrapCaseVisitsAction(formData: FormData) {
@@ -632,6 +964,8 @@ export async function updateDepartmentVisitStatusAction(formData: FormData) {
     );
   }
 
+  await syncCaseWorkflowStatusAfterVisitUpdate(supabase, updatedVisit.caseid);
+
   await supabase.from("audit_log").insert({
     userid: userId,
     actiontype: "DEPARTMENT_VISIT_STATUS_UPDATED",
@@ -745,6 +1079,184 @@ export async function saveResultItemsAction(formData: FormData) {
   redirectWithNotice(
     returnPath,
     `Result "${testName}" saved for ${caseNumber}.`
+  );
+}
+
+export async function requestAdditionalTestsAction(formData: FormData) {
+  const returnPath = normalizeReturnPath(normalizeText(formData.get("returnPath")));
+  const caseId = normalizeText(formData.get("caseId"));
+  const reason = normalizeText(formData.get("reason")).slice(0, 255);
+  const departmentIds = parseDepartmentIdsFromForm(formData);
+
+  if (!caseId || !isUuid(caseId)) {
+    redirectWithError(returnPath, "Invalid case selected for additional tests.");
+  }
+
+  if (!reason) {
+    redirectWithError(returnPath, "Reason is required when requesting additional tests.");
+  }
+
+  if (departmentIds.length === 0) {
+    redirectWithError(
+      returnPath,
+      "Select at least one department before requesting additional tests."
+    );
+  }
+
+  const { supabase, userId, role } = await resolveActionContext();
+  ensureAllowedRole(role, [PHYSICIAN_ROLE, ADMIN_ROLE], returnPath);
+
+  const forDecisionStatusId = await getStatusId(supabase, "CASE", "FOR_DECISION");
+  const pendingAdditionalStatusId = await getStatusId(
+    supabase,
+    "CASE",
+    "PENDING_ADDITIONAL_TESTS"
+  );
+  const inProgressStatusId = await getStatusId(supabase, "CASE", "IN_PROGRESS");
+  const pendingVisitStatusId = await getStatusId(supabase, "VISIT", "PENDING");
+  const completedVisitStatusId = await getStatusId(supabase, "VISIT", "COMPLETED");
+  const cancelledVisitStatusId = await getStatusId(supabase, "VISIT", "CANCELLED");
+
+  if (!forDecisionStatusId || !pendingVisitStatusId || !inProgressStatusId) {
+    redirectWithError(
+      returnPath,
+      "Unable to resolve status references for additional test workflow."
+    );
+  }
+
+  const { data: caseRow, error: caseError } = await supabase
+    .from("peme_case")
+    .select("caseid, casenumber, casestatuscodeid")
+    .eq("caseid", caseId)
+    .maybeSingle();
+
+  if (caseError || !caseRow) {
+    redirectWithError(
+      returnPath,
+      `Unable to load selected case: ${caseError?.message ?? "Case not found."}`
+    );
+  }
+
+  if (caseRow.casestatuscodeid !== forDecisionStatusId) {
+    redirectWithError(
+      returnPath,
+      `Case ${caseRow.casenumber} must be in FOR_DECISION before requesting additional tests.`
+    );
+  }
+
+  const { data: departmentsRaw, error: departmentError } = await supabase
+    .from("department")
+    .select("departmentid, code, name")
+    .in("departmentid", departmentIds)
+    .eq("isactive", true);
+
+  if (departmentError) {
+    redirectWithError(
+      returnPath,
+      `Unable to validate selected departments: ${departmentError.message}`
+    );
+  }
+
+  const departments = departmentsRaw ?? [];
+  const departmentIdSet = new Set(departments.map((department) => department.departmentid));
+
+  if (departmentIdSet.size !== departmentIds.length) {
+    redirectWithError(
+      returnPath,
+      "One or more selected departments are invalid or inactive."
+    );
+  }
+
+  let openVisitQuery = supabase
+    .from("department_visit")
+    .select("departmentid")
+    .eq("caseid", caseId)
+    .in("departmentid", departmentIds);
+
+  if (completedVisitStatusId) {
+    openVisitQuery = openVisitQuery.neq("visitstatuscodeid", completedVisitStatusId);
+  }
+
+  if (cancelledVisitStatusId) {
+    openVisitQuery = openVisitQuery.neq("visitstatuscodeid", cancelledVisitStatusId);
+  }
+
+  const { data: openVisitsRaw, error: openVisitError } = await openVisitQuery;
+
+  if (openVisitError) {
+    redirectWithError(
+      returnPath,
+      `Unable to validate existing visit workload: ${openVisitError.message}`
+    );
+  }
+
+  const openDepartmentIds = new Set(
+    (openVisitsRaw ?? [])
+      .map((visit) => Number(visit.departmentid))
+      .filter((departmentId) => Number.isInteger(departmentId) && departmentId > 0)
+  );
+
+  if (openDepartmentIds.size > 0) {
+    const openDepartmentLabels = departments
+      .filter((department) => openDepartmentIds.has(department.departmentid))
+      .map((department) => department.code ?? department.name)
+      .join(", ");
+
+    redirectWithError(
+      returnPath,
+      `Additional tests already have open visits in: ${openDepartmentLabels}.`
+    );
+  }
+
+  const queuedAt = new Date().toISOString();
+  const visitRows = departmentIds.map((departmentId) => ({
+    caseid: caseRow.caseid,
+    departmentid: departmentId,
+    visitstatuscodeid: pendingVisitStatusId,
+    timepending: queuedAt,
+    remarks: `Additional test requested: ${reason}`.slice(0, 255),
+  }));
+
+  const { error: visitInsertError } = await supabase.from("department_visit").insert(visitRows);
+
+  if (visitInsertError) {
+    redirectWithError(
+      returnPath,
+      `Unable to queue additional test visits: ${visitInsertError.message}`
+    );
+  }
+
+  const nextCaseStatusId = pendingAdditionalStatusId ?? inProgressStatusId;
+  const { error: caseUpdateError } = await supabase
+    .from("peme_case")
+    .update({
+      casestatuscodeid: nextCaseStatusId,
+    })
+    .eq("caseid", caseId);
+
+  if (caseUpdateError) {
+    redirectWithError(
+      returnPath,
+      `Additional test visits were queued but case transition failed: ${caseUpdateError.message}`
+    );
+  }
+
+  const departmentSummary = departments
+    .map((department) => department.code ?? department.name)
+    .join(", ");
+
+  await supabase.from("audit_log").insert({
+    userid: userId,
+    actiontype: "PHYSICIAN_ADDITIONAL_TESTS_REQUESTED",
+    entityname: "peme_case",
+    entityid: caseRow.caseid,
+    details: `Case ${caseRow.casenumber} additional tests requested for [${departmentSummary}]. Reason: ${reason}`,
+  });
+
+  revalidatePath(STAFF_DASHBOARD_PATH);
+  redirectWithNotice(
+    returnPath,
+    `Queued ${departmentIds.length} additional test visit(s) for case ${caseRow.casenumber}.`
   );
 }
 

@@ -88,7 +88,7 @@ export function DashboardSidebar({
           </div>
         </div>
 
-        <nav className="mt-4 space-y-1" aria-label="Dashboard Navigation">
+        <nav className="mt-4 space-y-1 overflow-y-auto" aria-label="Dashboard Navigation">
           {items.map((item) => {
             const active = isQueryHref(item.href)
               ? queryHrefMatchesCurrent(item.href, currentPath, searchParams)
@@ -100,7 +100,7 @@ export function DashboardSidebar({
                 href={item.href}
                 onClick={onNavigate}
                 className={cn(
-                  "block rounded-lg border px-3 py-2.5 transition-colors",
+                  "flex min-h-11 flex-col justify-center rounded-lg border px-3 py-2.5 transition-colors",
                   active
                     ? "border-primary/30 bg-primary/10"
                     : "border-transparent hover:border-border hover:bg-muted/40"

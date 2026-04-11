@@ -50,6 +50,7 @@ describe("staff dashboard shared helpers", () => {
     expect(caseStatusTone("FIT")).toBe("positive");
     expect(caseStatusTone("FIT_WITH_RESTRICTIONS")).toBe("warning");
     expect(caseStatusTone("IN_PROGRESS")).toBe("warning");
+    expect(caseStatusTone("PENDING_ADDITIONAL_TESTS")).toBe("warning");
     expect(caseStatusTone("FOR_DECISION")).toBe("warning");
     expect(caseStatusTone("FOR_RELEASING")).toBe("warning");
     expect(caseStatusTone("UNFIT")).toBe("danger");

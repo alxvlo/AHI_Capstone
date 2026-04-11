@@ -224,6 +224,7 @@ export function caseStatusTone(
     code === "PENDING" ||
     code === "IN_PROGRESS" ||
     code === "REGISTERED" ||
+    code === "PENDING_ADDITIONAL_TESTS" ||
     code === "FOR_DECISION" ||
     code === "FOR_RELEASING"
   ) {
