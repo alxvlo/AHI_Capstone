@@ -11,6 +11,29 @@ type ResultFilesProps = {
   filesError?: string | null;
 };
 
+function formatBytes(bytes: number) {
+  if (bytes < 1024) {
+    return `${bytes} B`;
+  }
+  if (bytes < 1024 * 1024) {
+    return `${(bytes / 1024).toFixed(1)} KB`;
+  }
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function mimeLabel(mime: string) {
+  if (mime === "application/pdf") {
+    return "PDF";
+  }
+  if (mime === "image/jpeg") {
+    return "JPEG";
+  }
+  if (mime === "image/png") {
+    return "PNG";
+  }
+  return mime;
+}
+
 export function ResultFiles({ statusCode, files, filesError = null }: ResultFilesProps) {
   if (!isCaseReleased(statusCode)) {
     return (
@@ -26,11 +49,6 @@ export function ResultFiles({ statusCode, files, filesError = null }: ResultFile
   return (
     <section className="space-y-4 rounded-xl border bg-card p-4 shadow-sm">
       <h2 className="text-lg font-semibold">Result Files</h2>
-
-      <p className="rounded-md border border-sky-300/70 bg-sky-50 px-3 py-2 text-sm text-sky-900">
-        File access UI is ready. Actual upload and signed-URL download wiring will be enabled in
-        Phase 4 (Storage integration).
-      </p>
 
       {filesError ? (
         <p className="rounded-md border border-rose-300/70 bg-rose-50 px-3 py-2 text-sm text-rose-900">
@@ -49,30 +67,54 @@ export function ResultFiles({ statusCode, files, filesError = null }: ResultFile
               <tr>
                 <th className="px-3 py-2 font-semibold">File Name</th>
                 <th className="px-3 py-2 font-semibold">Department</th>
+                <th className="px-3 py-2 font-semibold">Type</th>
+                <th className="px-3 py-2 font-semibold">Size</th>
                 <th className="px-3 py-2 font-semibold">Uploaded</th>
-                <th className="px-3 py-2 font-semibold">Status</th>
                 <th className="px-3 py-2 font-semibold">Action</th>
               </tr>
             </thead>
             <tbody>
               {files.map((fileRow) => (
-                <tr key={fileRow.id} className="border-t">
+                <tr key={fileRow.fileid} className="border-t">
                   <td className="px-3 py-2">{fileRow.fileName}</td>
                   <td className="px-3 py-2 text-muted-foreground">{fileRow.departmentName}</td>
                   <td className="px-3 py-2 text-muted-foreground">
+                    {mimeLabel(fileRow.mimeType)}
+                  </td>
+                  <td className="px-3 py-2 text-muted-foreground">
+                    {formatBytes(fileRow.fileSize)}
+                  </td>
+                  <td className="px-3 py-2 text-muted-foreground">
                     {formatTimestamp(fileRow.uploadedAt)}
                   </td>
-                  <td className="px-3 py-2 text-muted-foreground">{fileRow.status}</td>
                   <td className="px-3 py-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="h-11 px-3 sm:h-9"
-                      disabled
-                    >
-                      Download (Soon)
-                    </Button>
+                    {fileRow.downloadUrl ? (
+                      <a
+                        href={fileRow.downloadUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        download={fileRow.fileName}
+                      >
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-11 px-3 sm:h-9"
+                        >
+                          Download
+                        </Button>
+                      </a>
+                    ) : (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-11 px-3 sm:h-9"
+                        disabled
+                      >
+                        Unavailable
+                      </Button>
+                    )}
                   </td>
                 </tr>
               ))}

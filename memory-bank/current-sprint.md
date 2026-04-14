@@ -1,8 +1,8 @@
 # Current Sprint
 
-**Last Updated:** 2026-04-10  
+**Last Updated:** 2026-04-14  
 **Phase:** Phase 4 - Backend Wiring and Storage  
-**Current Focus:** Slice 13 (Supabase Storage wiring)
+**Current Focus:** Slice 14 (Realtime subscriptions)
 
 ---
 
@@ -19,9 +19,9 @@ Execution has been reprioritized per request to continue Admin + backend wiring 
 
 ### Immediate (Now)
 
-1. **Slice 13** - Storage integration wiring (`result-files`) and policy-safe surfaces.
-2. **Slice 14** - Realtime queue/portal subscriptions.
-3. **Slice 15** - End-to-end lifecycle validation sweep.
+1. **Slice 14** - Realtime queue/portal subscriptions.
+2. **Slice 15** - End-to-end lifecycle validation sweep.
+3. Deferred Sprint 09 queue prep (`SCRUM-36`, `SCRUM-37`, `SCRUM-38`) after Slice 15.
 
 ### Deferred Sprint 09 Items (Temporarily Skipped)
 
@@ -73,7 +73,7 @@ Execution has been reprioritized per request to continue Admin + backend wiring 
   - reception patient registration form and case control panel,
   - physician additional test request panel with department selection + reason.
 - Added policy migration for reception/admin patient write path:
-  - `supabase/migrations/20260410_reception_patient_write_policy.sql`.
+  - `supabase/migrations/20260413_reception_patient_write_policy.sql`.
 - Extended staff helper tests for `PENDING_ADDITIONAL_TESTS` tone handling.
 
 **Key files:**
@@ -82,13 +82,88 @@ Execution has been reprioritized per request to continue Admin + backend wiring 
 - `components/dashboard/staff/physician-module.tsx`
 - `features/dashboard/staff/shared.tsx`
 - `tests/components/dashboard/staff/shared.test.tsx`
-- `supabase/migrations/20260410_reception_patient_write_policy.sql`
+- `supabase/migrations/20260413_reception_patient_write_policy.sql`
 
 **Verification:** `npm run qa:local` - passed.
 
-## Next Up: Slice 13
+## Recently Completed: Pre-Slice 13 Hardening Sweep
 
-**What:** Implement Supabase Storage result file upload/download wiring with role-safe access boundaries.
+**Delivered scope:**
+- Ran pre-slice verification checks:
+  - `npm run qa:local` (passed),
+  - `npm run test:coverage` (passed; baseline coverage report generated),
+  - `npm run build` (passed).
+- Ran Supabase QA entrypoint and confirmed environment blocker:
+  - `npm run qa:supabase` currently fails early with `Missing AHI_PROBE_PASSWORD in environment`.
+- Hardened dashboard server action return-path sanitation by replacing permissive prefix checks with a shared scoped-path validator.
+- Hardened staff workflow transitions (`submitPhysicianDecisionAction`, `releaseCaseAction`, `togglePortalVisibilityAction`) to verify a row was actually updated, preventing silent success on stale-status races.
+- Added regression tests for return-path normalization edge cases (prefix spoofing, malformed paths, query preservation, custom fallback).
+
+**Key files:**
+- `lib/dashboard/return-path.ts` (new)
+- `features/dashboard/staff/actions.ts`
+- `features/dashboard/patient/actions.ts`
+- `features/dashboard/admin/actions.ts`
+- `tests/lib/return-path.test.ts` (new)
+
+**Verification:** `npm run qa:local` - passed (58/58 tests).
+
+## Follow-up: Supabase QA Gate Unblocked
+
+**Delivered scope:**
+- Re-ran Supabase audit suite after probe password provisioning.
+- Identified deterministic failures in role smoke audits caused by outdated UI marker strings.
+- Updated smoke audit marker expectations to match current dashboard copy:
+  - patient marker now validates `Case Tracker`,
+  - client marker now validates `Fitness Summary`,
+  - admin markers now validate `User Administration` and `Audit Monitoring`,
+  - staff markers now validate `Refresh Queue` + role label.
+- Re-validated full quality gates:
+  - `npm run qa:supabase` - passed,
+  - `npm run qa:local` - passed.
+
+**Key files:**
+- `scripts/supabase/audit-role-smoke-all-roles.mjs`
+- `scripts/supabase/audit-role-smoke-priority.mjs`
+
+**Verification:** `npm run qa:supabase` and `npm run qa:local` - passed.
+
+## Recently Completed: Slice 13 (Supabase Storage Wiring)
+
+**Delivered scope:**
+- Added Supabase Storage migration for result files:
+  - `result_file` metadata table,
+  - `result-files` private Storage bucket,
+  - role-scoped RLS for metadata and bucket object operations.
+- Added Department Staff upload and delete server actions with:
+  - role checks,
+  - visit/department ownership validation,
+  - MIME and size validation (`JPEG`, `PNG`, `PDF`, max `10MB`),
+  - audit-log events on upload/delete.
+- Added staff-side result file upload panel with drag-and-drop UX and existing-file deletion controls.
+- Wired patient result-file list to signed URLs and RELEASED-only gating in portal UI.
+- Hardened Storage object RLS to avoid role-only overexposure:
+  - upload now validates `{caseId}/{visitId}/{file}` path against `department_visit`,
+  - download/delete now require a matching `result_file.storagepath` row plus role-scoped checks (department ownership, case visibility, uploader guard for staff delete).
+- Added regression tests for patient result-file view behaviors (release gating + download/unavailable action state).
+
+**Key files:**
+- `supabase/migrations/20260414_result_file_storage.sql`
+- `features/dashboard/staff/actions.ts`
+- `components/dashboard/staff/department-file-upload.tsx`
+- `components/dashboard/staff/department-module.tsx`
+- `features/dashboard/patient/actions.ts`
+- `features/dashboard/patient/shared.ts`
+- `components/dashboard/patient/result-files.tsx`
+- `tests/components/dashboard/patient/result-files.test.tsx` (new)
+
+**Verification:**
+- `npm run test:run -- tests/components/dashboard/patient/result-files.test.tsx` - passed.
+- `npm run qa:local` - passed (61/61 tests).
+
+## Next Up: Slice 14
+
+**What:** Implement realtime queue/portal subscriptions to remove manual refresh dependency.
 
 ## Plan Structure (Unchanged)
 

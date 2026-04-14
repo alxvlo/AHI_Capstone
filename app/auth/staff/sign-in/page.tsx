@@ -28,7 +28,7 @@ export default function StaffSignInPage() {
 
   useEffect(() => {
     if (!isLoading && user) {
-      router.replace("/dashboard/staff");
+      router.replace("/dashboard");
     }
   }, [isLoading, router, user]);
 
@@ -46,7 +46,7 @@ export default function StaffSignInPage() {
 
     if (result.success) {
       toast.success("Authentication successful");
-      router.push("/dashboard/staff");
+      router.push("/dashboard");
       router.refresh();
       return;
     }

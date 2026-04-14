@@ -16,6 +16,7 @@ import {
   type PatientResultItemRow,
   type JoinedRecord,
 } from "@/features/dashboard/patient/shared";
+import { normalizeDashboardReturnPath } from "@/lib/dashboard/return-path";
 
 const PATIENT_DASHBOARD_PATH = "/dashboard/patient";
 
@@ -60,17 +61,7 @@ function isUuid(value: string) {
 }
 
 function normalizeReturnPath(rawPath: string | null) {
-  if (!rawPath) {
-    return PATIENT_DASHBOARD_PATH;
-  }
-
-  const trimmedPath = rawPath.trim();
-
-  if (!trimmedPath.startsWith(PATIENT_DASHBOARD_PATH)) {
-    return PATIENT_DASHBOARD_PATH;
-  }
-
-  return trimmedPath;
+  return normalizeDashboardReturnPath(rawPath, PATIENT_DASHBOARD_PATH);
 }
 
 function truncateMessage(message: string, limit = 200) {
@@ -312,6 +303,7 @@ async function loadOwnResultsFromContext(
 }
 
 async function loadResultFilesFromContext(
+  context: PatientContext,
   selectedCase: PatientCaseRow | null
 ): Promise<ResultFilesResult> {
   if (!selectedCase) {
@@ -330,9 +322,53 @@ async function loadResultFilesFromContext(
     };
   }
 
-  // Storage integration is intentionally deferred to Phase 4.
+  const { supabase } = context;
+
+  const { data: fileRows, error: fileError } = await supabase
+    .from("result_file")
+    .select(
+      "fileid, filename, mimetype, filesize, uploadedat, storagepath, department:departmentid(name)"
+    )
+    .eq("caseid", selectedCase.caseid)
+    .order("uploadedat", { ascending: false });
+
+  if (fileError) {
+    return {
+      files: [],
+      error: `Unable to load result files: ${fileError.message}`,
+    };
+  }
+
+  const files: PatientResultFileRow[] = await Promise.all(
+    (fileRows ?? []).map(async (row) => {
+      const deptRecord = pickJoined(
+        row.department as JoinedRecord<{ name: string }> | undefined
+      );
+
+      let downloadUrl: string | null = null;
+
+      if (row.storagepath) {
+        const { data: signedUrlData } = await supabase.storage
+          .from("result-files")
+          .createSignedUrl(row.storagepath as string, 3600); // 1 hour expiry
+
+        downloadUrl = signedUrlData?.signedUrl ?? null;
+      }
+
+      return {
+        fileid: row.fileid as string,
+        fileName: row.filename as string,
+        departmentName: deptRecord?.name ?? "Unknown",
+        uploadedAt: row.uploadedat as string | null,
+        mimeType: row.mimetype as string,
+        fileSize: row.filesize as number,
+        downloadUrl,
+      };
+    })
+  );
+
   return {
-    files: [],
+    files,
     error: null,
   };
 }
@@ -350,7 +386,9 @@ export async function fetchOwnResults(selectedCase: PatientCaseRow | null) {
 }
 
 export async function fetchResultFiles(selectedCase: PatientCaseRow | null) {
-  return loadResultFilesFromContext(selectedCase);
+  const context = await resolveCurrentUserRoleContext();
+
+  return loadResultFilesFromContext(context, selectedCase);
 }
 
 export async function requestCertificateDownloadAction(formData: FormData) {
@@ -452,7 +490,7 @@ export async function fetchPatientDashboardData(
   const context = await resolveCurrentUserRoleContext();
   const ownCase = await loadOwnCaseFromContext(context, requestedCaseId);
   const ownResults = await loadOwnResultsFromContext(context, ownCase.selectedCase);
-  const files = await loadResultFilesFromContext(ownCase.selectedCase);
+  const files = await loadResultFilesFromContext(context, ownCase.selectedCase);
 
   return {
     patientId: ownCase.patientId,

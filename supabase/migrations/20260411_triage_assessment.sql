@@ -29,32 +29,22 @@ create table if not exists public.triage_assessment (
 alter table public.triage_assessment enable row level security;
 
 -- Triage Nurse + Admin can read triage assessments
+drop policy if exists triage_assessment_select on public.triage_assessment;
 create policy "triage_assessment_select"
   on public.triage_assessment for select
   using (
-    exists (
-      select 1
-      from public.user_role ur
-        join public.role r on r.roleid = ur.roleid
-      where ur.userid = auth.uid()
-        and r.rolename in ('Triage Nurse', 'System Administrator', 'Physician')
-        and ur.isactive = true
-        and r.isactive = true
+    public.rls_user_has_role(
+      array['Triage Nurse', 'System Administrator', 'Physician']::text[]
     )
   );
 
 -- Triage Nurse + Admin can insert
+drop policy if exists triage_assessment_insert on public.triage_assessment;
 create policy "triage_assessment_insert"
   on public.triage_assessment for insert
   with check (
-    exists (
-      select 1
-      from public.user_role ur
-        join public.role r on r.roleid = ur.roleid
-      where ur.userid = auth.uid()
-        and r.rolename in ('Triage Nurse', 'System Administrator')
-        and ur.isactive = true
-        and r.isactive = true
+    public.rls_user_has_role(
+      array['Triage Nurse', 'System Administrator']::text[]
     )
   );
 

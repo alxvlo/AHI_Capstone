@@ -15,6 +15,7 @@ import {
   TRIAGE_ROLE,
 } from "@/lib/supabase/roles";
 import { normalizePhilippineMobileForStorage } from "@/lib/phone";
+import { normalizeDashboardReturnPath } from "@/lib/dashboard/return-path";
 
 const STAFF_DASHBOARD_PATH = "/dashboard/staff";
 
@@ -25,17 +26,7 @@ type ActionContext = {
 };
 
 function normalizeReturnPath(rawPath: string | null) {
-  if (!rawPath) {
-    return STAFF_DASHBOARD_PATH;
-  }
-
-  const trimmedPath = rawPath.trim();
-
-  if (!trimmedPath.startsWith(STAFF_DASHBOARD_PATH)) {
-    return STAFF_DASHBOARD_PATH;
-  }
-
-  return trimmedPath;
+  return normalizeDashboardReturnPath(rawPath, STAFF_DASHBOARD_PATH);
 }
 
 function truncateMessage(message: string, limit = 180) {
@@ -1387,19 +1378,22 @@ export async function submitPhysicianDecisionAction(formData: FormData) {
     decisionId = insertedDecision.decisionid;
   }
 
-  const { error: transitionError } = await supabase
+  const { data: transitionedCase, error: transitionError } = await supabase
     .from("peme_case")
     .update({
       casestatuscodeid: forReleasingStatusId,
     })
     .eq("caseid", caseId)
-    .eq("casestatuscodeid", forDecisionStatusId);
+    .eq("casestatuscodeid", forDecisionStatusId)
+    .select("caseid")
+    .maybeSingle();
 
-  if (transitionError) {
+  if (transitionError || !transitionedCase) {
     redirectWithError(
       returnPath,
       `Decision saved but case transition failed: ${
-        transitionError.message
+        transitionError?.message ??
+        "Case status changed before transition. Refresh and retry."
       }`
     );
   }
@@ -1510,7 +1504,7 @@ export async function releaseCaseAction(formData: FormData) {
     );
   }
 
-  const { error: updateError } = await supabase
+  const { data: releasedCase, error: updateError } = await supabase
     .from("peme_case")
     .update({
       casestatuscodeid: releasedStatusId,
@@ -1518,12 +1512,17 @@ export async function releaseCaseAction(formData: FormData) {
       portalvisible: true,
     })
     .eq("caseid", caseId)
-    .eq("casestatuscodeid", forReleasingStatusId);
+    .eq("casestatuscodeid", forReleasingStatusId)
+    .select("caseid")
+    .maybeSingle();
 
-  if (updateError) {
+  if (updateError || !releasedCase) {
     redirectWithError(
       returnPath,
-      `Release action failed: ${updateError.message}`
+      `Release action failed: ${
+        updateError?.message ??
+        "Case status changed before release. Refresh and retry."
+      }`
     );
   }
 
@@ -1583,16 +1582,21 @@ export async function togglePortalVisibilityAction(formData: FormData) {
 
   const newVisibility = !caseRow.portalvisible;
 
-  const { error: updateError } = await supabase
+  const { data: updatedCase, error: updateError } = await supabase
     .from("peme_case")
     .update({ portalvisible: newVisibility })
     .eq("caseid", caseId)
-    .eq("casestatuscodeid", releasedStatusId);
+    .eq("casestatuscodeid", releasedStatusId)
+    .select("caseid")
+    .maybeSingle();
 
-  if (updateError) {
+  if (updateError || !updatedCase) {
     redirectWithError(
       returnPath,
-      `Visibility toggle failed: ${updateError.message}`
+      `Visibility toggle failed: ${
+        updateError?.message ??
+        "Case status changed before visibility update. Refresh and retry."
+      }`
     );
   }
 
@@ -1611,4 +1615,229 @@ export async function togglePortalVisibilityAction(formData: FormData) {
     returnPath,
     `Case ${caseRow.casenumber} portal visibility set to ${newVisibility ? "visible" : "hidden"}.`
   );
+}
+
+// ---------------------------------------------------------------------------
+// Slice 13 — Result File Upload / Delete
+// ---------------------------------------------------------------------------
+
+const RESULT_FILE_MAX_SIZE = 10 * 1024 * 1024; // 10 MB
+const RESULT_FILE_ALLOWED_MIMES = new Set([
+  "image/jpeg",
+  "image/png",
+  "application/pdf",
+]);
+
+function sanitizeFileName(rawName: string) {
+  return rawName
+    .replace(/[^a-zA-Z0-9._-]/g, "_")
+    .replace(/_{2,}/g, "_")
+    .slice(0, 200);
+}
+
+export async function uploadResultFileAction(formData: FormData) {
+  const returnPath = normalizeReturnPath(normalizeText(formData.get("returnPath")));
+  const visitIdRaw = normalizeText(formData.get("visitId"));
+  const remarksRaw = normalizeText(formData.get("remarks")).slice(0, 255);
+  const file = formData.get("file");
+
+  const visitId = parseOptionalPositiveInt(visitIdRaw);
+
+  if (!visitId) {
+    redirectWithError(returnPath, "A valid visit must be selected before uploading a file.");
+  }
+
+  if (!(file instanceof File) || file.size === 0) {
+    redirectWithError(returnPath, "Please select a file to upload.");
+  }
+
+  if (file.size > RESULT_FILE_MAX_SIZE) {
+    redirectWithError(
+      returnPath,
+      `File exceeds the ${RESULT_FILE_MAX_SIZE / (1024 * 1024)} MB size limit.`
+    );
+  }
+
+  if (!RESULT_FILE_ALLOWED_MIMES.has(file.type)) {
+    redirectWithError(
+      returnPath,
+      `File type "${file.type}" is not allowed. Accepted: JPEG, PNG, PDF.`
+    );
+  }
+
+  const { supabase, userId, role } = await resolveActionContext();
+  ensureAllowedRole(role, [DEPARTMENT_STAFF_ROLE, ADMIN_ROLE], returnPath);
+
+  // Resolve department claim for Department Staff
+  let userDepartmentId: number | null = null;
+
+  if (role === DEPARTMENT_STAFF_ROLE) {
+    const { data: { user } } = await supabase.auth.getUser();
+    const rawClaim =
+      user?.app_metadata?.department_id ?? user?.user_metadata?.department_id ?? null;
+    userDepartmentId = parseDepartmentClaim(rawClaim);
+
+    if (!userDepartmentId) {
+      redirectWithError(returnPath, "Your account is missing a department claim.");
+    }
+  }
+
+  // Load visit to verify ownership
+  const { data: visitRow, error: visitReadError } = await supabase
+    .from("department_visit")
+    .select("visitid, caseid, departmentid, visitstatuscodeid")
+    .eq("visitid", visitId)
+    .maybeSingle();
+
+  if (visitReadError || !visitRow) {
+    redirectWithError(
+      returnPath,
+      `Unable to load visit: ${visitReadError?.message ?? "Visit not found."}`
+    );
+  }
+
+  // Department Staff: verify department ownership
+  if (role === DEPARTMENT_STAFF_ROLE && visitRow.departmentid !== userDepartmentId) {
+    redirectWithError(returnPath, "This visit does not belong to your department.");
+  }
+
+  // Verify visit status is IN_PROGRESS or COMPLETED
+  const inProgressVisitStatusId = await getStatusId(supabase, "VISIT", "IN_PROGRESS");
+  const completedVisitStatusId = await getStatusId(supabase, "VISIT", "COMPLETED");
+  const allowedVisitStatuses = new Set(
+    [inProgressVisitStatusId, completedVisitStatusId].filter(
+      (id): id is number => typeof id === "number"
+    )
+  );
+
+  if (!allowedVisitStatuses.has(visitRow.visitstatuscodeid)) {
+    redirectWithError(
+      returnPath,
+      "File uploads are only allowed for visits with IN_PROGRESS or COMPLETED status."
+    );
+  }
+
+  // Generate storage path and file ID
+  const fileId = crypto.randomUUID();
+  const sanitizedName = sanitizeFileName(file.name);
+  const storagePath = `${visitRow.caseid}/${visitRow.visitid}/${fileId}_${sanitizedName}`;
+
+  // Upload to Supabase Storage
+  const fileBuffer = await file.arrayBuffer();
+  const { error: uploadError } = await supabase.storage
+    .from("result-files")
+    .upload(storagePath, fileBuffer, {
+      contentType: file.type,
+      upsert: false,
+    });
+
+  if (uploadError) {
+    redirectWithError(
+      returnPath,
+      `File upload failed: ${uploadError.message}`
+    );
+  }
+
+  // Insert metadata row
+  const { error: metadataError } = await supabase
+    .from("result_file")
+    .insert({
+      fileid: fileId,
+      caseid: visitRow.caseid,
+      visitid: visitRow.visitid,
+      departmentid: visitRow.departmentid,
+      uploadedby: userId,
+      storagepath: storagePath,
+      filename: file.name.slice(0, 255),
+      mimetype: file.type,
+      filesize: file.size,
+      remarks: remarksRaw || null,
+    });
+
+  if (metadataError) {
+    // Attempt to clean up the uploaded file on metadata failure
+    await supabase.storage.from("result-files").remove([storagePath]);
+    redirectWithError(
+      returnPath,
+      `File metadata save failed: ${metadataError.message}`
+    );
+  }
+
+  await supabase.from("audit_log").insert({
+    userid: userId,
+    actiontype: "RESULT_FILE_UPLOADED",
+    entityname: "result_file",
+    entityid: fileId,
+    details: `Uploaded ${file.name} (${(file.size / 1024).toFixed(1)} KB) for visit ${visitRow.visitid}, case ${visitRow.caseid}.`,
+  });
+
+  revalidatePath(STAFF_DASHBOARD_PATH);
+  redirectWithNotice(returnPath, `File "${file.name}" uploaded successfully.`);
+}
+
+export async function deleteResultFileAction(formData: FormData) {
+  const returnPath = normalizeReturnPath(normalizeText(formData.get("returnPath")));
+  const fileId = normalizeText(formData.get("fileId"));
+
+  if (!fileId || !isUuid(fileId)) {
+    redirectWithError(returnPath, "Invalid file selected for deletion.");
+  }
+
+  const { supabase, userId, role } = await resolveActionContext();
+  ensureAllowedRole(role, [DEPARTMENT_STAFF_ROLE, ADMIN_ROLE], returnPath);
+
+  // Load file metadata
+  const { data: fileRow, error: fileReadError } = await supabase
+    .from("result_file")
+    .select("fileid, caseid, visitid, departmentid, storagepath, filename, uploadedby")
+    .eq("fileid", fileId)
+    .maybeSingle();
+
+  if (fileReadError || !fileRow) {
+    redirectWithError(
+      returnPath,
+      `Unable to load file record: ${fileReadError?.message ?? "File not found."}`
+    );
+  }
+
+  // Department Staff: must be the uploader
+  if (role === DEPARTMENT_STAFF_ROLE && fileRow.uploadedby !== userId) {
+    redirectWithError(returnPath, "You can only delete files that you uploaded.");
+  }
+
+  // Delete from Storage
+  const { error: storageDeleteError } = await supabase.storage
+    .from("result-files")
+    .remove([fileRow.storagepath]);
+
+  if (storageDeleteError) {
+    redirectWithError(
+      returnPath,
+      `Storage file deletion failed: ${storageDeleteError.message}`
+    );
+  }
+
+  // Delete metadata row
+  const { error: metadataDeleteError } = await supabase
+    .from("result_file")
+    .delete()
+    .eq("fileid", fileId);
+
+  if (metadataDeleteError) {
+    redirectWithError(
+      returnPath,
+      `File metadata deletion failed: ${metadataDeleteError.message}`
+    );
+  }
+
+  await supabase.from("audit_log").insert({
+    userid: userId,
+    actiontype: "RESULT_FILE_DELETED",
+    entityname: "result_file",
+    entityid: fileRow.fileid,
+    details: `Deleted ${fileRow.filename} from visit ${fileRow.visitid}, case ${fileRow.caseid}.`,
+  });
+
+  revalidatePath(STAFF_DASHBOARD_PATH);
+  redirectWithNotice(returnPath, `File "${fileRow.filename}" was deleted.`);
 }

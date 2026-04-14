@@ -6,6 +6,7 @@ import {
   ADMIN_ROLE,
   resolveCurrentUserRoleContext,
 } from "@/lib/supabase/role-routing";
+import { normalizeDashboardReturnPath } from "@/lib/dashboard/return-path";
 
 const ADMIN_DASHBOARD_PATH = "/dashboard/admin";
 type RoleContext = Awaited<ReturnType<typeof resolveCurrentUserRoleContext>>;
@@ -47,17 +48,11 @@ function isUuid(value: string) {
 }
 
 function normalizeReturnPath(rawPath: string | null) {
-  if (!rawPath) {
-    return `${ADMIN_DASHBOARD_PATH}?tab=overview`;
-  }
-
-  const trimmedPath = rawPath.trim();
-
-  if (!trimmedPath.startsWith(ADMIN_DASHBOARD_PATH)) {
-    return `${ADMIN_DASHBOARD_PATH}?tab=overview`;
-  }
-
-  return trimmedPath;
+  return normalizeDashboardReturnPath(
+    rawPath,
+    ADMIN_DASHBOARD_PATH,
+    `${ADMIN_DASHBOARD_PATH}?tab=overview`
+  );
 }
 
 function truncateMessage(message: string, limit = 200) {

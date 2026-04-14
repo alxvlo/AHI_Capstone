@@ -1,6 +1,6 @@
 # Slice Progress Log
 
-**Last Updated:** 2026-04-10  
+**Last Updated:** 2026-04-14  
 **Plan Reference:** [DEVELOPMENT-PLAN.md](../DEVELOPMENT-PLAN.md)
 
 This file tracks completion status and verification results for each development slice.
@@ -150,7 +150,7 @@ This file tracks completion status and verification results for each development
 - Updated staff page to pass `searchParams` to TriageModule.
 
 **Files changed:**
-- `supabase/migrations/20260410_triage_assessment.sql` (new)
+- `supabase/migrations/20260411_triage_assessment.sql` (new)
 - `components/dashboard/staff/triage-form.tsx` (new)
 - `components/dashboard/staff/triage-module.tsx`
 - `features/dashboard/staff/actions.ts`
@@ -175,7 +175,7 @@ This file tracks completion status and verification results for each development
 - Kept `bootstrapCaseVisitsAction` as legacy backfill support.
 
 **Files changed:**
-- `supabase/migrations/20260410_bootstrap_peme_case_rpc.sql` (new)
+- `supabase/migrations/20260412_bootstrap_peme_case_rpc.sql` (new)
 - `features/dashboard/staff/actions.ts`
 
 **Verification:** lint, typecheck, all tests (34/34) - passed.
@@ -400,7 +400,7 @@ This file tracks completion status and verification results for each development
   - reception patient registration and case control sections,
   - physician additional-tests request section.
 - Added patient write/read policy migration for reception/admin use:
-  - `supabase/migrations/20260410_reception_patient_write_policy.sql`.
+  - `supabase/migrations/20260413_reception_patient_write_policy.sql`.
 - Updated staff badge-tone helper coverage for `PENDING_ADDITIONAL_TESTS`.
 
 **Files changed:**
@@ -409,10 +409,106 @@ This file tracks completion status and verification results for each development
 - `components/dashboard/staff/physician-module.tsx`
 - `features/dashboard/staff/shared.tsx`
 - `tests/components/dashboard/staff/shared.test.tsx`
-- `supabase/migrations/20260410_reception_patient_write_policy.sql` (new)
+- `supabase/migrations/20260413_reception_patient_write_policy.sql` (new)
 
 **Verification:**
 - `npm run qa:local` - passed (lint + typecheck + full tests, 50/50).
+
+---
+
+## Pre-Slice 13 Hardening Sweep
+
+**Status:** Done  
+**Date Completed:** 2026-04-14
+
+**What was done:**
+- Executed pre-slice quality checks:
+  - `npm run qa:local` (passed),
+  - `npm run test:coverage` (passed),
+  - `npm run build` (passed).
+- Executed Supabase QA entrypoint and recorded current blocker:
+  - `npm run qa:supabase` fails with missing `AHI_PROBE_PASSWORD` environment variable.
+- Added shared dashboard return-path sanitizer:
+  - `lib/dashboard/return-path.ts`.
+- Replaced duplicated permissive `startsWith` return-path checks in server actions with scoped normalization.
+- Hardened staff workflow transitions to confirm row-level updates on status-gated writes, avoiding silent no-op success when case status changes concurrently.
+- Added regression coverage for return-path normalization edge cases.
+
+**Files changed:**
+- `lib/dashboard/return-path.ts` (new)
+- `features/dashboard/staff/actions.ts`
+- `features/dashboard/patient/actions.ts`
+- `features/dashboard/admin/actions.ts`
+- `tests/lib/return-path.test.ts` (new)
+
+**Verification:**
+- `npm run qa:local` - passed (lint + typecheck + full tests, 58/58).
+
+---
+
+## Pre-Slice 13 QA Follow-up - Supabase Gate Stabilization
+
+**Status:** Done  
+**Date Completed:** 2026-04-14
+
+**What was done:**
+- Re-ran Supabase QA suite with probe credentials available.
+- Found role smoke script assertions were stale versus current dashboard UI labels.
+- Updated Supabase smoke audit marker expectations:
+  - patient: `Case Tracker`,
+  - client: `Fitness Summary`,
+  - admin: `User Administration`, `Audit Monitoring`,
+  - staff: `Refresh Queue` + role label.
+- Re-ran validation after updates:
+  - `npm run qa:supabase` passed end-to-end,
+  - `npm run qa:local` passed.
+
+**Files changed:**
+- `scripts/supabase/audit-role-smoke-all-roles.mjs`
+- `scripts/supabase/audit-role-smoke-priority.mjs`
+
+**Verification:**
+- `npm run qa:supabase` - passed.
+- `npm run qa:local` - passed (58/58).
+
+---
+
+## Slice 13 - Supabase Storage (Result File Uploads)
+
+**Status:** Done  
+**Date Completed:** 2026-04-14
+
+**What was done:**
+- Implemented result-file Storage and metadata wiring:
+  - added `result_file` metadata table,
+  - provisioned private `result-files` Storage bucket,
+  - added role-scoped RLS for metadata and object operations.
+- Added Department Staff upload/delete flows:
+  - `uploadResultFileAction` with visit ownership, department claim, file size/type validation, metadata persistence, and audit log event.
+  - `deleteResultFileAction` with uploader/admin delete constraints, storage object delete, metadata cleanup, and audit log event.
+- Added staff UI for file upload and per-visit file management in the department result panel.
+- Wired patient portal result-files section to signed URL downloads and RELEASED-only visibility.
+- Hardened storage object policies after verification:
+  - upload policy now enforces `{caseId}/{visitId}/{file}` path alignment with `department_visit`,
+  - download/delete policies now require a matching `result_file.storagepath` row and apply role-scoped case/department/uploader checks.
+- Added patient result-file regression tests for:
+  - pre-release lockout messaging,
+  - signed URL download rendering,
+  - unavailable-state fallback when signed URL is absent.
+
+**Files changed:**
+- `supabase/migrations/20260414_result_file_storage.sql` (new)
+- `features/dashboard/staff/actions.ts`
+- `components/dashboard/staff/department-file-upload.tsx` (new)
+- `components/dashboard/staff/department-module.tsx`
+- `features/dashboard/patient/actions.ts`
+- `features/dashboard/patient/shared.ts`
+- `components/dashboard/patient/result-files.tsx`
+- `tests/components/dashboard/patient/result-files.test.tsx` (new)
+
+**Verification:**
+- `npm run test:run -- tests/components/dashboard/patient/result-files.test.tsx` - passed (3/3).
+- `npm run qa:local` - passed (lint + typecheck + full tests, 61/61).
 
 ---
 
@@ -436,7 +532,7 @@ Completed:
 5. `Slice 11` (Admin Dashboard, reprioritized)
 
 Next active sequence:
-1. `Slice 13`, `Slice 14`, `Slice 15` (backend wiring and validation)
+1. `Slice 14`, `Slice 15` (backend wiring and validation)
 2. Deferred Sprint 09 queue: `SCRUM-36`, `SCRUM-37`, `SCRUM-38`
 
 See [DEVELOPMENT-PLAN.md - Phase 2](../DEVELOPMENT-PLAN.md#6-phase-2--external-portals-slices-910) for details.

@@ -60,23 +60,19 @@ function getAllowedDashboardPath(roleName) {
 
 function getExpectedMarkers(path, roleName) {
   if (path === "/dashboard/patient") {
-    return ["Patient Dashboard", "PEME Progress", "Result Access"];
+    return ["Patient Dashboard", "Case Tracker", "Result Access"];
   }
 
   if (path === "/dashboard/staff") {
-    return ["Staff Dashboard", "Role detected:", roleName, "Queue Overview"];
+    return ["Staff Dashboard", "Refresh Queue", roleName];
   }
 
   if (path === "/dashboard/admin") {
-    return ["System Admin Dashboard", "User Management", "Audit Visibility"];
+    return ["System Admin Dashboard", "User Administration", "Audit Monitoring"];
   }
 
   if (path === "/dashboard/client") {
-    return [
-      "Client Representative Dashboard",
-      "Released Cases",
-      "Result Summary",
-    ];
+    return ["Client Representative Dashboard", "Released Cases", "Fitness Summary"];
   }
 
   return [];

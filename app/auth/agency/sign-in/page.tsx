@@ -28,7 +28,7 @@ export default function AgencySignInPage() {
 
   useEffect(() => {
     if (!isLoading && user) {
-      router.replace("/dashboard/client");
+      router.replace("/dashboard");
     }
   }, [isLoading, router, user]);
 
@@ -46,7 +46,7 @@ export default function AgencySignInPage() {
 
     if (result.success) {
       toast.success("Authentication successful");
-      router.push("/dashboard/client");
+      router.push("/dashboard");
       router.refresh();
       return;
     }

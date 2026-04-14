@@ -110,11 +110,13 @@ export type PatientDecisionRow = {
 };
 
 export type PatientResultFileRow = {
-  id: string;
+  fileid: string;
   fileName: string;
   departmentName: string;
   uploadedAt: string | null;
-  status: "Pending Upload Integration";
+  mimeType: string;
+  fileSize: number;
+  downloadUrl: string | null;
 };
 
 export type PatientDashboardData = {

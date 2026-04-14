@@ -5,6 +5,7 @@ import {
 } from "@/features/dashboard/staff/actions";
 import { ActionPanel } from "@/components/dashboard/shared/action-panel";
 import { DataTableContainer } from "@/components/dashboard/shared/data-table-container";
+import { DepartmentFileUpload } from "@/components/dashboard/staff/department-file-upload";
 import { MetricCard } from "@/components/dashboard/shared/metric-card";
 import { StatusBadge } from "@/components/dashboard/shared/status-badge";
 import { Button } from "@/components/ui/button";
@@ -37,6 +38,15 @@ type DepartmentResultItemRow = {
   referencerange: string | null;
   isabnormal: boolean | null;
   verificationstatus: string | null;
+  remarks: string | null;
+};
+
+type DepartmentResultFileRow = {
+  fileid: string;
+  filename: string;
+  mimetype: string;
+  filesize: number;
+  uploadedat: string | null;
   remarks: string | null;
 };
 
@@ -91,6 +101,7 @@ export async function DepartmentModule({
   let panelVisitError: string | null = null;
   let panelResultItems: DepartmentResultItemRow[] = [];
   let panelResultItemsError: string | null = null;
+  let panelResultFiles: DepartmentResultFileRow[] = [];
 
   if (resultVisitId) {
     const listMatch = visits.find((visit) => visit.visitid === resultVisitId) ?? null;
@@ -115,17 +126,26 @@ export async function DepartmentModule({
     }
 
     if (panelVisit) {
-      const { data: panelResultRows, error: panelResultError } = await supabase
-        .from("result_item")
-        .select(
-          "resultid, testname, value, unit, referencerange, isabnormal, verificationstatus, remarks"
-        )
-        .eq("visitid", panelVisit.visitid)
-        .order("resultid", { ascending: false })
-        .limit(30);
+      const [resultItemsResponse, resultFilesResponse] = await Promise.all([
+        supabase
+          .from("result_item")
+          .select(
+            "resultid, testname, value, unit, referencerange, isabnormal, verificationstatus, remarks"
+          )
+          .eq("visitid", panelVisit.visitid)
+          .order("resultid", { ascending: false })
+          .limit(30),
+        supabase
+          .from("result_file")
+          .select("fileid, filename, mimetype, filesize, uploadedat, remarks")
+          .eq("visitid", panelVisit.visitid)
+          .order("uploadedat", { ascending: false })
+          .limit(30),
+      ]);
 
-      panelResultItems = (panelResultRows ?? []) as DepartmentResultItemRow[];
-      panelResultItemsError = panelResultError?.message ?? null;
+      panelResultItems = (resultItemsResponse.data ?? []) as DepartmentResultItemRow[];
+      panelResultItemsError = resultItemsResponse.error?.message ?? null;
+      panelResultFiles = (resultFilesResponse.data ?? []) as DepartmentResultFileRow[];
     }
   }
 
@@ -450,6 +470,13 @@ export async function DepartmentModule({
                 </div>
               )}
             </section>
+
+            <DepartmentFileUpload
+              visitId={panelVisit.visitid}
+              returnPath={returnPath}
+              existingFiles={panelResultFiles}
+              canUpload={canEncodeResult}
+            />
           </div>
         )}
       </ActionPanel>
