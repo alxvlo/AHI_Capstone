@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__plugin_atlassian_atlassian__getAccessibleAtlassianResources",
+      "mcp__plugin_atlassian_atlassian__getVisibleJiraProjects",
+      "mcp__plugin_atlassian_atlassian__searchJiraIssuesUsingJql",
+      "mcp__plugin_atlassian_atlassian__getTransitionsForJiraIssue",
+      "mcp__plugin_atlassian_atlassian__transitionJiraIssue",
+      "mcp__plugin_atlassian_atlassian__editJiraIssue",
+      "mcp__plugin_atlassian_atlassian__addCommentToJiraIssue",
+      "Bash(python3:*)",
+      "mcp__plugin_atlassian_atlassian__getJiraIssue"
+    ]
+  },
+  "enabledPlugins": {
+    "atlassian@claude-plugins-official": true
+  }
+}
