@@ -22,7 +22,7 @@ export default defineConfig({
       "components/**/*.{test,spec}.{ts,tsx}",
       "lib/**/*.{test,spec}.{ts,tsx}",
     ],
-    exclude: [".next/**", ".opencode/**", "coverage/**", "**/node_modules/**"],
+    exclude: [".next/**", ".opencode/**", "coverage/**", "**/node_modules/**", "tests/e2e/**"],
     reporters: process.env.CI ? ["default"] : ["dot"],
     environmentOptions: {
       jsdom: {

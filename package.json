@@ -12,6 +12,10 @@
     "test:run": "node ./node_modules/vitest/vitest.mjs run",
     "test:watch": "node ./node_modules/vitest/vitest.mjs watch",
     "test:coverage": "node ./node_modules/vitest/vitest.mjs run --coverage",
+    "test:integration": "node --env-file=.env.local ./node_modules/vitest/vitest.mjs run --config vitest.integration.config.ts",
+    "test:e2e": "node --env-file=.env.local ./node_modules/@playwright/test/cli.js test",
+    "test:e2e:ui": "node --env-file=.env.local ./node_modules/@playwright/test/cli.js test --ui",
+    "test:e2e:headed": "node --env-file=.env.local ./node_modules/@playwright/test/cli.js test --headed",
     "qa:local": "npm run lint && npm run typecheck && npm run test:run",
     "qa:ci": "npm run lint && npm run typecheck && npm run test:coverage",
     "qa:supabase": "npm run audit:roles:all && npm run audit:write:all && npm run audit:auth:logs && npm run audit:auth:e2e",
@@ -50,6 +54,7 @@
     "tailwind-merge": "^3.5.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.51.1",
     "@eslint/eslintrc": "^3.3.1",
     "@tailwindcss/postcss": "^4.0.14",
     "@testing-library/jest-dom": "^6.9.1",

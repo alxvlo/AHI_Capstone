@@ -21,6 +21,23 @@ Use these after loading `.env.local`, seeding reference data, and making the req
 - `npm run audit:auth:e2e` - end-to-end auth and profile setup validation
 - `npm run qa:supabase` - full Supabase-backed regression bundle
 
+## Integration Tests
+
+Live-Supabase integration tests live under `tests/integration/` and use a separate Vitest config:
+
+- `npm run test:integration` - runs `tests/integration/**/*.test.ts` against a real Supabase project
+- Requires `.env.local` with `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, and `AHI_PROBE_PASSWORD`
+- Current coverage: `tests/integration/case-lifecycle.test.ts` — 12-step PEME case lifecycle (SCRUM-31)
+
+## Browser E2E Tests (Playwright)
+
+- `npm run test:e2e` — headless Chromium
+- `npm run test:e2e:headed` — headed browser for debugging
+- `npm run test:e2e:ui` — Playwright UI mode
+- Requires the dev server running on port 3000 and `AHI_PROBE_PASSWORD` set
+- Auth state is bootstrapped via `tests/e2e/auth.setup.ts` (Reception probe account)
+- Current coverage: `tests/e2e/staff-dashboard.spec.ts` — 15 staff dashboard smoke tests (SCRUM-52)
+
 ## Coverage Focus
 
 The current automated suite covers:
@@ -29,6 +46,7 @@ The current automated suite covers:
 - `lib/supabase/middleware.ts`
 - `lib/supabase/roles.ts`
 - `features/dashboard/staff/shared.tsx`
+- `lib/dashboard/case-progress.ts` (SCRUM-26 — completion-percentage helpers)
 - input normalization helpers in `lib/phone.ts` and `lib/government-id.ts`
 
 Vitest discovers both colocated `*.test`/`*.spec` files and files under `tests/`.
@@ -36,5 +54,6 @@ Vitest discovers both colocated `*.test`/`*.spec` files and files under `tests/`
 ## Next Expansion Targets
 
 1. Add server-action tests for `features/dashboard/staff/actions.ts`.
-2. Add browser E2E coverage for patient, staff, client, and admin dashboards.
+2. Expand E2E coverage to patient, client, and admin dashboards.
 3. Raise enforced coverage thresholds once the workflow mutation suite is in place.
+4. Implement SCRUM-30 (Realtime) and add Realtime integration tests.

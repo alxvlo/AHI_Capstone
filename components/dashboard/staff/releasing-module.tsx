@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { CaseRow, formatTimestamp, pickJoined } from "@/features/dashboard/staff/shared";
+import { computeCaseCompletionBatch } from "@/lib/dashboard/case-progress";
 
 type ReleasingModuleProps = {
   returnPath: string;
@@ -56,12 +57,14 @@ export async function ReleasingModule({
     {
       totalVisits: number;
       completedVisits: number;
+      percentage: number;
+      progressLabel: string;
       hasDecision: boolean;
       canRelease: boolean;
     }
   >();
 
-  if (caseIds.length > 0) {
+  if (caseIds.length > 0 && completedVisitStatusId) {
     const { data: visitRowsRaw } = await supabase
       .from("department_visit")
       .select("caseid, visitstatuscodeid")
@@ -81,18 +84,22 @@ export async function ReleasingModule({
       visitstatuscodeid: number;
     }>;
 
+    const progressByCaseId = computeCaseCompletionBatch(
+      caseIds,
+      visitRows,
+      completedVisitStatusId
+    );
+
     for (const caseId of caseIds) {
-      const caseVisits = visitRows.filter((visit) => visit.caseid === caseId);
-      const completedVisits = caseVisits.filter(
-        (visit) => visit.visitstatuscodeid === completedVisitStatusId
-      ).length;
-      const totalVisits = caseVisits.length;
+      const progress = progressByCaseId.get(caseId)!;
       const hasDecision = decisionCaseIdSet.has(caseId);
-      const canRelease = hasDecision && totalVisits > 0 && completedVisits === totalVisits;
+      const canRelease = hasDecision && progress.isComplete;
 
       releaseReadinessByCaseId.set(caseId, {
-        totalVisits,
-        completedVisits,
+        totalVisits: progress.required,
+        completedVisits: progress.completed,
+        percentage: progress.percentage,
+        progressLabel: progress.label,
         hasDecision,
         canRelease,
       });
@@ -168,6 +175,8 @@ export async function ReleasingModule({
               const readiness = releaseReadinessByCaseId.get(caseRow.caseid) ?? {
                 totalVisits: 0,
                 completedVisits: 0,
+                percentage: 0,
+                progressLabel: "0 / 0 (0%)",
                 hasDecision: false,
                 canRelease: false,
               };
@@ -197,7 +206,7 @@ export async function ReleasingModule({
                   </td>
                   <td className="px-3 py-2">
                     <StatusBadge
-                      label={`${readiness.completedVisits}/${readiness.totalVisits} completed`}
+                      label={readiness.progressLabel ?? `${readiness.completedVisits}/${readiness.totalVisits} completed`}
                       tone={readiness.canRelease ? "positive" : "warning"}
                     />
                   </td>

@@ -40,3 +40,8 @@ tsconfig.tsbuildinfo
 
 # Binary documents (store on Google Drive, not in git)
 *.docx
+
+# Playwright
+playwright-report/
+test-results/
+tests/e2e/.auth/

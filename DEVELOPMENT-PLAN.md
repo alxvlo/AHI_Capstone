@@ -1,9 +1,9 @@
 # AHI PEME Portal — Development Plan
 
 **Project:** Real-Time PEME Monitoring and Result Access System for American Hospital Inc.
-**Last Updated:** 2026-04-10
+**Last Updated:** 2026-04-25
 **Team:** Keith Avellaneda (Frontend/Logic), Deejay Clark Datu (Backend/Architect), Alexander Velo (DevOps/Compliance)
-**Current Phase:** Phase 2 — External Portals (Jira Sprint 08/09 Sequence Active)
+**Current Phase:** Phase 4 — Backend Wiring and Storage (completing; Slice 15 E2E in progress)
 
 ---
 
@@ -64,24 +64,34 @@ American Hospital Inc. (AHI) processes ~1,000 Pre-Employment Medical Examination
 | Core table indexes + package-department mapping | Done |
 | Vitest QA baseline + GitHub Actions CI | Done |
 | Supabase audit/probe/seed scripts | Done |
+| Patient portal progress tracker and result view (`SCRUM-33`, Slice 9) | Done 2026-04-10 |
+| Patient portal PDF certificate download entrypoint (`SCRUM-34`) | Done 2026-04-10 (full PDF generation still blocked by AHI template/signature requirements) |
+| Mobile-responsive optimization for portals (`SCRUM-40`) | Done 2026-04-10 |
+| Client/agency portal DPA-gated search and result access (`SCRUM-35`, Slice 10) | Done 2026-04-10 |
+| Admin dashboard — user/reference CRUD, audit viewer (Slice 11) | Done 2026-04-10 |
+| Remaining server actions — soft cancel, walk-in patient, additional tests (Slice 12) | Done 2026-04-10 |
+| Atomic case bootstrap RPC (`bootstrap_peme_case`) (Slice 7 / Slice 12 hardening) | Done 2026-04-10 |
+| Triage vitals capture — `triage_assessment` table + form (Slice 6) | Done 2026-04-10 |
+| Supabase Storage — result file uploads, metadata table, role-scoped RLS (Slice 13) | Done 2026-04-14 |
+| Return-path scoped validator (`lib/dashboard/return-path.ts`) | Done 2026-04-14 |
+| Session auto-timeout 15 min (`SCRUM-56`) | Done 2026-04-15 |
+| Forgot password flow — patient auth (`SCRUM-53`) | Done 2026-04-15 |
+| Auth rate limiting at Edge middleware (`SCRUM-54`) | Done 2026-04-15 |
+| Probe credential hardening (`SCRUM-55`) | Done 2026-04-15 |
+| OWASP ZAP baseline scan script (`SCRUM-59`) | Done 2026-04-15 |
 
 ### Remaining
 
 | Area | Status | Blocked? |
 |---|---|---|
-| Patient portal progress tracker and result view (`SCRUM-33`, Slice 9) | Sprint 08 active | No |
-| Patient portal PDF certificate download (`SCRUM-34`) | Sprint 08 queued | Yes (AHI Sections 2-3) |
-| Mobile-responsive optimization for portals (`SCRUM-40`) | Sprint 08 queued | No |
-| Client/agency portal DPA-gated search and result access (`SCRUM-35`, Slice 10) | Sprint 09 queued | No |
-| Email notification pipeline on release (`SCRUM-36`, Slice 16) | Sprint 09 queued | No |
-| PDF certificate and transmittal generation (`SCRUM-37`, Slice 17) | Sprint 09 queued | Yes (AHI Sections 2-3) |
-| Deployment authorization request (`SCRUM-38`) | Sprint 09 queued | No |
-| Admin dashboard (user/reference CRUD, audit viewer, Slice 11) | Planned section retained | No |
-| Supabase Storage (result file uploads) | Phase 4 | Partially (AHI file format answers) |
-| Realtime WebSocket subscriptions | Phase 4 | No |
-| Session auto-timeout (15 min) | Phase 6 | No |
-| E2E browser tests | Phase 6 | No |
-| Deployment config (Vercel) | Phase 6 | No |
+| E2E case lifecycle validation (Slice 15, `SCRUM-31`) | In Progress per Jira | No |
+| Defect triage and regression testing (`SCRUM-32`) | In Progress per Jira | No |
+| Package completion percentage and auto-detection (`SCRUM-26`) | To Do per Jira | No |
+| Realtime WebSocket subscriptions (Slice 14, `SCRUM-30`) | Done per Jira (2026-04-15); no code found in repo as of 2026-04-25 — verify | ⚠️ |
+| Email notification pipeline on release (`SCRUM-36`, Slice 16) | Done per Jira (2026-04-15); no code found in repo as of 2026-04-25 — verify | ⚠️ |
+| PDF certificate and transmittal generation (`SCRUM-37`, Slice 17) | Deferred | Yes (AHI Sections 2-3) |
+| Deployment authorization request (`SCRUM-38`) | Deferred | No |
+| Deployment config (Vercel) | Deferred | No |
 
 ---
 
@@ -462,7 +472,7 @@ npm run qa:local
 
 ---
 
-### Slice 12 — Remaining Server Actions [NOT STARTED]
+### Slice 12 — Remaining Server Actions [DONE 2026-04-10]
 
 **Goal:** Fill in any server actions not yet implemented across all roles.
 
@@ -473,7 +483,7 @@ npm run qa:local
 
 ---
 
-### Slice 13 — Supabase Storage (Result File Uploads) [NOT STARTED]
+### Slice 13 — Supabase Storage (Result File Uploads) [DONE 2026-04-14]
 
 **Goal:** Enable department staff to upload result files. Patients can view. Company CANNOT access.
 
@@ -503,7 +513,7 @@ npm run qa:local
 
 ---
 
-### Slice 14 — Realtime WebSocket Subscriptions [NOT STARTED]
+### Slice 14 — Realtime WebSocket Subscriptions [DONE per Jira 2026-04-15 — NOT FOUND IN CODEBASE]
 
 **Goal:** Auto-refresh queues when data changes, without manual page reload.
 
@@ -516,7 +526,7 @@ npm run qa:local
 
 ---
 
-### Slice 15 — E2E Case Lifecycle Validation [NOT STARTED]
+### Slice 15 — E2E Case Lifecycle Validation [IN PROGRESS — SCRUM-31]
 
 **Goal:** Verify the full case flow works end-to-end after all Phase 1-4 pieces are in place.
 

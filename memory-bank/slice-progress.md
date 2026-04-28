@@ -1,6 +1,6 @@
 # Slice Progress Log
 
-**Last Updated:** 2026-04-14  
+**Last Updated:** 2026-04-28  
 **Plan Reference:** [DEVELOPMENT-PLAN.md](../DEVELOPMENT-PLAN.md)
 
 This file tracks completion status and verification results for each development slice.
@@ -509,6 +509,70 @@ This file tracks completion status and verification results for each development
 **Verification:**
 - `npm run test:run -- tests/components/dashboard/patient/result-files.test.tsx` - passed (3/3).
 - `npm run qa:local` - passed (lint + typecheck + full tests, 61/61).
+
+---
+
+## Sprint Close — SCRUM-26 / SCRUM-31 / SCRUM-52 / SCRUM-32
+
+**Status:** Done  
+**Date Completed:** 2026-04-28
+
+**What was done:**
+
+- **SCRUM-26 (Case completion percentage):** Added `lib/dashboard/case-progress.ts` with pure helpers `computeCaseCompletion` and `computeCaseCompletionBatch`. Wired into `ReleasingModule` (replaces inline for-loop) and `PhysicianModule` (new "Visits" column in decision queue). 13 unit tests in `tests/lib/case-progress.test.ts`. Fixed P1 bug: physician module was looking up visit status ID from the case status map (always undefined) — now correctly uses `visitStatusIdByCode`.
+
+- **SCRUM-31 (Lifecycle integration tests):** `tests/integration/case-lifecycle.test.ts` — 12 sequential steps validating REGISTERED→IN_PROGRESS→FOR_DECISION→(PENDING_ADDITIONAL_TESTS)→FOR_DECISION→FOR_RELEASING→RELEASED plus RLS write blocks (patient and client cannot write), waiver gate, audit log, and return-path sanitisation. Separate config `vitest.integration.config.ts` (node env). AC3 (realtime) dropped — SCRUM-30 reopened to To Do.
+
+- **SCRUM-52 (E2E browser tests):** `playwright.config.ts`, `tests/e2e/auth.setup.ts` (reception probe sign-in, storage state save), `tests/e2e/staff-dashboard.spec.ts` (15 smoke tests: reception module, triage no-500, shell navigation, flash message rendering, action panel URL params, accessibility, releasing module structure, visit progress badge). `@playwright/test` added to devDependencies.
+
+- **SCRUM-32 (Defect triage):** 2 defects found and fixed (see `memory-bank/qa-runs/defect-log.md`). QA run report at `memory-bank/qa-runs/2026-04-28-scrum-31.md`. Note: full `qa:local` (vitest) and `qa:supabase` require execution on Windows host — blocked in sandbox due to missing native bindings and `AHI_PROBE_PASSWORD`.
+
+**Key files:**
+- `lib/dashboard/case-progress.ts` (new)
+- `tests/lib/case-progress.test.ts` (new)
+- `vitest.integration.config.ts` (new)
+- `tests/integration/case-lifecycle.test.ts` (new)
+- `playwright.config.ts` (new)
+- `tests/e2e/auth.setup.ts` (new)
+- `tests/e2e/staff-dashboard.spec.ts` (new)
+- `components/dashboard/staff/physician-module.tsx` (modified — bug fix + visits column)
+- `components/dashboard/staff/releasing-module.tsx` (modified — use computeCaseCompletionBatch)
+- `app/dashboard/staff/page.tsx` (modified — thread visitStatusIdByCode to PhysicianModule)
+- `package.json` (modified — new test scripts + @playwright/test)
+- `.gitignore` (modified — playwright artifacts)
+- `memory-bank/qa-runs/2026-04-28-scrum-31.md` (new)
+- `memory-bank/qa-runs/defect-log.md` (new)
+
+**Verification:** TypeScript clean (0 real errors). ESLint clean (1 real warning fixed). Unit tests and E2E tests require Windows host with live Supabase credentials.
+
+---
+
+## Tech Debt Sprint (SCRUM-53–59)
+
+**Status:** Done  
+**Date Completed:** 2026-04-15
+
+**What was done:**
+- **SCRUM-53:** Forgot password flow — `app/auth/patient/forgot-password/page.tsx` and `update-password/page.tsx` created; `resetPassword` method added to `AuthContext`; "Forgot Password?" link added to patient sign-in page.
+- **SCRUM-54:** Edge middleware rate limiter (`applyAuthRateLimit`) added to `lib/supabase/middleware.ts` covering `/auth/*` endpoints; in-memory IP tracker blocks abusive request volume.
+- **SCRUM-55:** Hardcoded `AhiProbe!2026` credential string removed from probe scripts; replaced with `process.env.AHI_PROBE_PASSWORD`; `bootstrap-role-probe-users.sql` converted to `bootstrap-role-probe-users.mjs` to read credentials from `.env.local` at runtime.
+- **SCRUM-56:** Session auto-timeout (`SESSION_TIMEOUT_MS = 15 * 60 * 1000`) added to `components/providers/auth-provider.tsx` via `mousemove`, `keydown`, `touchstart` inactivity listeners.
+- **SCRUM-57:** CI/CD pipeline — `.github/workflows/qa.yml` confirmed present and correct; no additional work required.
+- **SCRUM-58:** Prettier code formatting — marked Done in Jira; no `.prettierrc` file found in repo as of 2026-04-25 (may have been intentionally skipped per prior team consensus documented in the original tech debt plan).
+- **SCRUM-59:** `qa:security` npm script added to `package.json` targeting Docker-based OWASP ZAP baseline scan (`zaproxy/zap-stable`).
+
+**Key files:**
+- `app/auth/patient/forgot-password/page.tsx` (new)
+- `app/auth/patient/update-password/page.tsx` (new)
+- `app/auth/patient/sign-in/page.tsx`
+- `components/providers/auth-provider.tsx`
+- `lib/supabase/middleware.ts`
+- `scripts/supabase/bootstrap-role-probe-users.mjs` (converted from .sql)
+- `scripts/supabase/audit-role-smoke-all-roles.mjs`
+- `scripts/supabase/validate-auth-audit-events.mjs`
+- `package.json`
+
+**Verification:** Jira SCRUM-53–59 all closed 2026-04-15. Code confirms SCRUM-53, 54, 56, 57, 59. SCRUM-55 confirmed via `.mjs` script presence. SCRUM-58 Jira-closed but no `.prettierrc` found — status uncertain.
 
 ---
 

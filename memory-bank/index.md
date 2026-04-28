@@ -21,13 +21,18 @@ This folder is the project knowledge hub for planning, decisions, risks, and imp
 1. `pid.md` — project scope
 2. `design-doc.md` — architecture
 3. `auth-implementation-decision.md` — auth model
-4. `current-sprint.md` — what's happening now
-5. `../DEVELOPMENT-PLAN.md` — full plan with next steps
+4. `current-sprint.md` — what's happening now and active Jira state
+5. `decisions.md` — locked architectural decisions (return-path, RPC bootstrap, file limits, rate limiting, session timeout)
+6. `../DEVELOPMENT-PLAN.md` — full plan with next steps
 
 ## Dashboard Specs
 
 - `requirements/dashboard-role-feature-functional-spec.md`
 - `requirements/dashboard-frontend-layout-navigation-spec.md`
+
+## Decisions Log
+
+- `decisions.md` — Locked architectural decisions with dates, rationale, and implementation status.
 
 ## Archived (superseded)
 
@@ -36,3 +41,4 @@ This folder is the project knowledge hub for planning, decisions, risks, and imp
 - `archive/progress.md` — replaced by `slice-progress.md`
 - `archive/fullPlan.md` — replaced by `../DEVELOPMENT-PLAN.md`
 - `archive/HYBRID_IMPLEMENTATION_RECOMMENDATION.md` — replaced by `../DEVELOPMENT-PLAN.md`
+- `archive/scrum-53-59-tech-debt.md` — all items shipped (2026-04-15); replaced by `slice-progress.md` entry

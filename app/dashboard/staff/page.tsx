@@ -144,6 +144,7 @@ export default async function StaffDashboardPage({
         <PhysicianModule
           returnPath={returnPath}
           caseStatusIdByCode={caseStatusIdByCode}
+          visitStatusIdByCode={visitStatusIdByCode}
           searchParams={resolvedSearchParams}
         />
       ) : null}

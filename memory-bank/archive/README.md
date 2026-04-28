@@ -8,3 +8,4 @@ Current archived files:
 - `progress.md` - superseded by `../slice-progress.md`
 - `fullPlan.md` - superseded by `../../DEVELOPMENT-PLAN.md`
 - `HYBRID_IMPLEMENTATION_RECOMMENDATION.md` - superseded by `../../DEVELOPMENT-PLAN.md`
+- `scrum-53-59-tech-debt.md` - all items Done per Jira (2026-04-15); implementation details logged in `../slice-progress.md` under "Tech Debt Sprint (SCRUM-53–59)"

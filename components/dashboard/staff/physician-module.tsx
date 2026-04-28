@@ -20,10 +20,12 @@ import {
   pickJoined,
   resolveParam,
 } from "@/features/dashboard/staff/shared";
+import { computeCaseCompletionBatch } from "@/lib/dashboard/case-progress";
 
 type PhysicianModuleProps = {
   returnPath: string;
   caseStatusIdByCode: Map<string, number>;
+  visitStatusIdByCode: Map<string, number>;
   searchParams: Record<string, SearchParamValue>;
 };
 
@@ -67,10 +69,12 @@ function buildDecisionPanelHref(returnPath: string, caseId: string) {
 export async function PhysicianModule({
   returnPath,
   caseStatusIdByCode,
+  visitStatusIdByCode,
   searchParams,
 }: PhysicianModuleProps) {
   const supabase = await createSupabaseServerClient();
   const forDecisionStatusId = caseStatusIdByCode.get("FOR_DECISION");
+  const completedVisitStatusId = visitStatusIdByCode.get("COMPLETED");
   const decisionCaseId = resolveParam(searchParams, "decisionCaseId");
   const { data: departmentOptionsRaw } = await supabase
     .from("department")
@@ -97,6 +101,27 @@ export async function PhysicianModule({
 
     decisionQueue = (queueRows ?? []) as CaseRow[];
     queueError = error?.message ?? null;
+  }
+
+  // Fetch visit progress for all cases in the decision queue
+  const decisionQueueCaseIds = decisionQueue.map((item) => item.caseid);
+  const visitProgressByCase = new Map<string, string>();
+
+  if (decisionQueueCaseIds.length > 0 && completedVisitStatusId) {
+    const { data: queueVisitRows } = await supabase
+      .from("department_visit")
+      .select("caseid, visitstatuscodeid")
+      .in("caseid", decisionQueueCaseIds);
+
+    const progressMap = computeCaseCompletionBatch(
+      decisionQueueCaseIds,
+      (queueVisitRows ?? []) as Array<{ caseid: string; visitstatuscodeid: number }>,
+      completedVisitStatusId
+    );
+
+    for (const [caseId, progress] of progressMap) {
+      visitProgressByCase.set(caseId, progress.label);
+    }
   }
 
   let panelCase: CaseRow | null = null;
@@ -192,6 +217,7 @@ export async function PhysicianModule({
               <th className="px-3 py-2 font-semibold">Patient</th>
               <th className="px-3 py-2 font-semibold">Package</th>
               <th className="px-3 py-2 font-semibold">Company</th>
+              <th className="px-3 py-2 font-semibold">Visits</th>
               <th className="px-3 py-2 font-semibold">Registered</th>
               <th className="px-3 py-2 font-semibold">Action</th>
             </tr>
@@ -216,6 +242,12 @@ export async function PhysicianModule({
                   </td>
                   <td className="px-3 py-2 text-muted-foreground">
                     {company?.name ?? "Walk-in"}
+                  </td>
+                  <td className="px-3 py-2">
+                    <StatusBadge
+                      label={visitProgressByCase.get(caseRow.caseid) ?? "—"}
+                      tone="positive"
+                    />
                   </td>
                   <td className="px-3 py-2 text-muted-foreground">
                     {formatTimestamp(caseRow.registrationtimestamp)}

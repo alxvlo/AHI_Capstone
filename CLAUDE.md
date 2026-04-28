@@ -23,6 +23,7 @@ npm run test:coverage
 npm run qa:local            # lint + typecheck + test:run (pre-PR baseline)
 npm run qa:ci               # lint + typecheck + coverage
 npm run qa:supabase         # audit:roles:all + audit:write:all + audit:auth:logs + audit:auth:e2e
+npm run qa:security         # Docker OWASP ZAP baseline scan against localhost:3000 (requires Docker)
 ```
 
 Run a single test file or filter by test name:
@@ -143,7 +144,7 @@ REGISTERED → IN_PROGRESS → FOR_DECISION → FOR_RELEASING → RELEASED → A
 | `memory-bank/index.md` | Full doc map |
 | `QA.md` | QA baseline and current coverage focus |
 
-**Current phase (as of last memory-bank update):** Phase 4 — Backend Wiring and Storage. **Next slice:** Slice 14 (Realtime queue/portal subscriptions). Deferred Sprint 09 items (`SCRUM-36` email, `SCRUM-37` PDF, `SCRUM-38` deployment auth) remain queued after Slices 14–15.
+**Current phase (as of last memory-bank update):** Phase 4 — Backend Wiring and Storage (completing). **Active work:** SCRUM-31 (Slice 15 E2E lifecycle validation, In Progress) and SCRUM-32 (defect triage, In Progress). Tech debt SCRUM-53–59 completed 2026-04-15. SCRUM-30 (Slice 14 Realtime) and SCRUM-36 (email) are closed in Jira but have no code in the repo — treat as unverified. `SCRUM-37` (PDF) and `SCRUM-38` (deployment) remain deferred.
 
 If a change affects workflow, auth, or system design, update the relevant memory-bank doc in the same task.
 
