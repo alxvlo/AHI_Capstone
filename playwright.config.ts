@@ -30,18 +30,60 @@ export default defineConfig({
   },
 
   projects: [
+    // Auth setup projects — each saves a role-scoped storage state
     {
       name: "setup",
-      testMatch: /.*\.setup\.ts/,
+      testMatch: /auth\.setup\.ts/,
     },
     {
+      name: "setup-patient",
+      testMatch: /auth\.patient\.setup\.ts/,
+    },
+    {
+      name: "setup-client",
+      testMatch: /auth\.client\.setup\.ts/,
+    },
+    {
+      name: "setup-admin",
+      testMatch: /auth\.admin\.setup\.ts/,
+    },
+
+    // Test projects — each reuses the matching stored session
+    {
       name: "chromium",
+      testMatch: /staff-dashboard\.spec\.ts/,
       use: {
         ...devices["Desktop Chrome"],
-        // Each E2E test file that needs auth reuses the stored session.
         storageState: path.join(__dirname, "tests/e2e/.auth/staff.json"),
       },
       dependencies: ["setup"],
+    },
+    {
+      name: "patient",
+      testMatch: /patient-dashboard\.spec\.ts/,
+      use: {
+        ...devices["Desktop Chrome"],
+        storageState: path.join(__dirname, "tests/e2e/.auth/patient.json"),
+      },
+      dependencies: ["setup-patient"],
+    },
+    {
+      name: "client",
+      testMatch: /client-dashboard\.spec\.ts/,
+      use: {
+        ...devices["Desktop Chrome"],
+        storageState: path.join(__dirname, "tests/e2e/.auth/client.json"),
+      },
+      dependencies: ["setup-client"],
+    },
+    {
+      name: "admin",
+      testMatch: /admin-dashboard\.spec\.ts/,
+      use: {
+        ...devices["Desktop Chrome"],
+        storageState: path.join(__dirname, "tests/e2e/.auth/admin.json"),
+      },
+      dependencies: ["setup-admin"],
     },
   ],
 

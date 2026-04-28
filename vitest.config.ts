@@ -38,9 +38,16 @@ export default defineConfig({
         "lib/government-id.ts",
         "lib/supabase/roles.ts",
         "lib/supabase/middleware.ts",
+        "lib/dashboard/case-progress.ts",
         "features/dashboard/staff/shared.tsx",
         "components/providers/auth-provider.tsx",
       ],
+      thresholds: {
+        statements: 65,
+        branches: 60,
+        functions: 63,
+        lines: 65,
+      },
     },
   },
 });

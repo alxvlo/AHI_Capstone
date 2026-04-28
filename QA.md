@@ -53,7 +53,6 @@ Vitest discovers both colocated `*.test`/`*.spec` files and files under `tests/`
 
 ## Next Expansion Targets
 
-1. Add server-action tests for `features/dashboard/staff/actions.ts`.
+1. Implement SCRUM-30 (Realtime) and add Realtime integration tests.
 2. Expand E2E coverage to patient, client, and admin dashboards.
 3. Raise enforced coverage thresholds once the workflow mutation suite is in place.
-4. Implement SCRUM-30 (Realtime) and add Realtime integration tests.
