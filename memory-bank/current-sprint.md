@@ -1,8 +1,8 @@
 # Current Sprint
 
-**Last Updated:** 2026-04-28 (sprint close)  
+**Last Updated:** 2026-04-28 (Sprint 07 close)  
 **Phase:** Phase 4 — Backend Wiring and Storage (completing)  
-**Current Focus:** Sprint closed. SCRUM-26, SCRUM-31, SCRUM-52, SCRUM-32 implemented and documented.
+**Current Focus:** Sprint 07 closed. SCRUM-22, SCRUM-23, SCRUM-25 implemented and documented.
 
 ---
 
@@ -18,16 +18,12 @@ All slices through Slice 13 are complete and code-verified. The tech debt sprint
 
 ## Active Queue
 
-### In Progress (per Jira open sprint)
+### To Do / Next Sprint
 
-1. **SCRUM-31** — End-to-end case lifecycle integration testing (Slice 15, assigned Deejay Clark Datu)
-2. **SCRUM-32** — Defect triage and regression testing sprint (assigned Keith Avellaneda)
-3. **SCRUM-21 / SCRUM-24 / SCRUM-27** — Department queues, physician case summary, releasing dashboard (In Progress per Jira; core implementations exist in code — active Jira status likely reflects in-sprint refinement or review scope)
-4. **SCRUM-50 / SCRUM-51** — Subtasks: PostgreSQL RPC for relational insertions and linking to Next.js Server Actions (In Progress per Jira)
-
-### To Do (per Jira open sprint)
-
-1. **SCRUM-26** — Build package completion percentage and auto-detection
+1. **SCRUM-30** — Realtime broadcast (Supabase Realtime / `.channel` / `.subscribe`) — deferred; TODO seams left in `saveResultItemsAction` and `verifyResultItemAction`
+2. **SCRUM-36** — Email notifications — marked Done in Jira but no code exists; confirm scope
+3. **SCRUM-37** — PDF certificate generation (BLOCKED: awaiting AHI template)
+4. **SCRUM-38** — Deployment authorization
 
 ### Deferred / Pending
 
@@ -38,6 +34,9 @@ All slices through Slice 13 are complete and code-verified. The tech debt sprint
 
 ## Recently Completed
 
+- **SCRUM-22 (2026-04-28):** Added `Pending → CANCELLED` visit transition to `updateDepartmentVisitStatusAction`; Cancel button on department queue PENDING rows in `department-module.tsx`. `tests/features/dashboard/staff/visit-status.test.ts` covers all 5 transitions (PENDING/IN_PROGRESS/SKIPPED/COMPLETED/CANCELLED) + role guard.
+- **SCRUM-23 (2026-04-28):** New `verifyResultItemAction` server action flips `result_item.verificationstatus` to VERIFIED with department-claim guard and audit log. Verify button added to result-encoding panel in `department-module.tsx`. Covered by `tests/features/dashboard/staff/result-verification.test.ts` (5 tests) and `result-encoding.test.ts` (5 tests). WebSocket broadcast deferred to SCRUM-30; TODO seams in place.
+- **SCRUM-25 (2026-04-28):** Extended `syncCaseWorkflowStatusAfterVisitUpdate` in `actions.ts` to move `PENDING_ADDITIONAL_TESTS → IN_PROGRESS` when an additional visit is started. Covered by `tests/features/dashboard/staff/request-additional-tests.test.ts` (6 tests: happy path + 5 error gates). Shared mock helpers in `tests/features/dashboard/staff/_helpers.ts`.
 - **SCRUM-26 (2026-04-28):** Case completion-percentage helper — `lib/dashboard/case-progress.ts` (`computeCaseCompletion`, `computeCaseCompletionBatch`), 13 unit tests in `tests/lib/case-progress.test.ts`, wired into `ReleasingModule` and `PhysicianModule` (visit progress column added). Also fixed P1 bug: physician module was reading visit status ID from the case status map (always returned undefined).
 - **SCRUM-31 (2026-04-28):** Lifecycle integration tests — `tests/integration/case-lifecycle.test.ts` (12 steps: REGISTERED→RELEASED, RLS write blocks, waiver gate, return-path sanitisation). Separate Vitest config `vitest.integration.config.ts`. AC3 (realtime) removed from scope; SCRUM-30 reopened to To Do.
 - **SCRUM-52 (2026-04-28):** Playwright E2E tests — `playwright.config.ts`, `tests/e2e/auth.setup.ts` (reception probe auth), `tests/e2e/staff-dashboard.spec.ts` (15 smoke tests across 7 groups). Playwright added to devDependencies.

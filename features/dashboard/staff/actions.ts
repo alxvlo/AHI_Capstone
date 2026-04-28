@@ -210,16 +210,28 @@ async function syncCaseWorkflowStatusAfterVisitUpdate(
     return;
   }
 
-  if (
-    !allVisitsCompleted &&
-    caseRow.casestatuscodeid === forDecisionStatusId &&
-    inProgressStatusId
-  ) {
-    const fallbackStatusId = pendingAdditionalStatusId ?? inProgressStatusId;
-    await supabase
-      .from("peme_case")
-      .update({ casestatuscodeid: fallbackStatusId })
-      .eq("caseid", caseId);
+  if (!allVisitsCompleted) {
+    // Incomplete visits while case sits at FOR_DECISION → fall back to PENDING_ADDITIONAL_TESTS or IN_PROGRESS.
+    if (caseRow.casestatuscodeid === forDecisionStatusId && inProgressStatusId) {
+      const fallbackStatusId = pendingAdditionalStatusId ?? inProgressStatusId;
+      await supabase
+        .from("peme_case")
+        .update({ casestatuscodeid: fallbackStatusId })
+        .eq("caseid", caseId);
+      return;
+    }
+
+    // SCRUM-25: PENDING_ADDITIONAL_TESTS → IN_PROGRESS once an additional visit actually starts.
+    if (
+      pendingAdditionalStatusId &&
+      caseRow.casestatuscodeid === pendingAdditionalStatusId &&
+      inProgressStatusId
+    ) {
+      await supabase
+        .from("peme_case")
+        .update({ casestatuscodeid: inProgressStatusId })
+        .eq("caseid", caseId);
+    }
   }
 }
 
@@ -897,7 +909,13 @@ export async function updateDepartmentVisitStatusAction(formData: FormData) {
     redirectWithError(returnPath, "Invalid visit selected.");
   }
 
-  const allowedStatusCodes = new Set(["PENDING", "IN_PROGRESS", "SKIPPED", "COMPLETED"]);
+  const allowedStatusCodes = new Set([
+    "PENDING",
+    "IN_PROGRESS",
+    "SKIPPED",
+    "COMPLETED",
+    "CANCELLED",
+  ]);
 
   if (!allowedStatusCodes.has(nextStatusCode)) {
     redirectWithError(returnPath, "Unsupported visit status transition requested.");
@@ -933,7 +951,7 @@ export async function updateDepartmentVisitStatusAction(formData: FormData) {
     updatePayload.timestarted = now;
   }
 
-  if (nextStatusCode === "COMPLETED") {
+  if (nextStatusCode === "COMPLETED" || nextStatusCode === "CANCELLED") {
     updatePayload.timecompleted = now;
   }
 
@@ -1066,11 +1084,78 @@ export async function saveResultItemsAction(formData: FormData) {
     details: `Result "${testName}" saved for ${caseNumber} (visit ${visitRow.visitid}).`,
   });
 
+  // TODO(SCRUM-30): broadcast result_item changes via Supabase Realtime once SCRUM-30 ships.
   revalidatePath(STAFF_DASHBOARD_PATH);
   redirectWithNotice(
     returnPath,
     `Result "${testName}" saved for ${caseNumber}.`
   );
+}
+
+// TODO(SCRUM-30): broadcast result_item changes via Supabase Realtime once SCRUM-30 ships.
+export async function verifyResultItemAction(formData: FormData) {
+  const returnPath = normalizeReturnPath(normalizeText(formData.get("returnPath")));
+  const resultId = parseOptionalPositiveInt(normalizeText(formData.get("resultId")));
+
+  if (!resultId) {
+    redirectWithError(returnPath, "Invalid result item selected for verification.");
+  }
+
+  const { supabase, userId, role } = await resolveActionContext();
+  ensureAllowedRole(role, [DEPARTMENT_STAFF_ROLE, ADMIN_ROLE], returnPath);
+
+  const { data: resultRow, error: resultError } = await supabase
+    .from("result_item")
+    .select("resultid, visitid, caseid, departmentid, testname, verificationstatus")
+    .eq("resultid", resultId)
+    .maybeSingle();
+
+  if (resultError || !resultRow) {
+    redirectWithError(
+      returnPath,
+      `Unable to load result item: ${resultError?.message ?? "Result not found."}`
+    );
+  }
+
+  if (resultRow.verificationstatus === "VERIFIED") {
+    redirectWithNotice(returnPath, `Result "${resultRow.testname}" is already verified.`);
+  }
+
+  if (role === DEPARTMENT_STAFF_ROLE) {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    const departmentClaim = parseDepartmentClaim(
+      user?.app_metadata?.department_id ?? user?.user_metadata?.department_id
+    );
+
+    if (!departmentClaim || departmentClaim !== resultRow.departmentid) {
+      redirectWithError(
+        returnPath,
+        "You can only verify results encoded by your own department."
+      );
+    }
+  }
+
+  const { error: updateError } = await supabase
+    .from("result_item")
+    .update({ verificationstatus: "VERIFIED" })
+    .eq("resultid", resultId);
+
+  if (updateError) {
+    redirectWithError(returnPath, `Verification failed: ${updateError.message}`);
+  }
+
+  await supabase.from("audit_log").insert({
+    userid: userId,
+    actiontype: "RESULT_ITEM_VERIFIED",
+    entityname: "result_item",
+    entityid: String(resultId),
+    details: `Result "${resultRow.testname}" (visit ${resultRow.visitid}) verified.`,
+  });
+
+  revalidatePath(STAFF_DASHBOARD_PATH);
+  redirectWithNotice(returnPath, `Result "${resultRow.testname}" verified.`);
 }
 
 export async function requestAdditionalTestsAction(formData: FormData) {

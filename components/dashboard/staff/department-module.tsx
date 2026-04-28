@@ -2,6 +2,7 @@ import Link from "next/link";
 import {
   saveResultItemsAction,
   updateDepartmentVisitStatusAction,
+  verifyResultItemAction,
 } from "@/features/dashboard/staff/actions";
 import { ActionPanel } from "@/components/dashboard/shared/action-panel";
 import { DataTableContainer } from "@/components/dashboard/shared/data-table-container";
@@ -255,6 +256,19 @@ export async function DepartmentModule({
                               Skip
                             </Button>
                           </form>
+                          <form action={updateDepartmentVisitStatusAction}>
+                            <input type="hidden" name="visitId" value={visit.visitid} />
+                            <input type="hidden" name="nextStatusCode" value="CANCELLED" />
+                            <input
+                              type="hidden"
+                              name="statusNote"
+                              value="Visit cancelled — test no longer required."
+                            />
+                            <input type="hidden" name="returnPath" value={returnPath} />
+                            <Button type="submit" size="sm" variant="ghost" className="text-destructive">
+                              Cancel
+                            </Button>
+                          </form>
                         </>
                       ) : null}
 
@@ -433,6 +447,7 @@ export async function DepartmentModule({
                         <th className="px-3 py-2 font-semibold">Value</th>
                         <th className="px-3 py-2 font-semibold">Reference</th>
                         <th className="px-3 py-2 font-semibold">Flag</th>
+                        <th className="px-3 py-2 font-semibold">Action</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -462,6 +477,19 @@ export async function DepartmentModule({
                                 <StatusBadge label={item.verificationstatus} tone="neutral" />
                               ) : null}
                             </div>
+                          </td>
+                          <td className="px-3 py-2">
+                            {item.verificationstatus !== "VERIFIED" ? (
+                              <form action={verifyResultItemAction}>
+                                <input type="hidden" name="returnPath" value={returnPath} />
+                                <input type="hidden" name="resultId" value={item.resultid} />
+                                <Button type="submit" size="sm" variant="outline">
+                                  Verify
+                                </Button>
+                              </form>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">Verified</span>
+                            )}
                           </td>
                         </tr>
                       ))}
