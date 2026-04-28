@@ -9,7 +9,9 @@
       "mcp__plugin_atlassian_atlassian__editJiraIssue",
       "mcp__plugin_atlassian_atlassian__addCommentToJiraIssue",
       "Bash(python3:*)",
-      "mcp__plugin_atlassian_atlassian__getJiraIssue"
+      "mcp__plugin_atlassian_atlassian__getJiraIssue",
+      "Bash(python *)",
+      "Bash(npm run *)"
     ]
   },
   "enabledPlugins": {
