@@ -29,6 +29,7 @@ Live-Supabase integration tests live under `tests/integration/` and use a separa
 - Requires `.env.local` with `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, and `AHI_PROBE_PASSWORD`
 - Current coverage: `tests/integration/case-lifecycle.test.ts` — 12-step PEME case lifecycle (SCRUM-31)
 - `tests/integration/realtime-subscriptions.test.ts` — Realtime delivery, department filter, concurrent updates, RLS gating (SCRUM-30; env-guarded skip without `AHI_PROBE_PASSWORD`)
+- `tests/integration/email-pipeline.test.ts` — Email send (single + 5 concurrent), failure, and skip paths via Ethereal SMTP (SCRUM-36; Supabase-creds-guarded skip)
 
 ## Browser E2E Tests (Playwright)
 

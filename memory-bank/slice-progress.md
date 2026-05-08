@@ -7,6 +7,26 @@ This file tracks completion status and verification results for each development
 
 ---
 
+## Slice 16 — Email Notification Pipeline (SCRUM-36)
+
+**Status:** Done
+**Date Completed:** 2026-05-08
+
+**What was done:**
+- Added `nodemailer` + `@types/nodemailer`.
+- New `lib/email/transport.ts`: SMTP transport factory; reads `SMTP_HOST`/`PORT`/`USER`/`PASS`/`EMAIL_FROM`; throws if required env vars missing.
+- New `lib/email/templates.ts`: three plain-text templates (patient release, client release, releasing-staff decision); PHI-leak guards in tests.
+- New `lib/email/send.ts`: `sendEmail()` wrapper that always audit-logs `EMAIL_SENT` / `EMAIL_FAILED`; never throws. `logSkippedEmail()` for missing-recipient cases.
+- New `features/dashboard/staff/email-notifications.ts`: `notifyPatientOnRelease`, `notifyClientOnRelease`, `notifyReleasingStaffOnDecision`; each looks up recipient and skips with audit when email is null.
+- Wired into `releaseCaseAction` (fires patient + client emails after audit log) and `submitPhysicianDecisionAction` (fires releasing-staff email after physician → FOR_RELEASING transition).
+- Documented SMTP env vars in `.env.local.example`.
+- Unit tests: `tests/lib/email-{transport,templates,send}.test.ts` and `tests/features/dashboard/staff/email-notifications.test.ts`.
+- Integration test: `tests/integration/email-pipeline.test.ts` — Ethereal SMTP, single-send + 5 concurrent + failure + skip.
+
+**Verification:** lint clean, typecheck clean, vitest 126 passed / 22 skipped. Integration tests cleanly skipped without Supabase creds.
+
+---
+
 ## Slice 14 — Realtime WebSocket Subscriptions (SCRUM-30)
 
 **Status:** Done  

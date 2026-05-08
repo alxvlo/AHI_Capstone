@@ -2,6 +2,7 @@
 
 | Date | Decision | Rationale | Status |
 |---|---|---|---|
+| 2026-05-08 | **Email pipeline: Nodemailer SMTP, Resend dev / Postmark prod, plain-text templates, fire-and-forget with audit_log** | Provider-agnostic SMTP transport satisfies AC #1 literally. Nodemailer code is portable across Resend, Postmark, SendGrid, AWS SES with env-var swaps. Fire-and-forget keeps redirect snappy; failures are reconstructable from `audit_log`. Plain text avoids HTML spam triggers and PHI complexity; no medical data in body satisfies AC #5. | Implemented |
 | 2026-05-08 | **Realtime via `router.refresh()` + RLS-filtered `postgres_changes`** | Server re-fetch keeps RLS as the auth gate — no payload trust needed in event payloads. Shared `RealtimeBridge` + `useRealtimeRefresh` hook keeps the client surface minimal (two files). `REPLICA IDENTITY FULL` on both tables required for UPDATE events to carry full row state. | Implemented |
 | 2026-04-15 | **Session auto-timeout at 15 minutes** | Medical portals require short idle windows. Implemented via `mousemove`/`keydown`/`touchstart` inactivity listeners in `AuthProvider` (`SESSION_TIMEOUT_MS = 15 * 60 * 1000`). | Implemented |
 | 2026-04-15 | **Auth rate limiting at the Edge middleware layer** | Augments Supabase's native auth limits with an application-layer in-memory IP tracker applied to all `/auth/*` endpoints via `applyAuthRateLimit()` in `lib/supabase/middleware.ts`. | Implemented |

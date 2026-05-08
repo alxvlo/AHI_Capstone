@@ -88,7 +88,7 @@ American Hospital Inc. (AHI) processes ~1,000 Pre-Employment Medical Examination
 | Defect triage and regression testing (`SCRUM-32`) | In Progress per Jira | No |
 | Package completion percentage and auto-detection (`SCRUM-26`) | To Do per Jira | No |
 | Realtime WebSocket subscriptions (Slice 14, `SCRUM-30`) | Done 2026-05-08 | ✅ |
-| Email notification pipeline on release (`SCRUM-36`, Slice 16) | Done per Jira (2026-04-15); no code found in repo as of 2026-04-25 — verify | ⚠️ |
+| Email notification pipeline on release (`SCRUM-36`, Slice 16) | Done 2026-05-08 | ✅ |
 | PDF certificate and transmittal generation (`SCRUM-37`, Slice 17) | Deferred | Yes (AHI Sections 2-3) |
 | Deployment authorization request (`SCRUM-38`) | Deferred | No |
 | Deployment config (Vercel) | Deferred | No |
@@ -547,7 +547,7 @@ npm run qa:local
 
 ---
 
-### Slice 16 — Email Notifications (SCRUM-36, SPRINT-09 QUEUE)
+### Slice 16 — Email Notifications [DONE 2026-05-08]
 
 **Goal:** Auto-notify patient and crewing officer when a case is released.
 
