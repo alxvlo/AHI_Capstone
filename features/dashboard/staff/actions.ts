@@ -1494,6 +1494,10 @@ export async function submitPhysicianDecisionAction(formData: FormData) {
     details: `Case ${caseRow.casenumber} decision recorded as ${fitnessStatus}.`,
   });
 
+  // Fire-and-forget: notify the releasing staff shared mailbox that
+  // case is now FOR_RELEASING. Body carries no PHI (no fitness status).
+  void notifyReleasingStaffOnDecision(supabase, caseRow.caseid);
+
   revalidatePath(STAFF_DASHBOARD_PATH);
   redirectWithNotice(
     returnPath,
