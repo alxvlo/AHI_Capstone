@@ -1,9 +1,29 @@
 # Slice Progress Log
 
-**Last Updated:** 2026-04-28  
+**Last Updated:** 2026-05-08  
 **Plan Reference:** [DEVELOPMENT-PLAN.md](../DEVELOPMENT-PLAN.md)
 
 This file tracks completion status and verification results for each development slice.
+
+---
+
+## Slice 14 — Realtime WebSocket Subscriptions (SCRUM-30)
+
+**Status:** Done  
+**Date Completed:** 2026-05-08
+
+**What was done:**
+- Applied Supabase migration: `supabase/migrations/20260508_enable_realtime_publications.sql` — adds `peme_case` and `department_visit` to the `supabase_realtime` publication and sets `REPLICA IDENTITY FULL` on both tables.
+- New `useRealtimeRefresh` hook (`lib/realtime/use-realtime-refresh.ts`): opens a `postgres_changes` channel, debounces `router.refresh()`, cleans up on unmount.
+- New `RealtimeBridge` component (`components/dashboard/shared/realtime-bridge.tsx`): invisible client component wrapping the hook so server modules can subscribe by embedding it.
+- Wired `<RealtimeBridge table="peme_case" />` into Reception, Physician, and Releasing modules.
+- Wired `<RealtimeBridge table="department_visit" filter={...} />` into Department module (scoped by `userDepartmentClaim`).
+- Wired two bridges (peme_case + department_visit scoped by caseid) into the Patient portal page.
+- Removed two `TODO(SCRUM-30)` comments from `features/dashboard/staff/actions.ts`.
+- Unit tests: `tests/lib/realtime-refresh.test.ts` (5 tests — subscribe, refresh, debounce, cleanup, filter).
+- Integration tests: `tests/integration/realtime-subscriptions.test.ts` (4 tests — INSERT delivery, UPDATE filter, concurrent updates, RLS gating; env-guarded skip without probe creds).
+
+**Verification:** lint clean, typecheck clean (excluding pre-existing e2e Playwright errors), vitest 105 passed / 18 skipped.
 
 ---
 

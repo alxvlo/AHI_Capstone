@@ -1084,7 +1084,6 @@ export async function saveResultItemsAction(formData: FormData) {
     details: `Result "${testName}" saved for ${caseNumber} (visit ${visitRow.visitid}).`,
   });
 
-  // TODO(SCRUM-30): broadcast result_item changes via Supabase Realtime once SCRUM-30 ships.
   revalidatePath(STAFF_DASHBOARD_PATH);
   redirectWithNotice(
     returnPath,
@@ -1092,7 +1091,6 @@ export async function saveResultItemsAction(formData: FormData) {
   );
 }
 
-// TODO(SCRUM-30): broadcast result_item changes via Supabase Realtime once SCRUM-30 ships.
 export async function verifyResultItemAction(formData: FormData) {
   const returnPath = normalizeReturnPath(normalizeText(formData.get("returnPath")));
   const resultId = parseOptionalPositiveInt(normalizeText(formData.get("resultId")));

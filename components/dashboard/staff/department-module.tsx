@@ -6,6 +6,7 @@ import {
 } from "@/features/dashboard/staff/actions";
 import { ActionPanel } from "@/components/dashboard/shared/action-panel";
 import { DataTableContainer } from "@/components/dashboard/shared/data-table-container";
+import { RealtimeBridge } from "@/components/dashboard/shared/realtime-bridge";
 import { DepartmentFileUpload } from "@/components/dashboard/staff/department-file-upload";
 import { MetricCard } from "@/components/dashboard/shared/metric-card";
 import { StatusBadge } from "@/components/dashboard/shared/status-badge";
@@ -170,6 +171,12 @@ export async function DepartmentModule({
 
   return (
     <div className="space-y-6">
+      {userDepartmentClaim ? (
+        <RealtimeBridge
+          table="department_visit"
+          filter={`departmentid=eq.${userDepartmentClaim}`}
+        />
+      ) : null}
       <div>
         <h2 className="text-2xl font-bold tracking-tight">Department Queue</h2>
         <p className="mt-2 text-sm text-muted-foreground">

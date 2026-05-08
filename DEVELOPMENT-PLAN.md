@@ -87,7 +87,7 @@ American Hospital Inc. (AHI) processes ~1,000 Pre-Employment Medical Examination
 | E2E case lifecycle validation (Slice 15, `SCRUM-31`) | In Progress per Jira | No |
 | Defect triage and regression testing (`SCRUM-32`) | In Progress per Jira | No |
 | Package completion percentage and auto-detection (`SCRUM-26`) | To Do per Jira | No |
-| Realtime WebSocket subscriptions (Slice 14, `SCRUM-30`) | Done per Jira (2026-04-15); no code found in repo as of 2026-04-25 — verify | ⚠️ |
+| Realtime WebSocket subscriptions (Slice 14, `SCRUM-30`) | Done 2026-05-08 | ✅ |
 | Email notification pipeline on release (`SCRUM-36`, Slice 16) | Done per Jira (2026-04-15); no code found in repo as of 2026-04-25 — verify | ⚠️ |
 | PDF certificate and transmittal generation (`SCRUM-37`, Slice 17) | Deferred | Yes (AHI Sections 2-3) |
 | Deployment authorization request (`SCRUM-38`) | Deferred | No |
@@ -513,7 +513,7 @@ npm run qa:local
 
 ---
 
-### Slice 14 — Realtime WebSocket Subscriptions [DONE per Jira 2026-04-15 — NOT FOUND IN CODEBASE]
+### Slice 14 — Realtime WebSocket Subscriptions [DONE 2026-05-08]
 
 **Goal:** Auto-refresh queues when data changes, without manual page reload.
 

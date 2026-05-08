@@ -5,6 +5,7 @@ import {
 import { MetricCard } from "@/components/dashboard/shared/metric-card";
 import { StatusBadge } from "@/components/dashboard/shared/status-badge";
 import { DataTableContainer } from "@/components/dashboard/shared/data-table-container";
+import { RealtimeBridge } from "@/components/dashboard/shared/realtime-bridge";
 import { ReleasingHistory } from "@/components/dashboard/staff/releasing-history";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -130,6 +131,7 @@ export async function ReleasingModule({
 
   return (
     <div className="space-y-6">
+      <RealtimeBridge table="peme_case" />
       <div>
         <h2 className="text-2xl font-bold tracking-tight">Releasing Queue</h2>
         <p className="mt-2 text-sm text-muted-foreground">

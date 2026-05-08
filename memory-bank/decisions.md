@@ -2,6 +2,7 @@
 
 | Date | Decision | Rationale | Status |
 |---|---|---|---|
+| 2026-05-08 | **Realtime via `router.refresh()` + RLS-filtered `postgres_changes`** | Server re-fetch keeps RLS as the auth gate — no payload trust needed in event payloads. Shared `RealtimeBridge` + `useRealtimeRefresh` hook keeps the client surface minimal (two files). `REPLICA IDENTITY FULL` on both tables required for UPDATE events to carry full row state. | Implemented |
 | 2026-04-15 | **Session auto-timeout at 15 minutes** | Medical portals require short idle windows. Implemented via `mousemove`/`keydown`/`touchstart` inactivity listeners in `AuthProvider` (`SESSION_TIMEOUT_MS = 15 * 60 * 1000`). | Implemented |
 | 2026-04-15 | **Auth rate limiting at the Edge middleware layer** | Augments Supabase's native auth limits with an application-layer in-memory IP tracker applied to all `/auth/*` endpoints via `applyAuthRateLimit()` in `lib/supabase/middleware.ts`. | Implemented |
 | 2026-04-14 | **Return-path scoped validator for all server actions** | All server action redirect targets must pass through `buildReturnPath()` in `lib/dashboard/return-path.ts` instead of raw `startsWith('/dashboard')` checks, preventing prefix-spoofing attacks. | Implemented |

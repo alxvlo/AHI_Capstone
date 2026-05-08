@@ -6,6 +6,7 @@ import { ExamProgress } from "@/components/dashboard/patient/exam-progress";
 import { ResultFiles } from "@/components/dashboard/patient/result-files";
 import { ResultSummary } from "@/components/dashboard/patient/result-summary";
 import { FlashToast } from "@/components/dashboard/shared/flash-toast";
+import { RealtimeBridge } from "@/components/dashboard/shared/realtime-bridge";
 import { MetricCard } from "@/components/dashboard/shared/metric-card";
 import { StatusBadge } from "@/components/dashboard/shared/status-badge";
 import { DashboardHeader } from "@/components/dashboard/shell/dashboard-header";
@@ -73,6 +74,18 @@ export default async function PatientDashboardPage({
   return (
     <div className="space-y-6">
       <FlashToast notice={flashNotice || undefined} error={flashError || undefined} />
+      {selectedCase ? (
+        <>
+          <RealtimeBridge
+            table="peme_case"
+            filter={`caseid=eq.${selectedCase.caseid}`}
+          />
+          <RealtimeBridge
+            table="department_visit"
+            filter={`caseid=eq.${selectedCase.caseid}`}
+          />
+        </>
+      ) : null}
 
       <DashboardHeader
         title="Patient Dashboard"
