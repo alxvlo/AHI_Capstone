@@ -16,6 +16,7 @@ import {
 } from "@/lib/supabase/roles";
 import { normalizePhilippineMobileForStorage } from "@/lib/phone";
 import { normalizeDashboardReturnPath } from "@/lib/dashboard/return-path";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import {
   notifyClientOnRelease,
   notifyPatientOnRelease,
@@ -166,7 +167,11 @@ async function syncCaseWorkflowStatusAfterVisitUpdate(
     return;
   }
 
-  const { data: caseRow, error: caseError } = await supabase
+  // Use service-role client for the case SELECT so Department Staff can read it
+  // even when RLS would normally restrict cross-dept access.
+  const adminClient = createSupabaseAdminClient();
+
+  const { data: caseRow, error: caseError } = await adminClient
     .from("peme_case")
     .select("casestatuscodeid")
     .eq("caseid", caseId)
@@ -186,7 +191,9 @@ async function syncCaseWorkflowStatusAfterVisitUpdate(
     return;
   }
 
-  const { count: totalVisits, error: totalError } = await supabase
+  // Count ALL visits for the case (unscoped) — RLS-scoped client only sees the
+  // acting dept's visits, causing premature "all complete" when other depts haven't finished.
+  const { count: totalVisits, error: totalError } = await adminClient
     .from("department_visit")
     .select("visitid", { count: "exact", head: true })
     .eq("caseid", caseId);
@@ -195,7 +202,7 @@ async function syncCaseWorkflowStatusAfterVisitUpdate(
     return;
   }
 
-  const { count: completedVisits, error: completedError } = await supabase
+  const { count: completedVisits, error: completedError } = await adminClient
     .from("department_visit")
     .select("visitid", { count: "exact", head: true })
     .eq("caseid", caseId)
@@ -208,7 +215,9 @@ async function syncCaseWorkflowStatusAfterVisitUpdate(
   const allVisitsCompleted = completedVisits === totalVisits;
 
   if (allVisitsCompleted && caseRow.casestatuscodeid !== forDecisionStatusId) {
-    await supabase
+    // Use service-role client — Department Staff is not in peme_case_update_role_scoped
+    // so the RLS-scoped client silently returns 0 rows affected.
+    await adminClient
       .from("peme_case")
       .update({ casestatuscodeid: forDecisionStatusId })
       .eq("caseid", caseId);
@@ -219,7 +228,7 @@ async function syncCaseWorkflowStatusAfterVisitUpdate(
     // Incomplete visits while case sits at FOR_DECISION → fall back to PENDING_ADDITIONAL_TESTS or IN_PROGRESS.
     if (caseRow.casestatuscodeid === forDecisionStatusId && inProgressStatusId) {
       const fallbackStatusId = pendingAdditionalStatusId ?? inProgressStatusId;
-      await supabase
+      await adminClient
         .from("peme_case")
         .update({ casestatuscodeid: fallbackStatusId })
         .eq("caseid", caseId);
@@ -232,7 +241,7 @@ async function syncCaseWorkflowStatusAfterVisitUpdate(
       caseRow.casestatuscodeid === pendingAdditionalStatusId &&
       inProgressStatusId
     ) {
-      await supabase
+      await adminClient
         .from("peme_case")
         .update({ casestatuscodeid: inProgressStatusId })
         .eq("caseid", caseId);
