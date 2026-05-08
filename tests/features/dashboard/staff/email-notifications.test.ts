@@ -26,32 +26,14 @@ import {
   notifyReleasingStaffOnDecision,
 } from "@/features/dashboard/staff/email-notifications";
 
-function makeSupabase(rows: Record<string, unknown>) {
-  return {
-    from: vi.fn((table: string) => ({
-      select: vi.fn(() => ({
-        eq: vi.fn(() => ({
-          maybeSingle: vi.fn().mockResolvedValue({
-            data: rows[table] ?? null,
-            error: null,
-          }),
-        })),
-      })),
-    })),
-  } as unknown as SupabaseClient;
-}
+// supabase is only needed for audit logging — no DB queries in these functions
+const supabase = {} as unknown as SupabaseClient;
 
 describe("notifyPatientOnRelease", () => {
   beforeEach(() => vi.clearAllMocks());
 
   it("sends to patient when emailaddress is present", async () => {
-    const supabase = makeSupabase({
-      peme_case: {
-        casenumber: "PEME-1",
-        patient: { fullname: "Juan", emailaddress: "juan@test.com" },
-      },
-    });
-    await notifyPatientOnRelease(supabase, "CASE-UUID");
+    await notifyPatientOnRelease(supabase, "CASE-UUID", "PEME-1", "Juan", "juan@test.com");
     expect(mockSendEmail).toHaveBeenCalledWith(
       expect.objectContaining({
         to: "juan@test.com",
@@ -61,13 +43,7 @@ describe("notifyPatientOnRelease", () => {
   });
 
   it("logs SKIPPED when patient has no email", async () => {
-    const supabase = makeSupabase({
-      peme_case: {
-        casenumber: "PEME-1",
-        patient: { fullname: "Juan", emailaddress: null },
-      },
-    });
-    await notifyPatientOnRelease(supabase, "CASE-UUID");
+    await notifyPatientOnRelease(supabase, "CASE-UUID", "PEME-1", "Juan", null);
     expect(mockSendEmail).not.toHaveBeenCalled();
     expect(mockLogSkipped).toHaveBeenCalledWith(
       supabase,
@@ -81,17 +57,7 @@ describe("notifyClientOnRelease", () => {
   beforeEach(() => vi.clearAllMocks());
 
   it("sends to company contact when emailaddress is present", async () => {
-    const supabase = makeSupabase({
-      peme_case: {
-        casenumber: "PEME-2",
-        company: {
-          name: "ACME",
-          contactperson: "HR Lead",
-          emailaddress: "hr@acme.test",
-        },
-      },
-    });
-    await notifyClientOnRelease(supabase, "CASE-UUID");
+    await notifyClientOnRelease(supabase, "CASE-UUID", "PEME-2", "ACME", "HR Lead", "hr@acme.test");
     expect(mockSendEmail).toHaveBeenCalledWith(
       expect.objectContaining({
         to: "hr@acme.test",
@@ -101,22 +67,13 @@ describe("notifyClientOnRelease", () => {
   });
 
   it("logs SKIPPED when case has no company (walk-in)", async () => {
-    const supabase = makeSupabase({
-      peme_case: { casenumber: "PEME-2", company: null },
-    });
-    await notifyClientOnRelease(supabase, "CASE-UUID");
+    await notifyClientOnRelease(supabase, "CASE-UUID", "PEME-2", null, null, null);
     expect(mockSendEmail).not.toHaveBeenCalled();
     expect(mockLogSkipped).toHaveBeenCalled();
   });
 
   it("logs SKIPPED when company has no email", async () => {
-    const supabase = makeSupabase({
-      peme_case: {
-        casenumber: "PEME-2",
-        company: { name: "ACME", contactperson: "HR", emailaddress: null },
-      },
-    });
-    await notifyClientOnRelease(supabase, "CASE-UUID");
+    await notifyClientOnRelease(supabase, "CASE-UUID", "PEME-2", "ACME", "HR", null);
     expect(mockSendEmail).not.toHaveBeenCalled();
   });
 });
@@ -125,10 +82,7 @@ describe("notifyReleasingStaffOnDecision", () => {
   beforeEach(() => vi.clearAllMocks());
 
   it("sends to RELEASING_NOTIFICATION_EMAIL when configured", async () => {
-    const supabase = makeSupabase({
-      peme_case: { casenumber: "PEME-3" },
-    });
-    await notifyReleasingStaffOnDecision(supabase, "CASE-UUID");
+    await notifyReleasingStaffOnDecision(supabase, "CASE-UUID", "PEME-3");
     expect(mockSendEmail).toHaveBeenCalledWith(
       expect.objectContaining({
         to: "releasing@ahi.test",

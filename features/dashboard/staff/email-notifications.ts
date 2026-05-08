@@ -10,52 +10,31 @@ import {
   renderReleasingStaffEmail,
 } from "@/lib/email/templates";
 
-type CaseWithPatient = {
-  casenumber: string;
-  patient: { fullname: string; emailaddress: string | null } | null;
-};
-
-type CaseWithCompany = {
-  casenumber: string;
-  company: {
-    name: string;
-    contactperson: string | null;
-    emailaddress: string | null;
-  } | null;
-};
-
-type CaseRowMinimal = {
-  casenumber: string;
-};
+// Data is passed in directly by the caller (already fetched before the
+// status-transition UPDATE) so these functions never re-query peme_case.
+// This avoids the RLS edge-case where the acting role can only read cases in
+// the PRE-transition status (e.g. Physician → FOR_DECISION only).
 
 export async function notifyPatientOnRelease(
   supabase: SupabaseClient,
-  caseId: string
+  caseId: string,
+  caseNumber: string,
+  patientName: string,
+  patientEmail: string | null
 ): Promise<void> {
   const audit = { caseId, recipientType: "patient" as const };
-  const { data, error } = await supabase
-    .from("peme_case")
-    .select("casenumber, patient:patientid(fullname, emailaddress)")
-    .eq("caseid", caseId)
-    .maybeSingle<CaseWithPatient>();
-
-  if (error || !data) {
-    await logSkippedEmail(supabase, audit, `lookup failed: ${error?.message ?? "no row"}`);
-    return;
-  }
-  const email = data.patient?.emailaddress;
-  if (!email) {
+  if (!patientEmail) {
     await logSkippedEmail(supabase, audit, "patient has no email on record");
     return;
   }
   const rendered = renderPatientReleaseEmail({
-    patientName: data.patient!.fullname,
-    caseNumber: data.casenumber,
+    patientName,
+    caseNumber,
     portalUrl: `${getPortalBaseUrl()}/dashboard/patient`,
   });
   await sendEmail({
     supabase,
-    to: email,
+    to: patientEmail,
     subject: rendered.subject,
     text: rendered.text,
     audit,
@@ -64,37 +43,30 @@ export async function notifyPatientOnRelease(
 
 export async function notifyClientOnRelease(
   supabase: SupabaseClient,
-  caseId: string
+  caseId: string,
+  caseNumber: string,
+  companyName: string | null,
+  contactName: string | null,
+  companyEmail: string | null
 ): Promise<void> {
   const audit = { caseId, recipientType: "client" as const };
-  const { data, error } = await supabase
-    .from("peme_case")
-    .select("casenumber, company:companyid(name, contactperson, emailaddress)")
-    .eq("caseid", caseId)
-    .maybeSingle<CaseWithCompany>();
-
-  if (error || !data) {
-    await logSkippedEmail(supabase, audit, `lookup failed: ${error?.message ?? "no row"}`);
-    return;
-  }
-  if (!data.company) {
+  if (!companyName) {
     await logSkippedEmail(supabase, audit, "case has no company (walk-in)");
     return;
   }
-  const email = data.company.emailaddress;
-  if (!email) {
+  if (!companyEmail) {
     await logSkippedEmail(supabase, audit, "company has no email on record");
     return;
   }
   const rendered = renderClientReleaseEmail({
-    companyName: data.company.name,
-    contactName: data.company.contactperson ?? "Hiring Team",
-    caseNumber: data.casenumber,
+    companyName,
+    contactName: contactName ?? "Hiring Team",
+    caseNumber,
     portalUrl: `${getPortalBaseUrl()}/dashboard/client`,
   });
   await sendEmail({
     supabase,
-    to: email,
+    to: companyEmail,
     subject: rendered.subject,
     text: rendered.text,
     audit,
@@ -103,7 +75,8 @@ export async function notifyClientOnRelease(
 
 export async function notifyReleasingStaffOnDecision(
   supabase: SupabaseClient,
-  caseId: string
+  caseId: string,
+  caseNumber: string
 ): Promise<void> {
   const audit = { caseId, recipientType: "releasing-staff" as const };
   const recipient = getReleasingNotificationEmail();
@@ -115,18 +88,8 @@ export async function notifyReleasingStaffOnDecision(
     );
     return;
   }
-  const { data, error } = await supabase
-    .from("peme_case")
-    .select("casenumber")
-    .eq("caseid", caseId)
-    .maybeSingle<CaseRowMinimal>();
-
-  if (error || !data) {
-    await logSkippedEmail(supabase, audit, `lookup failed: ${error?.message ?? "no row"}`);
-    return;
-  }
   const rendered = renderReleasingStaffEmail({
-    caseNumber: data.casenumber,
+    caseNumber,
     dashboardUrl: `${getPortalBaseUrl()}/dashboard/staff`,
   });
   await sendEmail({

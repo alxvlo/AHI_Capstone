@@ -1496,7 +1496,7 @@ export async function submitPhysicianDecisionAction(formData: FormData) {
 
   // Fire-and-forget: notify the releasing staff shared mailbox that
   // case is now FOR_RELEASING. Body carries no PHI (no fitness status).
-  void notifyReleasingStaffOnDecision(supabase, caseRow.caseid);
+  void notifyReleasingStaffOnDecision(supabase, caseRow.caseid, caseRow.casenumber);
 
   revalidatePath(STAFF_DASHBOARD_PATH);
   redirectWithNotice(
@@ -1529,7 +1529,9 @@ export async function releaseCaseAction(formData: FormData) {
 
   const { data: caseRow, error: caseReadError } = await supabase
     .from("peme_case")
-    .select("caseid, casenumber, casestatuscodeid")
+    .select(
+      "caseid, casenumber, casestatuscodeid, patient:patientid(fullname, emailaddress), company:companyid(name, contactperson, emailaddress)"
+    )
     .eq("caseid", caseId)
     .maybeSingle();
 
@@ -1626,10 +1628,15 @@ export async function releaseCaseAction(formData: FormData) {
     details: `Case ${caseRow.casenumber} released and portal visibility enabled.`,
   });
 
+  // Pre-fetched before the status transition so RLS (FOR_RELEASING scope)
+  // doesn't block the lookup after the case moves to RELEASED.
+  const patient = (caseRow.patient as unknown as { fullname: string; emailaddress: string | null } | null) ?? null;
+  const company = (caseRow.company as unknown as { name: string; contactperson: string | null; emailaddress: string | null } | null) ?? null;
+
   // Fire-and-forget: emails must never block the redirect.
   // Errors are caught inside sendEmail and logged to audit_log.
-  void notifyPatientOnRelease(supabase, caseRow.caseid);
-  void notifyClientOnRelease(supabase, caseRow.caseid);
+  void notifyPatientOnRelease(supabase, caseRow.caseid, caseRow.casenumber, patient?.fullname ?? "", patient?.emailaddress ?? null);
+  void notifyClientOnRelease(supabase, caseRow.caseid, caseRow.casenumber, company?.name ?? null, company?.contactperson ?? null, company?.emailaddress ?? null);
 
   revalidatePath(STAFF_DASHBOARD_PATH);
   redirectWithNotice(returnPath, `Case ${caseRow.casenumber} was released.`);
