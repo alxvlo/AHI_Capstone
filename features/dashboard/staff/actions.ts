@@ -16,6 +16,11 @@ import {
 } from "@/lib/supabase/roles";
 import { normalizePhilippineMobileForStorage } from "@/lib/phone";
 import { normalizeDashboardReturnPath } from "@/lib/dashboard/return-path";
+import {
+  notifyClientOnRelease,
+  notifyPatientOnRelease,
+  notifyReleasingStaffOnDecision,
+} from "@/features/dashboard/staff/email-notifications";
 
 const STAFF_DASHBOARD_PATH = "/dashboard/staff";
 
@@ -1616,6 +1621,11 @@ export async function releaseCaseAction(formData: FormData) {
     entityid: caseRow.caseid,
     details: `Case ${caseRow.casenumber} released and portal visibility enabled.`,
   });
+
+  // Fire-and-forget: emails must never block the redirect.
+  // Errors are caught inside sendEmail and logged to audit_log.
+  void notifyPatientOnRelease(supabase, caseRow.caseid);
+  void notifyClientOnRelease(supabase, caseRow.caseid);
 
   revalidatePath(STAFF_DASHBOARD_PATH);
   redirectWithNotice(returnPath, `Case ${caseRow.casenumber} was released.`);
