@@ -176,7 +176,12 @@ export async function updateSession(request: NextRequest) {
   }
 
   if (!user) {
-    return createRedirectResponse(request, response, "/auth/patient/sign-in", {
+    const signInPath = pathname.startsWith("/dashboard/staff") || pathname.startsWith("/dashboard/admin")
+      ? "/auth/staff/sign-in"
+      : pathname.startsWith("/dashboard/client")
+      ? "/auth/agency/sign-in"
+      : "/auth/patient/sign-in";
+    return createRedirectResponse(request, response, signInPath, {
       next: pathname,
     });
   }

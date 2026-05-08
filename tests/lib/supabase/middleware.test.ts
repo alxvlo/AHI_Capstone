@@ -55,20 +55,29 @@ describe("updateSession", () => {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon-key";
   });
 
-  it("redirects unauthenticated dashboard requests to patient sign-in", async () => {
-    createServerClientMock.mockReturnValue(
-      createServerSupabaseMock({ user: null }) as never
-    );
+  it.each([
+    { path: "/dashboard/staff", expected: "/auth/staff/sign-in" },
+    { path: "/dashboard/staff/queue", expected: "/auth/staff/sign-in" },
+    { path: "/dashboard/admin", expected: "/auth/staff/sign-in" },
+    { path: "/dashboard/client", expected: "/auth/agency/sign-in" },
+    { path: "/dashboard/patient", expected: "/auth/patient/sign-in" },
+  ])(
+    "redirects unauthenticated $path to $expected",
+    async ({ path, expected }) => {
+      createServerClientMock.mockReturnValue(
+        createServerSupabaseMock({ user: null }) as never
+      );
 
-    const response = await updateSession(
-      new NextRequest("http://localhost/dashboard/staff")
-    );
-    const location = parseLocation(response);
+      const response = await updateSession(
+        new NextRequest(`http://localhost${path}`)
+      );
+      const location = parseLocation(response);
 
-    expect(response.status).toBe(307);
-    expect(location.pathname).toBe("/auth/patient/sign-in");
-    expect(location.searchParams.get("next")).toBe("/dashboard/staff");
-  });
+      expect(response.status).toBe(307);
+      expect(location.pathname).toBe(expected);
+      expect(location.searchParams.get("next")).toBe(path);
+    }
+  );
 
   it("redirects authenticated users away from auth entry pages", async () => {
     createServerClientMock.mockReturnValue(
