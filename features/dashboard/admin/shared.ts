@@ -1,7 +1,7 @@
 import type { StatusBadgeTone } from "@/components/dashboard/shared/status-badge";
 
 export type SearchParamValue = string | string[] | undefined;
-export type AdminTab = "overview" | "users" | "reference" | "audit";
+export type AdminTab = "overview" | "users" | "reference" | "audit" | "catalog";
 
 export type RoleRecord = {
   roleid: number;
@@ -116,7 +116,7 @@ export function resolveParam(
 export function resolveAdminTab(params: Record<string, SearchParamValue>): AdminTab {
   const value = resolveParam(params, "tab", "overview").toLowerCase();
 
-  if (value === "overview" || value === "users" || value === "reference" || value === "audit") {
+  if (value === "overview" || value === "users" || value === "reference" || value === "audit" || value === "catalog") {
     return value;
   }
 
