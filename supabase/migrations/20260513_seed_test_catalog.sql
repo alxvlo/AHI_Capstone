@@ -26,14 +26,14 @@ values
   ((select departmentid from d where code='LAB'), 'Chloride',            'Chemistry',  'numeric',     'mmol/L',  '98–109',        98,    109,   null,null,null,null, null),
   ((select departmentid from d where code='LAB'), 'Cholesterol',         'Chemistry',  'numeric',     'mmol/L',  '< 5.2',         null,  5.2,   null,null,null,null, null),
   ((select departmentid from d where code='LAB'), 'HDL',                 'Chemistry',  'numeric',     'mmol/L',  '0.9–1.95',      0.9,   1.95,  null,null,null,null, null),
-  ((select departmentid from d where code='LAB'), 'LDL',                 'Chemistry',  'numeric',     'mmol/L',  '2.65–3.436',    2.65,  3.436, null,null,null,null, null),
+  ((select departmentid from d where code='LAB'), 'LDL',                 'Chemistry',  'numeric',     'mmol/L',  '< 3.436',       null,  3.436, null,null,null,null, null),
   ((select departmentid from d where code='LAB'), 'VLDL',                'Chemistry',  'numeric',     'mmol/L',  '0–0.50',        0,     0.50,  null,null,null,null, null),
   ((select departmentid from d where code='LAB'), 'GGT',                 'Chemistry',  'numeric',     'U/L',     'M:11–61 / F:9–39', null,null, 11, 61, 9, 39, null),
   ((select departmentid from d where code='LAB'), 'Sodium',              'Chemistry',  'numeric',     'mmol/L',  '135–155',       135,   155,   null,null,null,null, null),
   ((select departmentid from d where code='LAB'), 'Total Bilirubin',     'Chemistry',  'numeric',     'µmol/L',  '2–21',          2,     21,    null,null,null,null, null),
   ((select departmentid from d where code='LAB'), 'Direct Bilirubin',    'Chemistry',  'numeric',     'µmol/L',  '1.7–8.5',       1.7,   8.5,   null,null,null,null, null),
   ((select departmentid from d where code='LAB'), 'Indirect Bilirubin',  'Chemistry',  'numeric',     'µmol/L',  '1.5–14',        1.5,   14,    null,null,null,null, null),
-  ((select departmentid from d where code='LAB'), 'Triglycerides',       'Chemistry',  'numeric',     'mmol/L',  '1.695–2.24',    1.695, 2.24,  null,null,null,null, null),
+  ((select departmentid from d where code='LAB'), 'Triglycerides',       'Chemistry',  'numeric',     'mmol/L',  '< 2.24',        null,  2.24,  null,null,null,null, null),
   ((select departmentid from d where code='LAB'), 'Iron',                'Chemistry',  'numeric',     'µmol/L',  '9.4–28.4',      9.4,   28.4,  null,null,null,null, null),
 
   -- LAB / Hematology
