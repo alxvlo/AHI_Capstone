@@ -18,6 +18,7 @@ comment on column public.result_item.is_additional_test is
   'after the package-fence check determines the encoding is off-package.';
 
 comment on column public.result_item.additional_test_remark is
-  'Justification text. >=10 chars enforced server-side when manual override path is used. '
+  'Justification text. >=10 chars enforced server-side (saveResultItemsAction) only — '
+  'no DB CHECK exists because the rule is conditional on case status/category. '
   'Auto-filled with a system note when the case status (PENDING_ADDITIONAL_TESTS) or '
   'casecategory (Re-medical / Additional Tests) already authorizes additional tests.';
