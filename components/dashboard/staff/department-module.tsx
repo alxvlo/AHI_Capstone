@@ -15,6 +15,7 @@ import { TestResultForm } from "@/components/dashboard/staff/test-result-form";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
   DepartmentVisitRow,
+  JoinedRecord,
   SearchParamValue,
   caseStatusTone,
   formatTimestamp,
@@ -159,6 +160,9 @@ export async function DepartmentModule({
   };
 
   let catalog: CatalogEntry[] = [];
+  let packageTestIds: number[] = [];
+  let caseAllowsAdditional = false;
+  let caseAuthorizationLabel: string | null = null;
   if (panelVisit) {
     const { data: catalogRows } = await supabase
       .from("test_catalog")
@@ -168,6 +172,32 @@ export async function DepartmentModule({
       .order("category", { ascending: true })
       .order("testname", { ascending: true });
     catalog = (catalogRows ?? []) as CatalogEntry[];
+
+    const { data: caseFenceCtx } = await supabase
+      .from("peme_case")
+      .select("packageid, casecategory, status:casestatuscodeid(code)")
+      .eq("caseid", panelVisit.caseid)
+      .maybeSingle();
+
+    if (caseFenceCtx?.packageid) {
+      const { data: ptRows } = await supabase
+        .from("package_test")
+        .select("testid")
+        .eq("packageid", caseFenceCtx.packageid);
+      packageTestIds = (ptRows ?? []).map((r: { testid: number }) => r.testid);
+    }
+
+    const caseStatusCode =
+      pickJoined(caseFenceCtx?.status as JoinedRecord<{ code: string }> | undefined)?.code ?? null;
+    const caseCategory = caseFenceCtx?.casecategory ?? null;
+    caseAllowsAdditional =
+      caseStatusCode === "PENDING_ADDITIONAL_TESTS" ||
+      caseCategory === "Re-medical" ||
+      caseCategory === "Additional Tests";
+    caseAuthorizationLabel =
+      caseStatusCode === "PENDING_ADDITIONAL_TESTS"
+        ? "PENDING_ADDITIONAL_TESTS"
+        : caseCategory ?? null;
   }
 
   const pendingCount = visits.filter(
@@ -410,6 +440,9 @@ export async function DepartmentModule({
                   visitId={panelVisit.visitid}
                   returnPath={returnPath}
                   catalog={catalog}
+                  packageTestIds={packageTestIds}
+                  caseAllowsAdditional={caseAllowsAdditional}
+                  caseAuthorizationLabel={caseAuthorizationLabel}
                 />
               )}
             </section>

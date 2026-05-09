@@ -21,14 +21,25 @@ type Props = {
   visitId: number;
   returnPath: string;
   catalog: CatalogEntry[];
+  packageTestIds: number[];
+  caseAllowsAdditional: boolean;
+  caseAuthorizationLabel: string | null;
 };
 
-export function TestResultForm({ visitId, returnPath, catalog }: Props) {
+export function TestResultForm({
+  visitId,
+  returnPath,
+  catalog,
+  packageTestIds,
+  caseAllowsAdditional,
+  caseAuthorizationLabel,
+}: Props) {
   const [selectedId, setSelectedId] = useState<string>("");
   const [customMode, setCustomMode] = useState(false);
   const [customName, setCustomName] = useState("");
   const [value, setValue] = useState("");
   const [remarks, setRemarks] = useState("");
+  const [additionalRemark, setAdditionalRemark] = useState("");
   const [pending, startTransition] = useTransition();
 
   const grouped = useMemo(() => {
@@ -45,6 +56,10 @@ export function TestResultForm({ visitId, returnPath, catalog }: Props) {
     () => catalog.find((t) => t.testid === Number(selectedId)) ?? null,
     [selectedId, catalog]
   );
+
+  const isInPackage = selected !== null && packageTestIds.includes(selected.testid);
+  const isOffPackage = selected !== null && !customMode && !isInPackage;
+  const requiresManualRemark = isOffPackage && !caseAllowsAdditional;
 
   return (
     <form
@@ -116,6 +131,50 @@ export function TestResultForm({ visitId, returnPath, catalog }: Props) {
         </div>
       )}
 
+      {isOffPackage && caseAllowsAdditional && (
+        <div role="status" aria-live="polite" className="rounded-md border border-blue-300 bg-blue-50 p-3 text-xs">
+          <p className="font-semibold">
+            <span aria-hidden="true">ℹ️</span>{" "}{selected!.testname} is outside the case&apos;s package.
+          </p>
+          <p className="mt-1">
+            The case is in <strong>{caseAuthorizationLabel}</strong> — additional
+            tests are auto-authorized. The encoding will be flagged with a
+            system-generated reason.
+          </p>
+        </div>
+      )}
+
+      {requiresManualRemark && (
+        <div role="alert" className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm">
+          <p className="font-semibold">
+            <span aria-hidden="true">⚠️</span>{" "}{selected!.testname} is not part of this case&apos;s package.
+          </p>
+          <p className="mt-1 text-xs">
+            You can encode it as an additional test by providing a reason below
+            (minimum 10 characters).
+          </p>
+          <Label htmlFor="additionalTestRemark" className="mt-2 block">
+            Additional test reason
+          </Label>
+          <Textarea
+            id="additionalTestRemark"
+            name="additionalTestRemark"
+            value={additionalRemark}
+            onChange={(e) => setAdditionalRemark(e.target.value)}
+            placeholder="e.g. Patient requested optional cholesterol screening due to family history"
+            rows={2}
+            required
+            minLength={10}
+            className="mt-1"
+          />
+          <p className="mt-1 text-xs text-amber-700">
+            Tip: if the physician already requested additional tests, ask Reception
+            to update the case category to &quot;Additional Tests&quot; — that
+            auto-authorizes the encoding without needing this reason.
+          </p>
+        </div>
+      )}
+
       <div>
         <Label htmlFor="value">
           Value
@@ -177,7 +236,13 @@ export function TestResultForm({ visitId, returnPath, catalog }: Props) {
         />
       </div>
 
-      <Button type="submit" disabled={pending}>
+      <Button
+        type="submit"
+        disabled={
+          pending ||
+          (requiresManualRemark && additionalRemark.trim().length < 10)
+        }
+      >
         {pending ? "Saving..." : "Save Result"}
       </Button>
     </form>
