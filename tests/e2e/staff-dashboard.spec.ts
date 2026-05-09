@@ -23,21 +23,6 @@ async function goToStaffDashboard(page: Page): Promise<void> {
   await expect(page).toHaveURL(/\/dashboard\/staff/);
 }
 
-async function waitForFlash(
-  page: Page,
-  type: "notice" | "error"
-): Promise<string> {
-  // Flash messages appear in a query-param-driven card that renders on the page
-  // as a green (notice) or red (error) card.
-  const card =
-    type === "notice"
-      ? page.locator(".bg-emerald-50\\/40")
-      : page.locator(".bg-rose-50\\/40");
-
-  await card.waitFor({ state: "visible", timeout: 10_000 });
-  return (await card.textContent()) ?? "";
-}
-
 // ---------------------------------------------------------------------------
 // Test group: Reception module
 // ---------------------------------------------------------------------------

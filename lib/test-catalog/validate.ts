@@ -29,6 +29,7 @@ export type Sex = "M" | "F" | null;
 export function validateTestValue(
   test: TestCatalogEntry,
   value: string,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   _sex: Sex
 ): string | null {
   const trimmed = value.trim();
