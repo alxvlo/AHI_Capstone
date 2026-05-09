@@ -29,7 +29,7 @@ export type Sex = "M" | "F" | null;
 export function validateTestValue(
   test: TestCatalogEntry,
   value: string,
-  sex: Sex
+  _sex: Sex
 ): string | null {
   const trimmed = value.trim();
   if (!trimmed) return "Result value is required.";

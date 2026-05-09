@@ -222,10 +222,12 @@ export async function DepartmentModule({
       reqError = reqResponse.error?.message ?? null;
 
       if (!reqError) {
-        requiredTests = (reqResponse.data ?? []).map((r: any) => {
-          const tc = r.test_catalog as { testid: number; testname: string; category: string | null };
-          return { testid: tc.testid, testname: tc.testname, category: tc.category };
-        });
+        type PkgTestRaw = { test_catalog: { testid: number; testname: string; category: string | null } };
+        requiredTests = ((reqResponse.data ?? []) as unknown as PkgTestRaw[]).map((r) => ({
+          testid: r.test_catalog.testid,
+          testname: r.test_catalog.testname,
+          category: r.test_catalog.category,
+        }));
       }
 
       encodedTestIds = (encResponse.data ?? [])

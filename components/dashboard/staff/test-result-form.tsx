@@ -65,7 +65,6 @@ export function TestResultForm({
     <form
       action={(fd) =>
         startTransition(() => {
-          // eslint-disable-next-line @typescript-eslint/no-floating-promises
           saveResultItemsAction(fd);
         })
       }
