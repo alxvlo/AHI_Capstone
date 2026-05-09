@@ -12,6 +12,7 @@ import { StatusBadge } from "@/components/dashboard/shared/status-badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TestResultForm } from "@/components/dashboard/staff/test-result-form";
+import { RequiredTestsProgress } from "@/components/dashboard/staff/required-tests-progress";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
   DepartmentVisitRow,
@@ -163,6 +164,9 @@ export async function DepartmentModule({
   let packageTestIds: number[] = [];
   let caseAllowsAdditional = false;
   let caseAuthorizationLabel: string | null = null;
+  let requiredTests: { testid: number; testname: string; category: string | null }[] = [];
+  let encodedTestIds: number[] = [];
+  let reqError: string | null = null;
   if (panelVisit) {
     const { data: catalogRows } = await supabase
       .from("test_catalog")
@@ -198,6 +202,36 @@ export async function DepartmentModule({
       caseStatusCode === "PENDING_ADDITIONAL_TESTS"
         ? "PENDING_ADDITIONAL_TESTS"
         : caseCategory ?? null;
+
+    if (caseFenceCtx?.packageid) {
+      const [reqResponse, encResponse] = await Promise.all([
+        supabase
+          .from("package_test")
+          .select("testid, test_catalog!inner(testid, testname, category, departmentid, isactive)")
+          .eq("packageid", caseFenceCtx.packageid)
+          .eq("isrequired", true)
+          .eq("test_catalog.departmentid", userDepartmentClaim)
+          .eq("test_catalog.isactive", true),
+        supabase
+          .from("result_item")
+          .select("testid")
+          .eq("visitid", panelVisit.visitid)
+          .not("testid", "is", null),
+      ]);
+
+      reqError = reqResponse.error?.message ?? null;
+
+      if (!reqError) {
+        requiredTests = (reqResponse.data ?? []).map((r: any) => {
+          const tc = r.test_catalog as { testid: number; testname: string; category: string | null };
+          return { testid: tc.testid, testname: tc.testname, category: tc.category };
+        });
+      }
+
+      encodedTestIds = (encResponse.data ?? [])
+        .map((r: { testid: number | null }) => r.testid)
+        .filter((id): id is number => id !== null);
+    }
   }
 
   const pendingCount = visits.filter(
@@ -436,14 +470,23 @@ export async function DepartmentModule({
                   Result encoding is available only when visit status is IN_PROGRESS or COMPLETED.
                 </p>
               ) : (
-                <TestResultForm
-                  visitId={panelVisit.visitid}
-                  returnPath={returnPath}
-                  catalog={catalog}
-                  packageTestIds={packageTestIds}
-                  caseAllowsAdditional={caseAllowsAdditional}
-                  caseAuthorizationLabel={caseAuthorizationLabel}
-                />
+                <>
+                  {reqError ? (
+                    <p className="rounded-md border border-amber-300/70 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                      Unable to load required test checklist: {reqError}
+                    </p>
+                  ) : (
+                    <RequiredTestsProgress required={requiredTests} encoded={encodedTestIds} />
+                  )}
+                  <TestResultForm
+                    visitId={panelVisit.visitid}
+                    returnPath={returnPath}
+                    catalog={catalog}
+                    packageTestIds={packageTestIds}
+                    caseAllowsAdditional={caseAllowsAdditional}
+                    caseAuthorizationLabel={caseAuthorizationLabel}
+                  />
+                </>
               )}
             </section>
 
