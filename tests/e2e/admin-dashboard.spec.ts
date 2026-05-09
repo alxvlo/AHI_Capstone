@@ -83,6 +83,62 @@ test.describe("Admin dashboard — tab navigation", () => {
 });
 
 // ---------------------------------------------------------------------------
+// Group: Test Catalog tab (SCRUM-37 Phase 3)
+// ---------------------------------------------------------------------------
+
+test.describe("Admin dashboard — Test Catalog tab", () => {
+  test("Test Catalog nav button is present", async ({ page }) => {
+    await goToAdminDashboard(page);
+    await expect(page.getByRole("link", { name: /test catalog/i })).toBeVisible();
+  });
+
+  test("navigating to Test Catalog tab renders the test catalog card", async ({ page }) => {
+    await page.goto("/dashboard/admin?tab=catalog");
+    await expect(page).toHaveURL(/tab=catalog/, { timeout: 10_000 });
+    await expect(
+      page.getByText(/test catalog/i).first()
+    ).toBeVisible({ timeout: 15_000 });
+  });
+
+  test("Test Catalog card shows seeded entries count", async ({ page }) => {
+    await page.goto("/dashboard/admin?tab=catalog");
+    // Heading reads "Test Catalog (N entries)" — should be > 0 after seeding
+    await expect(
+      page.getByText(/test catalog \(\d+ entries\)/i)
+    ).toBeVisible({ timeout: 15_000 });
+  });
+
+  test("Package → Test Mapping card renders", async ({ page }) => {
+    await page.goto("/dashboard/admin?tab=catalog");
+    await expect(
+      page.getByText(/package.*test mapping/i)
+    ).toBeVisible({ timeout: 15_000 });
+  });
+
+  test("Test Catalog table has Department, Category, Test column headers", async ({ page }) => {
+    await page.goto("/dashboard/admin?tab=catalog");
+    await expect(page.getByRole("columnheader", { name: /department/i }).first()).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole("columnheader", { name: /test/i }).first()).toBeVisible();
+    await expect(page.getByRole("columnheader", { name: /category/i }).first()).toBeVisible();
+  });
+
+  test("Package mapping shows at least one package group heading", async ({ page }) => {
+    await page.goto("/dashboard/admin?tab=catalog");
+    // Package names like "Basic PEME", "Comprehensive Seafarer", "Food Handler Certificate"
+    const pkgHeading = page.getByText(/basic peme|seafarer|food handler/i).first();
+    await expect(pkgHeading).toBeVisible({ timeout: 15_000 });
+  });
+
+  test("overview tab shows a Test Catalog card", async ({ page }) => {
+    await goToAdminDashboard(page);
+    // Overview renders 4 cards; Test Catalog should be the 4th
+    await expect(
+      page.getByRole("heading", { name: /test catalog/i }).first()
+    ).toBeVisible({ timeout: 10_000 });
+  });
+});
+
+// ---------------------------------------------------------------------------
 // Group: Role guard
 // ---------------------------------------------------------------------------
 
