@@ -45,12 +45,12 @@ test.describe("Admin dashboard — tab navigation", () => {
 
   test("Reference Data tab link is present", async ({ page }) => {
     await goToAdminDashboard(page);
-    await expect(page.getByRole("link", { name: /reference data/i })).toBeVisible();
+    await expect(page.getByRole("link", { name: /reference data/i }).first()).toBeVisible();
   });
 
   test("Audit Logs tab link is present", async ({ page }) => {
     await goToAdminDashboard(page);
-    await expect(page.getByRole("link", { name: /audit logs/i })).toBeVisible();
+    await expect(page.getByRole("link", { name: /audit logs/i }).first()).toBeVisible();
   });
 
   test("navigating to Users tab renders user management content", async ({ page }) => {
@@ -65,7 +65,7 @@ test.describe("Admin dashboard — tab navigation", () => {
 
   test("navigating to Reference Data tab renders reference content", async ({ page }) => {
     await goToAdminDashboard(page);
-    await page.getByRole("link", { name: /reference data/i }).click();
+    await page.getByRole("link", { name: /reference data/i }).first().click();
     await expect(page).toHaveURL(/tab=reference/, { timeout: 10_000 });
     await expect(
       page.getByText(/department|package|company/i).first()
@@ -74,7 +74,7 @@ test.describe("Admin dashboard — tab navigation", () => {
 
   test("navigating to Audit Logs tab renders audit content", async ({ page }) => {
     await goToAdminDashboard(page);
-    await page.getByRole("link", { name: /audit logs/i }).click();
+    await page.getByRole("link", { name: /audit logs/i }).first().click();
     await expect(page).toHaveURL(/tab=audit/, { timeout: 10_000 });
     await expect(
       page.getByText(/audit|action|event/i).first()
@@ -89,7 +89,7 @@ test.describe("Admin dashboard — tab navigation", () => {
 test.describe("Admin dashboard — Test Catalog tab", () => {
   test("Test Catalog nav button is present", async ({ page }) => {
     await goToAdminDashboard(page);
-    await expect(page.getByRole("link", { name: /test catalog/i })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Test Catalog", exact: true })).toBeVisible();
   });
 
   test("navigating to Test Catalog tab renders the test catalog card", async ({ page }) => {
@@ -111,7 +111,7 @@ test.describe("Admin dashboard — Test Catalog tab", () => {
   test("Package → Test Mapping card renders", async ({ page }) => {
     await page.goto("/dashboard/admin?tab=catalog");
     await expect(
-      page.getByText(/package.*test mapping/i)
+      page.getByRole("heading", { name: /package.*test mapping/i })
     ).toBeVisible({ timeout: 15_000 });
   });
 

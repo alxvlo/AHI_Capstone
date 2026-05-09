@@ -82,8 +82,9 @@ test.describe("Dept Staff — catalog encoding form", () => {
     await expect(testSelect).toBeVisible({ timeout: 10_000 });
 
     // At least one optgroup must exist (categories like Hematology, Chemistry, etc.)
+    // Note: <optgroup> inside a collapsed <select> is technically hidden in browsers;
+    // use count() rather than toBeVisible() to assert presence.
     const optgroups = testSelect.locator("optgroup");
-    await expect(optgroups.first()).toBeVisible();
     const count = await optgroups.count();
     expect(count).toBeGreaterThan(0);
   });
@@ -110,9 +111,14 @@ test.describe("Dept Staff — catalog encoding form", () => {
     const fbsValue = await fbsOption.first().getAttribute("value");
     await testSelect.selectOption(fbsValue!);
 
-    // After selecting FBS, unit "mmol/L" and ref "3.89–6.38" should appear
-    await expect(page.getByText(/mmol\/L/i)).toBeVisible({ timeout: 5_000 });
-    await expect(page.getByText(/3\.89/)).toBeVisible({ timeout: 5_000 });
+    // After selecting FBS, the autofill grid shows unit and reference range in
+    // font-mono divs (not inside the dropdown options, which also contain "mmol/L").
+    await expect(
+      page.locator("div.font-mono").filter({ hasText: /mmol\/L/i }).first()
+    ).toBeVisible({ timeout: 5_000 });
+    await expect(
+      page.locator("div.font-mono").filter({ hasText: /3\.89/ }).first()
+    ).toBeVisible({ timeout: 5_000 });
   });
 
   test("'+ Custom test' toggle switches to freeform name input", async ({ page }) => {
