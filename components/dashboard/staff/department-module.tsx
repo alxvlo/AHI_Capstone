@@ -1,6 +1,5 @@
 import Link from "next/link";
 import {
-  saveResultItemsAction,
   updateDepartmentVisitStatusAction,
   verifyResultItemAction,
 } from "@/features/dashboard/staff/actions";
@@ -12,9 +11,7 @@ import { MetricCard } from "@/components/dashboard/shared/metric-card";
 import { StatusBadge } from "@/components/dashboard/shared/status-badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { TestResultForm } from "@/components/dashboard/staff/test-result-form";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
   DepartmentVisitRow,
@@ -149,6 +146,28 @@ export async function DepartmentModule({
       panelResultItemsError = resultItemsResponse.error?.message ?? null;
       panelResultFiles = (resultFilesResponse.data ?? []) as DepartmentResultFileRow[];
     }
+  }
+
+  type CatalogEntry = {
+    testid: number;
+    testname: string;
+    category: string | null;
+    defaultunit: string | null;
+    defaultref: string | null;
+    valuetype: "numeric" | "categorical" | "text";
+    validvalues: string[] | null;
+  };
+
+  let catalog: CatalogEntry[] = [];
+  if (panelVisit) {
+    const { data: catalogRows } = await supabase
+      .from("test_catalog")
+      .select("testid, testname, category, defaultunit, defaultref, valuetype, validvalues")
+      .eq("departmentid", userDepartmentClaim)
+      .eq("isactive", true)
+      .order("category", { ascending: true })
+      .order("testname", { ascending: true });
+    catalog = (catalogRows ?? []) as CatalogEntry[];
   }
 
   const pendingCount = visits.filter(
@@ -387,51 +406,11 @@ export async function DepartmentModule({
                   Result encoding is available only when visit status is IN_PROGRESS or COMPLETED.
                 </p>
               ) : (
-                <form action={saveResultItemsAction} className="space-y-4">
-                  <input type="hidden" name="returnPath" value={returnPath} />
-                  <input type="hidden" name="visitId" value={panelVisit.visitid} />
-
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="space-y-2 sm:col-span-2">
-                      <Label htmlFor="testName">Test Name</Label>
-                      <Input
-                        id="testName"
-                        name="testName"
-                        placeholder="e.g. CBC, Urinalysis, Chest X-Ray Impression"
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="value">Result Value</Label>
-                      <Input id="value" name="value" placeholder="e.g. 5.4, Negative, Clear" required />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="unit">Unit (Optional)</Label>
-                      <Input id="unit" name="unit" placeholder="e.g. mg/dL" />
-                    </div>
-                    <div className="space-y-2 sm:col-span-2">
-                      <Label htmlFor="referenceRange">Reference Range (Optional)</Label>
-                      <Input
-                        id="referenceRange"
-                        name="referenceRange"
-                        placeholder="e.g. 4.0 - 6.0"
-                      />
-                    </div>
-                    <div className="space-y-2 sm:col-span-2">
-                      <Label htmlFor="remarks">Remarks (Optional)</Label>
-                      <Textarea id="remarks" name="remarks" placeholder="Additional clinical notes." />
-                    </div>
-                  </div>
-
-                  <label className="flex items-start gap-3 text-sm">
-                    <input type="checkbox" name="isAbnormal" className="mt-1 h-4 w-4" />
-                    <span>Mark this result item as abnormal.</span>
-                  </label>
-
-                  <Button type="submit" className="w-full sm:w-auto">
-                    Save Result Item
-                  </Button>
-                </form>
+                <TestResultForm
+                  visitId={panelVisit.visitid}
+                  returnPath={returnPath}
+                  catalog={catalog}
+                />
               )}
             </section>
 
