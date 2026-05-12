@@ -370,26 +370,6 @@ export async function createReceptionPatientAction(formData: FormData) {
   const { supabase, userId, role } = await resolveActionContext();
   ensureAllowedRole(role, [RECEPTION_ROLE, ADMIN_ROLE], returnPath);
 
-  const { data: existingPatient, error: existingPatientError } = await supabase
-    .from("patient")
-    .select("patientid")
-    .eq("governmentid", governmentId)
-    .maybeSingle();
-
-  if (existingPatientError) {
-    redirectWithError(
-      returnPath,
-      `Unable to validate duplicate patient record: ${existingPatientError.message}`
-    );
-  }
-
-  if (existingPatient?.patientid) {
-    redirectWithError(
-      returnPath,
-      "A patient record with the same government ID already exists."
-    );
-  }
-
   const { data: insertedPatient, error: insertError } = await supabase
     .from("patient")
     .insert({
@@ -406,6 +386,16 @@ export async function createReceptionPatientAction(formData: FormData) {
     .maybeSingle();
 
   if (insertError || !insertedPatient) {
+    const isUniqueViolation =
+      typeof insertError?.code === "string" && insertError.code === "23505";
+
+    if (isUniqueViolation) {
+      redirectWithError(
+        returnPath,
+        "A patient record with the same government ID already exists."
+      );
+    }
+
     redirectWithError(
       returnPath,
       `Patient registration failed: ${insertError?.message ?? "No patient record was created."}`
