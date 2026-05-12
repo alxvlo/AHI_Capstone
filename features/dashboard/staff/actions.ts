@@ -1213,10 +1213,13 @@ export async function saveResultItemsAction(formData: FormData) {
   });
 
   if (resultInsertError) {
-    redirectWithError(
-      returnPath,
-      `Result save failed: ${resultInsertError.message}`
-    );
+    if (resultInsertError.code === "23505") {
+      redirectWithError(
+        returnPath,
+        `${resolvedTestName} has already been encoded for this visit. Refresh and re-check.`
+      );
+    }
+    redirectWithError(returnPath, `Result save failed: ${resultInsertError.message}`);
   }
 
   await supabase.from("audit_log").insert({
