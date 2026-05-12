@@ -139,3 +139,32 @@ export function makeCountThenable(outerCount: number, innerCount: number) {
     in: innerResolved,
   };
 }
+
+export type AuditInsert = {
+  userid?: string | null;
+  actiontype: string;
+  entityname: string;
+  entityid: string | null;
+  details: string | null;
+};
+
+export function makeAuditCollector() {
+  const inserts: AuditInsert[] = [];
+  return {
+    inserts,
+    handler: (row: AuditInsert) => {
+      inserts.push(row);
+      return Promise.resolve({ error: null });
+    },
+  };
+}
+
+export function makeFormData(fields: Record<string, string | undefined>) {
+  const formData = new FormData();
+  for (const [key, value] of Object.entries(fields)) {
+    if (value !== undefined) {
+      formData.set(key, value);
+    }
+  }
+  return formData;
+}
