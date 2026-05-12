@@ -51,3 +51,6 @@ tests/e2e/.auth/
 plans/
 .playwright-mcp/
 qa-visual-dashboard-staff.png
+
+# Git worktrees
+.worktrees/
