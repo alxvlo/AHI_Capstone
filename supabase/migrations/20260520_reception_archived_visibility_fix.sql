@@ -1,13 +1,15 @@
--- supabase/migrations/20260520_reception_archived_visibility.sql
--- Reception loses visibility of ARCHIVED cases immediately under the baseline
--- policy. Extend the helper so Reception keeps visibility for 30 days after
--- archive, supporting "I cancelled the wrong case" recovery.
--- We need an archive timestamp to enforce the 30-day window.
+-- supabase/migrations/20260520_reception_archived_visibility_fix.sql
+-- Fixes a null-guard bug in the Reception/Billing branch of
+-- rls_case_visible_to_current_user introduced by the original migration.
+--
+-- Root cause: coalesce(c.archivedat, now()) > now() - interval '30 days'
+-- resolves to now() > now() - 30 days (always TRUE) for rows where
+-- archivedat IS NULL, making every pre-migration ARCHIVED case permanently
+-- visible to Reception/Billing.
+--
+-- Fix: require archivedat IS NOT NULL before comparing the timestamp.
 
 begin;
-
-alter table public.peme_case
-  add column if not exists archivedat timestamptz;
 
 create or replace function public.rls_case_visible_to_current_user(
   p_case_id uuid
