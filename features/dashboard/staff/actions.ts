@@ -702,6 +702,17 @@ export async function bootstrapCaseVisitsAction(formData: FormData) {
     .insert(visitBootstrapRows);
 
   if (visitBootstrapError) {
+    const isConflict =
+      typeof visitBootstrapError.code === "string" &&
+      visitBootstrapError.code === "23505";
+
+    if (isConflict) {
+      redirectWithNotice(
+        returnPath,
+        `Case ${caseRow.casenumber} already has open visits for the mapped departments.`
+      );
+    }
+
     redirectWithError(
       returnPath,
       `Visit initialization failed for case ${caseRow.casenumber}: ${visitBootstrapError.message}`
@@ -1429,6 +1440,16 @@ export async function requestAdditionalTestsAction(formData: FormData) {
   const { error: visitInsertError } = await supabase.from("department_visit").insert(visitRows);
 
   if (visitInsertError) {
+    const isConflict =
+      typeof visitInsertError.code === "string" && visitInsertError.code === "23505";
+
+    if (isConflict) {
+      redirectWithError(
+        returnPath,
+        "An open additional-test visit already exists for one of the selected departments. Refresh and retry."
+      );
+    }
+
     redirectWithError(
       returnPath,
       `Unable to queue additional test visits: ${visitInsertError.message}`
