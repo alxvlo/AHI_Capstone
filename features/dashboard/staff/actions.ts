@@ -576,6 +576,7 @@ export async function softCancelCaseAction(formData: FormData) {
     .update({
       casestatuscodeid: archivedStatusId,
       portalvisible: false,
+      archivedat: new Date().toISOString(),
     })
     .eq("caseid", caseId);
 
