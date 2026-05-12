@@ -39,7 +39,7 @@ test.describe("Client portal — page structure", () => {
 
   test("renders Released Cases metric card", async ({ page }) => {
     await goToClientDashboard(page);
-    await expect(page.getByText(/released cases/i)).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByRole("heading", { name: /released cases/i }).first()).toBeVisible({ timeout: 10_000 });
   });
 });
 

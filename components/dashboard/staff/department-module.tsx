@@ -1,6 +1,5 @@
 import Link from "next/link";
 import {
-  saveResultItemsAction,
   updateDepartmentVisitStatusAction,
   verifyResultItemAction,
 } from "@/features/dashboard/staff/actions";
@@ -12,12 +11,12 @@ import { MetricCard } from "@/components/dashboard/shared/metric-card";
 import { StatusBadge } from "@/components/dashboard/shared/status-badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { TestResultForm } from "@/components/dashboard/staff/test-result-form";
+import { RequiredTestsProgress } from "@/components/dashboard/staff/required-tests-progress";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
   DepartmentVisitRow,
+  JoinedRecord,
   SearchParamValue,
   caseStatusTone,
   formatTimestamp,
@@ -148,6 +147,92 @@ export async function DepartmentModule({
       panelResultItems = (resultItemsResponse.data ?? []) as DepartmentResultItemRow[];
       panelResultItemsError = resultItemsResponse.error?.message ?? null;
       panelResultFiles = (resultFilesResponse.data ?? []) as DepartmentResultFileRow[];
+    }
+  }
+
+  type CatalogEntry = {
+    testid: number;
+    testname: string;
+    category: string | null;
+    defaultunit: string | null;
+    defaultref: string | null;
+    valuetype: "numeric" | "categorical" | "text";
+    validvalues: string[] | null;
+  };
+
+  let catalog: CatalogEntry[] = [];
+  let packageTestIds: number[] = [];
+  let caseAllowsAdditional = false;
+  let caseAuthorizationLabel: string | null = null;
+  let requiredTests: { testid: number; testname: string; category: string | null }[] = [];
+  let encodedTestIds: number[] = [];
+  let reqError: string | null = null;
+  if (panelVisit) {
+    const { data: catalogRows } = await supabase
+      .from("test_catalog")
+      .select("testid, testname, category, defaultunit, defaultref, valuetype, validvalues")
+      .eq("departmentid", userDepartmentClaim)
+      .eq("isactive", true)
+      .order("category", { ascending: true })
+      .order("testname", { ascending: true });
+    catalog = (catalogRows ?? []) as CatalogEntry[];
+
+    const { data: caseFenceCtx } = await supabase
+      .from("peme_case")
+      .select("packageid, casecategory, status:casestatuscodeid(code)")
+      .eq("caseid", panelVisit.caseid)
+      .maybeSingle();
+
+    if (caseFenceCtx?.packageid) {
+      const { data: ptRows } = await supabase
+        .from("package_test")
+        .select("testid")
+        .eq("packageid", caseFenceCtx.packageid);
+      packageTestIds = (ptRows ?? []).map((r: { testid: number }) => r.testid);
+    }
+
+    const caseStatusCode =
+      pickJoined(caseFenceCtx?.status as JoinedRecord<{ code: string }> | undefined)?.code ?? null;
+    const caseCategory = caseFenceCtx?.casecategory ?? null;
+    caseAllowsAdditional =
+      caseStatusCode === "PENDING_ADDITIONAL_TESTS" ||
+      caseCategory === "Re-medical" ||
+      caseCategory === "Additional Tests";
+    caseAuthorizationLabel =
+      caseStatusCode === "PENDING_ADDITIONAL_TESTS"
+        ? "PENDING_ADDITIONAL_TESTS"
+        : caseCategory ?? null;
+
+    if (caseFenceCtx?.packageid) {
+      const [reqResponse, encResponse] = await Promise.all([
+        supabase
+          .from("package_test")
+          .select("testid, test_catalog!inner(testid, testname, category, departmentid, isactive)")
+          .eq("packageid", caseFenceCtx.packageid)
+          .eq("isrequired", true)
+          .eq("test_catalog.departmentid", userDepartmentClaim)
+          .eq("test_catalog.isactive", true),
+        supabase
+          .from("result_item")
+          .select("testid")
+          .eq("visitid", panelVisit.visitid)
+          .not("testid", "is", null),
+      ]);
+
+      reqError = reqResponse.error?.message ?? null;
+
+      if (!reqError) {
+        type PkgTestRaw = { test_catalog: { testid: number; testname: string; category: string | null } };
+        requiredTests = ((reqResponse.data ?? []) as unknown as PkgTestRaw[]).map((r) => ({
+          testid: r.test_catalog.testid,
+          testname: r.test_catalog.testname,
+          category: r.test_catalog.category,
+        }));
+      }
+
+      encodedTestIds = (encResponse.data ?? [])
+        .map((r: { testid: number | null }) => r.testid)
+        .filter((id): id is number => id !== null);
     }
   }
 
@@ -387,51 +472,23 @@ export async function DepartmentModule({
                   Result encoding is available only when visit status is IN_PROGRESS or COMPLETED.
                 </p>
               ) : (
-                <form action={saveResultItemsAction} className="space-y-4">
-                  <input type="hidden" name="returnPath" value={returnPath} />
-                  <input type="hidden" name="visitId" value={panelVisit.visitid} />
-
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="space-y-2 sm:col-span-2">
-                      <Label htmlFor="testName">Test Name</Label>
-                      <Input
-                        id="testName"
-                        name="testName"
-                        placeholder="e.g. CBC, Urinalysis, Chest X-Ray Impression"
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="value">Result Value</Label>
-                      <Input id="value" name="value" placeholder="e.g. 5.4, Negative, Clear" required />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="unit">Unit (Optional)</Label>
-                      <Input id="unit" name="unit" placeholder="e.g. mg/dL" />
-                    </div>
-                    <div className="space-y-2 sm:col-span-2">
-                      <Label htmlFor="referenceRange">Reference Range (Optional)</Label>
-                      <Input
-                        id="referenceRange"
-                        name="referenceRange"
-                        placeholder="e.g. 4.0 - 6.0"
-                      />
-                    </div>
-                    <div className="space-y-2 sm:col-span-2">
-                      <Label htmlFor="remarks">Remarks (Optional)</Label>
-                      <Textarea id="remarks" name="remarks" placeholder="Additional clinical notes." />
-                    </div>
-                  </div>
-
-                  <label className="flex items-start gap-3 text-sm">
-                    <input type="checkbox" name="isAbnormal" className="mt-1 h-4 w-4" />
-                    <span>Mark this result item as abnormal.</span>
-                  </label>
-
-                  <Button type="submit" className="w-full sm:w-auto">
-                    Save Result Item
-                  </Button>
-                </form>
+                <>
+                  {reqError ? (
+                    <p className="rounded-md border border-amber-300/70 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                      Unable to load required test checklist: {reqError}
+                    </p>
+                  ) : (
+                    <RequiredTestsProgress required={requiredTests} encoded={encodedTestIds} />
+                  )}
+                  <TestResultForm
+                    visitId={panelVisit.visitid}
+                    returnPath={returnPath}
+                    catalog={catalog}
+                    packageTestIds={packageTestIds}
+                    caseAllowsAdditional={caseAllowsAdditional}
+                    caseAuthorizationLabel={caseAuthorizationLabel}
+                  />
+                </>
               )}
             </section>
 

@@ -46,3 +46,8 @@ tsconfig.tsbuildinfo
 playwright-report/
 test-results/
 tests/e2e/.auth/
+
+# Local tooling / chat logs (excluded from Tailwind content scanning too)
+plans/
+.playwright-mcp/
+qa-visual-dashboard-staff.png

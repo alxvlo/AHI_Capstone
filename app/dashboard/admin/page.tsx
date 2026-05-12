@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AuditLogViewer } from "@/components/dashboard/admin/audit-log-viewer";
+import { PackageTestMapper } from "@/components/dashboard/admin/package-test-mapper";
 import { ReferencePanel } from "@/components/dashboard/admin/reference-panel";
+import { TestCatalogManager } from "@/components/dashboard/admin/test-catalog-manager";
 import { UserTable } from "@/components/dashboard/admin/user-table";
 import { MetricCard } from "@/components/dashboard/shared/metric-card";
 import { FlashToast } from "@/components/dashboard/shared/flash-toast";
@@ -35,6 +37,7 @@ const ADMIN_TAB_LABEL: Record<AdminTab, string> = {
   users: "Users",
   reference: "Reference Data",
   audit: "Audit Logs",
+  catalog: "Test Catalog",
 };
 
 const ADMIN_TAB_DESCRIPTION: Record<AdminTab, string> = {
@@ -42,6 +45,7 @@ const ADMIN_TAB_DESCRIPTION: Record<AdminTab, string> = {
   users: "Manage user roles, account state, and organization linkage.",
   reference: "Maintain departments, packages, companies, and routing mappings.",
   audit: "Inspect audit events with filter controls.",
+  catalog: "Per-department test list and package-test mappings.",
 };
 
 export default async function AdminDashboardPage({
@@ -263,6 +267,14 @@ export default async function AdminDashboardPage({
             >
               <Link href={buildAdminReturnPath("audit")}>Audit Logs</Link>
             </Button>
+            <Button
+              variant={activeTab === "catalog" ? "default" : "outline"}
+              size="sm"
+              className="h-11 px-4 sm:h-9 sm:px-3"
+              asChild
+            >
+              <Link href={buildAdminReturnPath("catalog")}>Test Catalog</Link>
+            </Button>
           </div>
         }
       />
@@ -287,7 +299,7 @@ export default async function AdminDashboardPage({
       </div>
 
       {activeTab === "overview" ? (
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-base">User Administration</CardTitle>
@@ -326,6 +338,20 @@ export default async function AdminDashboardPage({
               </p>
               <Button size="sm" className="h-10 px-4" asChild>
                 <Link href={buildAdminReturnPath("audit")}>Open Audit Tab</Link>
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Test Catalog</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                View seeded test entries and package-test mappings by department.
+              </p>
+              <Button size="sm" className="h-10 px-4" asChild>
+                <Link href={buildAdminReturnPath("catalog")}>Open Test Catalog</Link>
               </Button>
             </CardContent>
           </Card>
@@ -370,6 +396,13 @@ export default async function AdminDashboardPage({
           }}
           logsError={auditError}
         />
+      ) : null}
+
+      {activeTab === "catalog" ? (
+        <div className="space-y-6">
+          <TestCatalogManager />
+          <PackageTestMapper />
+        </div>
       ) : null}
     </div>
   );

@@ -17,6 +17,13 @@ import {
 import { normalizePhilippineMobileForStorage } from "@/lib/phone";
 import { normalizeDashboardReturnPath } from "@/lib/dashboard/return-path";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { validateTestValue, isAbnormal } from "@/lib/test-catalog/validate";
+import {
+  getTestById,
+  getRequiredTestIds,
+  getEncodedTestIds,
+  isTestInPackage,
+} from "@/lib/test-catalog/queries";
 import {
   notifyClientOnRelease,
   notifyPatientOnRelease,
@@ -973,6 +980,38 @@ export async function updateDepartmentVisitStatusAction(formData: FormData) {
     updatePayload.remarks = note;
   }
 
+  // Required-test gate: only applies when transitioning to COMPLETED
+  if (nextStatusCode === "COMPLETED") {
+    const { data: visitRow } = await supabase
+      .from("department_visit")
+      .select("visitid, caseid, departmentid")
+      .eq("visitid", visitId)
+      .maybeSingle();
+
+    if (visitRow) {
+      const { data: caseForPackage } = await supabase
+        .from("peme_case")
+        .select("packageid")
+        .eq("caseid", visitRow.caseid)
+        .maybeSingle();
+
+      const packageId = caseForPackage?.packageid;
+      if (packageId) {
+        const required = await getRequiredTestIds(supabase, packageId, visitRow.departmentid);
+        if (required.length > 0) {
+          const encoded = await getEncodedTestIds(supabase, visitRow.visitid);
+          const missing = required.filter((id) => !encoded.includes(id));
+          if (missing.length > 0) {
+            redirectWithError(
+              returnPath,
+              `Cannot mark COMPLETED — ${missing.length} required test(s) not yet encoded for this package.`
+            );
+          }
+        }
+      }
+    }
+  }
+
   const { data: updatedVisit, error: updateError } = await supabase
     .from("department_visit")
     .update(updatePayload)
@@ -1004,19 +1043,17 @@ export async function updateDepartmentVisitStatusAction(formData: FormData) {
 export async function saveResultItemsAction(formData: FormData) {
   const returnPath = normalizeReturnPath(normalizeText(formData.get("returnPath")));
   const visitId = parseOptionalPositiveInt(normalizeText(formData.get("visitId")));
-  const testName = normalizeText(formData.get("testName")).slice(0, 100);
+  const testIdRaw = normalizeText(formData.get("testId"));
+  const testId = parseOptionalPositiveInt(testIdRaw);
+  const testNameRaw = normalizeText(formData.get("testName")).slice(0, 100);
   const value = normalizeText(formData.get("value")).slice(0, 100);
-  const unit = normalizeText(formData.get("unit")).slice(0, 20);
-  const referenceRange = normalizeText(formData.get("referenceRange")).slice(0, 50);
+  const unitRaw = normalizeText(formData.get("unit")).slice(0, 20);
+  const referenceRangeRaw = normalizeText(formData.get("referenceRange")).slice(0, 50);
   const remarks = normalizeText(formData.get("remarks")).slice(0, 255);
-  const isAbnormal = formData.get("isAbnormal") === "on";
+  const userIsAbnormalChecked = formData.get("isAbnormal") === "on";
 
   if (!visitId) {
     redirectWithError(returnPath, "Please select a valid visit before saving results.");
-  }
-
-  if (!testName) {
-    redirectWithError(returnPath, "Test name is required.");
   }
 
   if (!value) {
@@ -1062,25 +1099,107 @@ export async function saveResultItemsAction(formData: FormData) {
     }
   }
 
+  // Fetch case context (sex for abnormal detection, casenumber, package + category for fence)
   const { data: caseRow } = await supabase
     .from("peme_case")
-    .select("casenumber")
+    .select(
+      "casenumber, packageid, casecategory, patient:patientid(sex), status:casestatuscodeid(code)"
+    )
     .eq("caseid", visitRow.caseid)
     .maybeSingle();
 
   const caseNumber = caseRow?.casenumber ?? `CASE-${visitRow.caseid.slice(0, 8)}`;
+  const patientSex =
+    (caseRow?.patient as { sex?: string } | undefined)?.sex === "Female"
+      ? "F"
+      : (caseRow?.patient as { sex?: string } | undefined)?.sex === "Male"
+        ? "M"
+        : null;
+
+  // ─── Catalog path ──────────────────────────────────────────────────────────
+  let resolvedTestName = testNameRaw;
+  let resolvedUnit: string | null = unitRaw || null;
+  let resolvedRefRange: string | null = referenceRangeRaw || null;
+  let resolvedIsAbnormal = userIsAbnormalChecked;
+  let isAdditional = false;
+  let additionalRemark: string | null = null;
+
+  if (testId !== null) {
+    const test = await getTestById(supabase, testId);
+    if (!test) {
+      redirectWithError(returnPath, "Selected test is not in the catalog.");
+    }
+
+    const validationError = validateTestValue(test!, value, patientSex);
+    if (validationError) {
+      redirectWithError(returnPath, validationError);
+    }
+
+    resolvedTestName = test!.testname;
+    resolvedUnit = test!.defaultunit;
+    resolvedRefRange = test!.defaultref ?? resolvedRefRange;
+    resolvedIsAbnormal = userIsAbnormalChecked || isAbnormal(test!, value, patientSex);
+
+    // ─── Package-fence check (Hybrid rule) ───────────────────────────────────
+    if (caseRow?.packageid) {
+      const inPackage = await isTestInPackage(supabase, caseRow.packageid, testId);
+
+      if (!inPackage) {
+        const caseStatusCode =
+          (caseRow.status as { code?: string } | undefined)?.code ?? null;
+        const caseCategory = caseRow.casecategory ?? null;
+
+        const autoAuthorized =
+          caseStatusCode === "PENDING_ADDITIONAL_TESTS" ||
+          caseCategory === "Re-medical" ||
+          caseCategory === "Additional Tests";
+
+        if (autoAuthorized) {
+          isAdditional = true;
+          additionalRemark =
+            caseStatusCode === "PENDING_ADDITIONAL_TESTS"
+              ? "Auto-authorized: case in PENDING_ADDITIONAL_TESTS status"
+              : `Auto-authorized: case category is ${caseCategory}`;
+        } else {
+          const userRemark = normalizeText(formData.get("additionalTestRemark")).slice(0, 500);
+          if (!userRemark) {
+            redirectWithError(
+              returnPath,
+              `${resolvedTestName} is not part of this package. Provide a justification (>=10 characters) in the "Additional test reason" field, or have the physician request additional tests via the decision panel.`
+            );
+          }
+          if (userRemark.length < 10) {
+            redirectWithError(
+              returnPath,
+              "Additional test reason must be at least 10 characters."
+            );
+          }
+          isAdditional = true;
+          additionalRemark = userRemark;
+        }
+      }
+    }
+  } else {
+    // Freeform fallback — testName must be provided
+    if (!resolvedTestName) {
+      redirectWithError(returnPath, "Test name is required.");
+    }
+  }
 
   const { error: resultInsertError } = await supabase.from("result_item").insert({
     visitid: visitRow.visitid,
     caseid: visitRow.caseid,
     departmentid: visitRow.departmentid,
-    testname: testName,
+    testid: testId,
+    testname: resolvedTestName,
     value,
-    unit: unit || null,
-    referencerange: referenceRange || null,
-    isabnormal: isAbnormal,
+    unit: resolvedUnit,
+    referencerange: resolvedRefRange,
+    isabnormal: resolvedIsAbnormal,
     verificationstatus: "PENDING",
     remarks: remarks || null,
+    is_additional_test: isAdditional,
+    additional_test_remark: additionalRemark,
   });
 
   if (resultInsertError) {
@@ -1092,16 +1211,20 @@ export async function saveResultItemsAction(formData: FormData) {
 
   await supabase.from("audit_log").insert({
     userid: userId,
-    actiontype: "DEPARTMENT_RESULT_ITEM_SAVED",
+    actiontype: isAdditional
+      ? "DEPARTMENT_ADDITIONAL_TEST_ENCODED"
+      : "DEPARTMENT_RESULT_ITEM_SAVED",
     entityname: "result_item",
     entityid: String(visitRow.visitid),
-    details: `Result "${testName}" saved for ${caseNumber} (visit ${visitRow.visitid}).`,
+    details: isAdditional
+      ? `Off-package result "${resolvedTestName}" saved for ${caseNumber} (visit ${visitRow.visitid}). Reason: ${additionalRemark}`
+      : `Result "${resolvedTestName}" saved for ${caseNumber} (visit ${visitRow.visitid}).`,
   });
 
   revalidatePath(STAFF_DASHBOARD_PATH);
   redirectWithNotice(
     returnPath,
-    `Result "${testName}" saved for ${caseNumber}.`
+    `Result saved for ${resolvedTestName}.`
   );
 }
 

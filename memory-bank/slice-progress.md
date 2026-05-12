@@ -7,6 +7,30 @@ This file tracks completion status and verification results for each development
 
 ---
 
+## Slice 17 — Test Catalog Phase 1 (SCRUM-37)
+
+**Status:** Done
+**Date Completed:** 2026-05-12
+
+**What was done:**
+- New `lib/test-catalog/types.ts`: `TestCatalogEntry` and `Sex` types.
+- New `lib/test-catalog/catalog.ts`: static catalog of ~50 lab/clinical tests grouped by department and category. Each entry carries unit, reference ranges (by sex), and abnormal thresholds.
+- New `lib/test-catalog/validate.ts`: `isAbnormal(test, value, sex)` — compares numeric result against reference bounds; `validateTestValue(test, value, _sex)` — returns a user-facing error string or null.
+- New `lib/test-catalog/index.ts`: clean re-export surface.
+- Updated `components/dashboard/staff/encoding-form.tsx`: replaced freeform text input with a catalog-driven `<select>` grouped by category (`<optgroup>`). Selecting a test auto-fills unit and reference range. Abnormal flag is auto-detected on blur/change. `+ Custom test` toggle restores freeform input for off-catalog entries.
+- Required-tests panel added to encoding form: shows count of required tests for the package/department, with per-test completion badges.
+- Hybrid package-fence rule: if a test is in the standard package the staff cannot drop it; off-package extras are always allowed.
+- Unit tests: `tests/lib/test-catalog/validate.test.ts` (isAbnormal + validateTestValue — multiple sex/age/numeric edge cases).
+- E2E tests: `tests/e2e/dept-staff-catalog.spec.ts` (8 smoke tests: queue heading, dept name, test dropdown, optgroups, FBS auto-fill, Save button, required tests panel + count).
+- Auth setup fixtures: `tests/e2e/auth.deptstaff.setup.ts`, `tests/e2e/auth.admin.setup.ts`.
+- Admin catalog tab: `app/dashboard/admin/page.tsx` extended with a Test Catalog tab — shows seeded entry count, package-to-test mapping table, and department/category/test columns.
+
+**Bugfix:** Also fixed Tailwind v4 `Invalid code point` CSS crash on Windows — added `plans/`, `.playwright-mcp/`, and screenshot to `.gitignore` so Tailwind's content scanner skips tooling directories that contained Windows UUIDs in file paths.
+
+**Verification:** lint clean (0 warnings), typecheck clean (0 errors), Playwright E2E 41/44 passed (3 data-dependent skips — expected).
+
+---
+
 ## Slice 16 — Email Notification Pipeline (SCRUM-36)
 
 **Status:** Done

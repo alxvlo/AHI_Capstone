@@ -1,9 +1,7 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap');
-
 @import "tailwindcss";
 
 /*
- * Tailwind v4 theme — ported from the template's Tailwind v3 CSS variables.
+ * Tailwind v4 theme - ported from the template's Tailwind v3 CSS variables.
  * Uses the @theme directive instead of tailwind.config.ts.
  */
 @theme {
@@ -46,7 +44,7 @@
 }
 
 /*
- * CSS variable definitions — light theme (default).
+ * CSS variable definitions - light theme (default).
  * These are the HSL channel values consumed by the @theme block above.
  */
 :root {
