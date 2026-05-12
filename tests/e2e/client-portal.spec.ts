@@ -1,8 +1,8 @@
 /**
- * Client/Agency Portal E2E Smoke Tests
+ * Client Portal E2E Smoke Tests
  *
- * Validates the agency sign-in flow and DPA-gated access to the client portal.
- * Tests confirm sign-in page structure, auth guard, DPA gate messaging, and case access restrictions.
+ * Covers client portal flows not in client-dashboard.spec.ts:
+ * agency sign-in page structure, auth redirect, and DPA-gated access UI.
  * Run against a live dev server: npm run test:e2e
  */
 
@@ -13,34 +13,18 @@ async function goToClientPortal(page: Page): Promise<void> {
   await expect(page).toHaveURL(/\/dashboard\/client/, { timeout: 15_000 });
 }
 
-// ---------------------------------------------------------------------------
-// Group: Agency sign-in page
-// ---------------------------------------------------------------------------
-
 test.describe("Client portal — agency sign-in page", () => {
-  test("sign-in page renders correctly", async ({ page }) => {
+  test("agency sign-in renders email, password fields and Sign In button", async ({ page }) => {
     await page.goto("/auth/agency/sign-in");
-    await expect(page).toHaveURL(/\/auth\/agency\/sign-in/, { timeout: 15_000 });
-    
-    // Verify Email label is visible
+    await expect(page).toHaveURL(/\/auth\/agency\/sign-in/, { timeout: 10_000 });
     await expect(page.getByLabel(/email/i)).toBeVisible({ timeout: 10_000 });
-    
-    // Verify Password label is visible
     await expect(page.getByLabel(/password/i)).toBeVisible({ timeout: 10_000 });
-    
-    // Verify Sign In button is present
     await expect(page.getByRole("button", { name: /sign in/i })).toBeVisible({ timeout: 10_000 });
   });
 });
 
-// ---------------------------------------------------------------------------
-// Group: Auth guard
-// ---------------------------------------------------------------------------
-
-test.describe("Client portal — auth guard", () => {
-  test("unauthenticated request to /dashboard/client redirects to sign-in", async ({
-    browser,
-  }) => {
+test.describe("Client portal — auth redirect", () => {
+  test("unauthenticated /dashboard/client redirects to an auth page", async ({ browser }) => {
     const ctx = await browser.newContext({ storageState: undefined });
     const page = await ctx.newPage();
     await page.goto("/dashboard/client");
@@ -49,29 +33,19 @@ test.describe("Client portal — auth guard", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// Group: DPA gate and case access
-// ---------------------------------------------------------------------------
-
-test.describe("Client portal — DPA gate and case access", () => {
-  test("shows DPA gate information", async ({ page }) => {
+test.describe("Client portal — DPA-gated case access", () => {
+  test("portal loads and shows DPA Gate metric or related text", async ({ page }) => {
     await goToClientPortal(page);
-    // Verify DPA/Data Privacy/waiver-related text is visible
-    await expect(
-      page.getByText(/dpa|data privacy|waiver/i)
-    ).toBeVisible({ timeout: 10_000 });
+    const dpaVisible = await page.getByText(/dpa/i).first().isVisible({ timeout: 10_000 }).catch(() => false);
+    const privacyVisible = await page.getByText(/privacy/i).first().isVisible({ timeout: 10_000 }).catch(() => false);
+    const waiverVisible = await page.getByText(/waiver/i).first().isVisible({ timeout: 10_000 }).catch(() => false);
+    expect(dpaVisible || privacyVisible || waiverVisible).toBe(true);
   });
 
-  test("shows company case access section", async ({ page }) => {
+  test("portal shows Selected Case section or company access restriction notice", async ({ page }) => {
     await goToClientPortal(page);
-    // Verify Selected Case section or company access restriction notice is visible
-    const selectedCaseHeading = page.getByRole("heading", { name: /selected case/i });
-    const accessRestrictionText = page.getByText(/company access/i);
-    
-    // At least one should be visible
-    const isSelectedCaseVisible = await selectedCaseHeading.isVisible().catch(() => false);
-    const isAccessRestrictionVisible = await accessRestrictionText.isVisible().catch(() => false);
-    
-    expect(isSelectedCaseVisible || isAccessRestrictionVisible).toBe(true);
+    const selectedCaseVisible = await page.getByRole("heading", { name: /selected case/i }).isVisible({ timeout: 10_000 }).catch(() => false);
+    const restrictionVisible = await page.getByText(/company access/i).isVisible({ timeout: 10_000 }).catch(() => false);
+    expect(selectedCaseVisible || restrictionVisible).toBe(true);
   });
 });

@@ -1,79 +1,64 @@
-import { test, expect } from '@playwright/test';
+/**
+ * Patient Sign-Up Form Validation E2E Tests
+ *
+ * Tests client-side form validation on /auth/patient/sign-up.
+ * No auth required — all validation fires before any network call.
+ * Run against a live dev server: npm run test:e2e
+ */
 
-test.describe('Patient Sign-Up Form Validation', () => {
-  test.beforeEach(async ({ page }) => {
-    await page.goto('/auth/patient/sign-up');
+import { test, expect, type Page } from "@playwright/test";
+
+const SIGN_UP_URL = "/auth/patient/sign-up";
+
+async function fillRequiredFields(page: Page) {
+  await page.getByLabel(/full name/i).fill("Test User");
+  await page.locator("#dateOfBirth").fill("1990-01-01");
+  await page.locator("#sex").selectOption("Male");
+  await page.getByLabel(/email address/i).fill("test@example.com");
+  await page.locator("#contactNumber").fill("+63 912 345 6789");
+  await page.locator("#governmentIdType").selectOption({ index: 1 });
+  await page.locator("#governmentId").fill("A1234567");
+}
+
+test.describe("Patient sign-up — page structure", () => {
+  test("page loads with Create Patient Account heading and Create Account button", async ({ page }) => {
+    await page.goto(SIGN_UP_URL);
+    await expect(page).toHaveURL(/sign-up/, { timeout: 10_000 });
+    await expect(page.getByRole("heading", { name: /create patient account/i })).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByRole("button", { name: /create account/i })).toBeVisible({ timeout: 10_000 });
   });
 
-  test('Test 1: Page loads with "Create Patient Account" heading and "Create Account" button visible', async ({
-    page,
-  }) => {
-    // Verify heading is visible
-    const heading = page.getByRole('heading', { name: /Create Patient Account/i });
-    await expect(heading).toBeVisible();
+  test("sign-in link is present on the sign-up page", async ({ page }) => {
+    await page.goto(SIGN_UP_URL);
+    await expect(page.getByRole("link", { name: /sign in/i })).toBeVisible({ timeout: 10_000 });
+  });
+});
 
-    // Verify Create Account button is visible
-    const createButton = page.getByRole('button', { name: /Create Account/i });
-    await expect(createButton).toBeVisible();
+test.describe("Patient sign-up — form validation", () => {
+  test("empty form submit shows required-fields toast", async ({ page }) => {
+    await page.goto(SIGN_UP_URL);
+    await expect(page).toHaveURL(/sign-up/, { timeout: 10_000 });
+    await page.getByRole("button", { name: /create account/i }).click();
+    await expect(page.getByText(/please fill in all required fields/i)).toBeVisible({ timeout: 5_000 });
   });
 
-  test('Test 2: Empty form submission displays toast "Please fill in all required fields"', async ({
-    page,
-  }) => {
-    // Click Create Account button without filling form
-    const createButton = page.getByRole('button', { name: /Create Account/i });
-    await createButton.click();
-
-    // Wait for and verify toast message
-    const toast = page.getByText(/Please fill in all required fields/i);
-    await expect(toast).toBeVisible({ timeout: 5000 });
+  test("mismatched passwords show Passwords do not match toast", async ({ page }) => {
+    await page.goto(SIGN_UP_URL);
+    await expect(page).toHaveURL(/sign-up/, { timeout: 10_000 });
+    await fillRequiredFields(page);
+    await page.locator("#password").fill("Password1!");
+    await page.locator("#confirmPassword").fill("Password2!");
+    await page.getByRole("button", { name: /create account/i }).click();
+    await expect(page.getByText(/passwords do not match/i)).toBeVisible({ timeout: 5_000 });
   });
 
-  test('Test 3: Mismatched passwords display toast "Passwords do not match"', async ({ page }) => {
-    // Fill form with mismatched passwords
-    await page.fill('input[name="fullName"]', 'John Doe');
-    await page.fill('input[name="dateOfBirth"]', '1990-01-15');
-    await page.fill('input[name="email"]', 'john@example.com');
-    await page.fill('input[name="password"]', 'SecurePass123!');
-    await page.fill('input[name="confirmPassword"]', 'SecurePass456!');
-    await page.fill('input[name="contactNumber"]', '09123456789');
-    await page.fill('input[name="governmentIdType"]', 'Passport');
-    await page.fill('input[name="governmentIdNumber"]', 'AB123456');
-
-    // Click Create Account button
-    const createButton = page.getByRole('button', { name: /Create Account/i });
-    await createButton.click();
-
-    // Wait for and verify toast message
-    const toast = page.getByText(/Passwords do not match/i);
-    await expect(toast).toBeVisible({ timeout: 5000 });
-  });
-
-  test('Test 4: Password shorter than 8 characters displays toast "at least 8 characters"', async ({
-    page,
-  }) => {
-    // Fill form with short password
-    await page.fill('input[name="fullName"]', 'John Doe');
-    await page.fill('input[name="dateOfBirth"]', '1990-01-15');
-    await page.fill('input[name="email"]', 'john@example.com');
-    await page.fill('input[name="password"]', 'Short1!');
-    await page.fill('input[name="confirmPassword"]', 'Short1!');
-    await page.fill('input[name="contactNumber"]', '09123456789');
-    await page.fill('input[name="governmentIdType"]', 'Passport');
-    await page.fill('input[name="governmentIdNumber"]', 'AB123456');
-
-    // Click Create Account button
-    const createButton = page.getByRole('button', { name: /Create Account/i });
-    await createButton.click();
-
-    // Wait for and verify toast message
-    const toast = page.getByText(/at least 8 characters/i);
-    await expect(toast).toBeVisible({ timeout: 5000 });
-  });
-
-  test('Test 5: Sign-in link is present and visible', async ({ page }) => {
-    // Verify sign-in link is visible
-    const signInLink = page.getByRole('link', { name: /Sign in/i });
-    await expect(signInLink).toBeVisible();
+  test("short password shows minimum-length toast", async ({ page }) => {
+    await page.goto(SIGN_UP_URL);
+    await expect(page).toHaveURL(/sign-up/, { timeout: 10_000 });
+    await fillRequiredFields(page);
+    await page.locator("#password").fill("abc12");
+    await page.locator("#confirmPassword").fill("abc12");
+    await page.getByRole("button", { name: /create account/i }).click();
+    await expect(page.getByText(/at least 8 characters/i)).toBeVisible({ timeout: 5_000 });
   });
 });
