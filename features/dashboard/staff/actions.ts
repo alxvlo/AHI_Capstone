@@ -456,7 +456,7 @@ export async function createReceptionCaseAction(formData: FormData) {
       p_rush: isRush,
       p_waiver: waiverSigned,
       p_remarks: remarks || null,
-      p_created_by: userId,
+      // p_created_by removed — RPC now forces auth.uid() internally.
     }
   );
 
