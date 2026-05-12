@@ -97,8 +97,16 @@ export function makeSupabaseMock(statusCodes = makeStatusCodeMap()) {
     return stub;
   });
 
+  // Default rpc mock returns terminal visit status IDs (COMPLETED, CANCELLED, SKIPPED)
+  // derived from the status code map so tests don't need to stub this separately.
+  const terminalVisitIds = (["VISIT.COMPLETED", "VISIT.CANCELLED", "VISIT.SKIPPED"] as const)
+    .map((key) => statusCodes.get(key))
+    .filter((id): id is number => typeof id === "number");
+
+  const rpc = vi.fn().mockResolvedValue({ data: terminalVisitIds, error: null });
+
   return {
-    client: { from, auth: { getUser: vi.fn() } },
+    client: { from, rpc, auth: { getUser: vi.fn() } },
     tableStubs,
     auditInsert,
   };
@@ -108,13 +116,15 @@ export function makeSupabaseMock(statusCodes = makeStatusCodeMap()) {
  * Build a custom thenable that can be:
  * 1. `await`-ed directly → resolves to `{ count: outerCount, error: null }`
  * 2. chained with one more `.eq()` → resolves to `{ count: innerCount, error: null }`
+ * 3. chained with `.in()` → resolves to `{ count: innerCount, error: null }`
  *
  * Used to mock Supabase count queries that appear in two forms:
  *   .select(..., {count:"exact"}).eq("caseid", id)           → total visits
- *   .select(..., {count:"exact"}).eq("caseid", id).eq(...)   → completed visits
+ *   .select(..., {count:"exact"}).eq("caseid", id).eq(...)   → filtered visits (legacy)
+ *   .select(..., {count:"exact"}).eq("caseid", id).in(...)   → terminal visits
  */
 export function makeCountThenable(outerCount: number, innerCount: number) {
-  const innerEq = vi.fn().mockResolvedValue({ count: innerCount, error: null });
+  const innerResolved = vi.fn().mockResolvedValue({ count: innerCount, error: null });
 
   return {
     then(
@@ -125,6 +135,7 @@ export function makeCountThenable(outerCount: number, innerCount: number) {
     catch(reject: (e: unknown) => unknown) {
       return Promise.resolve({ count: outerCount, error: null }).catch(reject);
     },
-    eq: innerEq,
+    eq: innerResolved,
+    in: innerResolved,
   };
 }

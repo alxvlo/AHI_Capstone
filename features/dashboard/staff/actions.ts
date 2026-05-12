@@ -157,7 +157,7 @@ function parseDepartmentIdsFromForm(formData: FormData) {
   return Array.from(new Set(ids));
 }
 
-async function syncCaseWorkflowStatusAfterVisitUpdate(
+export async function syncCaseWorkflowStatusAfterVisitUpdate(
   supabase: CurrentUserRoleContext["supabase"],
   caseId: string
 ) {
@@ -168,9 +168,8 @@ async function syncCaseWorkflowStatusAfterVisitUpdate(
     "CASE",
     "PENDING_ADDITIONAL_TESTS"
   );
-  const completedVisitStatusId = await getStatusId(supabase, "VISIT", "COMPLETED");
 
-  if (!forDecisionStatusId || !inProgressStatusId || !completedVisitStatusId) {
+  if (!forDecisionStatusId || !inProgressStatusId) {
     return;
   }
 
@@ -198,6 +197,15 @@ async function syncCaseWorkflowStatusAfterVisitUpdate(
     return;
   }
 
+  // Pull terminal status ids from the database (COMPLETED / CANCELLED / SKIPPED).
+  const { data: terminalIds, error: terminalError } = await adminClient.rpc(
+    "rls_terminal_visit_status_ids"
+  );
+
+  if (terminalError || !Array.isArray(terminalIds) || terminalIds.length === 0) {
+    return;
+  }
+
   // Count ALL visits for the case (unscoped) — RLS-scoped client only sees the
   // acting dept's visits, causing premature "all complete" when other depts haven't finished.
   const { count: totalVisits, error: totalError } = await adminClient
@@ -209,19 +217,19 @@ async function syncCaseWorkflowStatusAfterVisitUpdate(
     return;
   }
 
-  const { count: completedVisits, error: completedError } = await adminClient
+  const { count: terminalVisits, error: terminalCountError } = await adminClient
     .from("department_visit")
     .select("visitid", { count: "exact", head: true })
     .eq("caseid", caseId)
-    .eq("visitstatuscodeid", completedVisitStatusId);
+    .in("visitstatuscodeid", terminalIds);
 
-  if (completedError || typeof completedVisits !== "number") {
+  if (terminalCountError || typeof terminalVisits !== "number") {
     return;
   }
 
-  const allVisitsCompleted = completedVisits === totalVisits;
+  const allVisitsTerminal = terminalVisits === totalVisits;
 
-  if (allVisitsCompleted && caseRow.casestatuscodeid !== forDecisionStatusId) {
+  if (allVisitsTerminal && caseRow.casestatuscodeid !== forDecisionStatusId) {
     // Use service-role client — Department Staff is not in peme_case_update_role_scoped
     // so the RLS-scoped client silently returns 0 rows affected.
     await adminClient
@@ -231,8 +239,8 @@ async function syncCaseWorkflowStatusAfterVisitUpdate(
     return;
   }
 
-  if (!allVisitsCompleted) {
-    // Incomplete visits while case sits at FOR_DECISION → fall back to PENDING_ADDITIONAL_TESTS or IN_PROGRESS.
+  if (!allVisitsTerminal) {
+    // Non-terminal visits while case sits at FOR_DECISION → fall back to PENDING_ADDITIONAL_TESTS or IN_PROGRESS.
     if (caseRow.casestatuscodeid === forDecisionStatusId && inProgressStatusId) {
       const fallbackStatusId = pendingAdditionalStatusId ?? inProgressStatusId;
       await adminClient
