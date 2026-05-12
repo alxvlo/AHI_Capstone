@@ -33,7 +33,9 @@
     "audit:auth:logs": "node --env-file=.env.local scripts/supabase/validate-auth-audit-events.mjs",
     "audit:auth:e2e": "node --env-file=.env.local scripts/supabase/validate-auth-e2e.mjs",
     "probe:cleanup": "npx supabase db query --linked --file scripts/supabase/cleanup-probe-users.sql",
-    "qa:security": "docker run --rm -t zaproxy/zap-stable zap-baseline.py -t http://host.docker.internal:3000"
+    "qa:security": "docker run --rm -t zaproxy/zap-stable zap-baseline.py -t http://host.docker.internal:3000",
+    "maintenance:sweep-orphan-files": "node --env-file=.env.local --import tsx scripts/maintenance/sweep-orphan-result-files.ts",
+    "maintenance:sweep-orphan-files:delete": "node --env-file=.env.local --import tsx scripts/maintenance/sweep-orphan-result-files.ts --delete"
   },
   "dependencies": {
     "@radix-ui/react-label": "^2.1.8",
