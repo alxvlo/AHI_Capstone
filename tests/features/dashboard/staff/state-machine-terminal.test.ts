@@ -9,28 +9,6 @@ const fakeStatusIds = {
   VISIT_SKIPPED: 12,
 };
 
-// getStatusId queries status_code table via the user-scoped supabase client.
-// It always does: .from("status_code").select(...).eq("domain", ...).eq("code", ...).eq("isactive", true).maybeSingle()
-// We return the FOR_DECISION id for every call (conservative — enough for the guard checks).
-function makeStatusCodeClient() {
-  const eqChain: Record<string, unknown> = {};
-
-  eqChain["maybeSingle"] = async () => ({
-    data: { statuscodeid: fakeStatusIds.CASE_FOR_DECISION },
-    error: null,
-  });
-  eqChain["eq"] = () => eqChain;
-
-  return {
-    from: vi.fn().mockImplementation((table: string) => {
-      if (table !== "status_code") throw new Error("unexpected table " + table);
-      return {
-        select: () => eqChain,
-      };
-    }),
-  };
-}
-
 // We need getStatusId to return distinct values for each CASE status type.
 // Build a smarter status_code mock that tracks domain+code keys.
 function makeSmartStatusCodeClient() {
