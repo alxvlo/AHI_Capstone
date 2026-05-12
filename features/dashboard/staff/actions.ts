@@ -571,19 +571,29 @@ export async function softCancelCaseAction(formData: FormData) {
     }
   }
 
-  const { error: caseUpdateError } = await supabase
+  const { data: updated, error: caseUpdateError } = await supabase
     .from("peme_case")
     .update({
       casestatuscodeid: archivedStatusId,
       portalvisible: false,
       archivedat: new Date().toISOString(),
     })
-    .eq("caseid", caseId);
+    .eq("caseid", caseId)
+    .eq("casestatuscodeid", caseRow.casestatuscodeid)
+    .select("caseid")
+    .maybeSingle();
 
   if (caseUpdateError) {
     redirectWithError(
       returnPath,
       `Case cancellation failed: ${caseUpdateError.message}`
+    );
+  }
+
+  if (!updated) {
+    redirectWithError(
+      returnPath,
+      `Case ${caseRow.casenumber} status changed during this operation. Refresh and retry.`
     );
   }
 

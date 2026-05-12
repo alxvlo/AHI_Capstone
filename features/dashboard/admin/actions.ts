@@ -143,6 +143,7 @@ export async function updateUserAccountAction(formData: FormData) {
   const companyId = parseOptionalPositiveInt(normalizeText(formData.get("companyId")));
   const isActive = parseBooleanFlag(formData, "isActive");
   const isLocked = parseBooleanFlag(formData, "isLocked");
+  const expectedUpdatedAt = normalizeText(formData.get("expectedUpdatedAt"));
 
   if (!targetUserId || !isUuid(targetUserId)) {
     redirectWithError(returnPath, "Invalid target user selected.");
@@ -163,7 +164,7 @@ export async function updateUserAccountAction(formData: FormData) {
 
   const { data: targetUserRow, error: targetUserError } = await supabase
     .from("user_account")
-    .select("userid, username")
+    .select("userid, username, updatedat")
     .eq("userid", targetUserId)
     .maybeSingle();
 
@@ -174,7 +175,14 @@ export async function updateUserAccountAction(formData: FormData) {
     );
   }
 
-  const { error: updateError } = await supabase
+  if (expectedUpdatedAt && targetUserRow.updatedat !== expectedUpdatedAt) {
+    redirectWithError(
+      returnPath,
+      "User record was edited by another admin while you were editing. Refresh and re-apply your changes."
+    );
+  }
+
+  const { data: applied, error: updateError } = await supabase
     .from("user_account")
     .update({
       roleid: roleId,
@@ -182,10 +190,20 @@ export async function updateUserAccountAction(formData: FormData) {
       isactive: isActive,
       islocked: isLocked,
     })
-    .eq("userid", targetUserId);
+    .eq("userid", targetUserId)
+    .eq("updatedat", targetUserRow.updatedat)
+    .select("userid")
+    .maybeSingle();
 
   if (updateError) {
     redirectWithError(returnPath, `User update failed: ${updateError.message}`);
+  }
+
+  if (!applied) {
+    redirectWithError(
+      returnPath,
+      "User record was updated by another admin. Refresh and re-apply your changes."
+    );
   }
 
   await writeAdminAuditLog(

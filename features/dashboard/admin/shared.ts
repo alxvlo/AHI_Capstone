@@ -62,6 +62,7 @@ export type UserAdminRow = {
   islocked: boolean | null;
   lastloginat: string | null;
   createdat: string;
+  updatedat: string;
   role?: {
     roleid: number;
     rolename: string;

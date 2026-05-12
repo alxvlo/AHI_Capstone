@@ -139,6 +139,7 @@ export function UserTable({
                   <form action={updateUserAccountAction} className="space-y-2">
                     <input type="hidden" name="returnPath" value={returnPath} />
                     <input type="hidden" name="targetUserId" value={userRow.userid} />
+                    <input type="hidden" name="expectedUpdatedAt" value={userRow.updatedat} />
 
                     <select
                       name="roleId"
