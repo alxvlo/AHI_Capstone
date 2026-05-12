@@ -94,50 +94,6 @@ function makePemeCaseStub(
 }
 
 // ---------------------------------------------------------------------------
-// department_visit stub — two count queries:
-//   1st call ends at .eq("caseid", caseId)  → totalCount (thenable)
-//   2nd call ends at .neq("visitstatuscodeid", ...) → incompleteCount (promise)
-//
-// The action calls supabase.from("department_visit") twice. We use a call
-// counter on the outer from() to serve the right thenable on each call.
-// ---------------------------------------------------------------------------
-function makeDepartmentVisitStub(totalCount: number, incompleteCount: number) {
-  let callCount = 0;
-  return {
-    _getStubForCall: () => {
-      callCount++;
-      if (callCount === 1) {
-        // First call: ends at .eq("caseid", caseId) — thenable + .neq() fallback
-        return {
-          select: () => ({
-            eq: () => {
-              const thenable = {
-                neq: () => Promise.resolve({ count: incompleteCount, error: null }),
-                then(resolve: (v: { count: number; error: null }) => unknown) {
-                  return Promise.resolve({ count: totalCount, error: null }).then(resolve);
-                },
-                catch(reject: (e: unknown) => unknown) {
-                  return Promise.resolve({ count: totalCount, error: null }).catch(reject);
-                },
-              };
-              return thenable;
-            },
-          }),
-        };
-      }
-      // Second call: ends at .neq("visitstatuscodeid", ...) — direct promise
-      return {
-        select: () => ({
-          eq: () => ({
-            neq: () => Promise.resolve({ count: incompleteCount, error: null }),
-          }),
-        }),
-      };
-    },
-  };
-}
-
-// ---------------------------------------------------------------------------
 // Test 1: case not in FOR_RELEASING — casestatuscodeid=4 (FOR_DECISION)
 // ---------------------------------------------------------------------------
 describe("releaseCaseAction — case not FOR_RELEASING", () => {
