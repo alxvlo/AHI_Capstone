@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 /*
- * Tailwind v4 theme — ported from the template's Tailwind v3 CSS variables.
+ * Tailwind v4 theme - ported from the template's Tailwind v3 CSS variables.
  * Uses the @theme directive instead of tailwind.config.ts.
  */
 @theme {
@@ -44,7 +44,7 @@
 }
 
 /*
- * CSS variable definitions — light theme (default).
+ * CSS variable definitions - light theme (default).
  * These are the HSL channel values consumed by the @theme block above.
  */
 :root {
