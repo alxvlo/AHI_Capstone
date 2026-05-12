@@ -1,8 +1,8 @@
 # Current Sprint
 
-**Last Updated:** 2026-05-08  
-**Phase:** Phase 4 — Backend Wiring and Storage (completing)  
-**Current Focus:** SCRUM-36 (email) implemented 2026-05-08. SCRUM-37 and SCRUM-38 remain deferred.
+**Last Updated:** 2026-05-12  
+**Phase:** Phase 5 — Integrations (Slice 17 complete)  
+**Current Focus:** SCRUM-37 Test Catalog Phase 1 merged 2026-05-12. SCRUM-38 (deployment) remains deferred.
 
 ---
 
@@ -20,13 +20,11 @@ All slices through Slice 13 are complete and code-verified. The tech debt sprint
 
 ### To Do / Next Sprint
 
-1. **SCRUM-37** — PDF certificate generation (BLOCKED: awaiting AHI template)
-2. **SCRUM-38** — Deployment authorization
+1. **SCRUM-38** — Deployment authorization
 
 ### Deferred / Pending
 
-1. `SCRUM-37` — PDF certificate and transmittal generation (BLOCKED by AHI template/signature requirements)
-2. `SCRUM-38` — Deployment authorization request
+1. `SCRUM-38` — Deployment authorization request
 
 ---
 
@@ -37,6 +35,7 @@ All slices through Slice 13 are complete and code-verified. The tech debt sprint
 - **SCRUM-25 (2026-04-28):** Extended `syncCaseWorkflowStatusAfterVisitUpdate` in `actions.ts` to move `PENDING_ADDITIONAL_TESTS → IN_PROGRESS` when an additional visit is started. Covered by `tests/features/dashboard/staff/request-additional-tests.test.ts` (6 tests: happy path + 5 error gates). Shared mock helpers in `tests/features/dashboard/staff/_helpers.ts`.
 - **SCRUM-26 (2026-04-28):** Case completion-percentage helper — `lib/dashboard/case-progress.ts` (`computeCaseCompletion`, `computeCaseCompletionBatch`), 13 unit tests in `tests/lib/case-progress.test.ts`, wired into `ReleasingModule` and `PhysicianModule` (visit progress column added). Also fixed P1 bug: physician module was reading visit status ID from the case status map (always returned undefined).
 - **SCRUM-36 (2026-05-08):** Email notification pipeline — Nodemailer SMTP transport (`lib/email/transport.ts`), three plain-text templates (`lib/email/templates.ts`), audit-logging send wrapper (`lib/email/send.ts`), three notify functions (`features/dashboard/staff/email-notifications.ts`). Wired into `releaseCaseAction` (patient + client emails) and `submitPhysicianDecisionAction` (releasing-staff email). All sends are fire-and-forget; `EMAIL_SENT`/`EMAIL_FAILED`/`EMAIL_SKIPPED` audited. Integration tests via Ethereal SMTP cover single-send, 5-concurrent, failure, and skip paths. Resend free relay in dev/staging; production swap-able to Postmark via env vars only.
+- **SCRUM-37 (2026-05-12):** Test Catalog Phase 1 — static catalog (`lib/test-catalog/`), catalog-driven encoding form with auto-abnormal detection (sex-aware), required-tests panel, hybrid package-fence rule, admin catalog tab. Playwright E2E 41/44 (3 data-dependent skips). ESLint and TypeScript clean. Also fixed Tailwind v4 `Invalid code point` CSS crash on Windows via `.gitignore` exclusions.
 - **SCRUM-30 (2026-05-08):** Realtime WebSocket subscriptions — Supabase publication migration (`supabase/migrations/20260508_enable_realtime_publications.sql`), `useRealtimeRefresh` hook (`lib/realtime/use-realtime-refresh.ts`), `RealtimeBridge` component (`components/dashboard/shared/realtime-bridge.tsx`), wired into 4 staff modules + patient portal. Removed 2 TODO(SCRUM-30) seams in `actions.ts`. Unit tests (5) + integration tests (4 env-guarded) all pass.
 - **SCRUM-31 (2026-04-28):** Lifecycle integration tests — `tests/integration/case-lifecycle.test.ts` (12 steps: REGISTERED→RELEASED, RLS write blocks, waiver gate, return-path sanitisation). Separate Vitest config `vitest.integration.config.ts`.
 - **SCRUM-52 (2026-04-28):** Playwright E2E tests — `playwright.config.ts`, `tests/e2e/auth.setup.ts` (reception probe auth), `tests/e2e/staff-dashboard.spec.ts` (15 smoke tests across 7 groups). Playwright added to devDependencies.
@@ -49,7 +48,7 @@ All slices through Slice 13 are complete and code-verified. The tech debt sprint
 
 ## Open Decisions
 
-- **PDF (SCRUM-37):** Blocked by AHI template/signature requirements; no timeline confirmed.
+- **PDF certificate:** Original SCRUM-37 scope (PDF generation) was superseded by Test Catalog Phase 1 on this branch. PDF work remains pending AHI template/signature requirements.
 
 ---
 
