@@ -442,7 +442,7 @@ export async function createReceptionCaseAction(formData: FormData) {
     );
   }
 
-  const { supabase, userId, role } = await resolveActionContext();
+  const { supabase, role } = await resolveActionContext();
   ensureAllowedRole(role, [RECEPTION_ROLE, ADMIN_ROLE], returnPath);
 
   // Use atomic RPC — creates case + department visits in a single transaction
