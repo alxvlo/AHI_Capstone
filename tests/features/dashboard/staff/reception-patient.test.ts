@@ -15,6 +15,29 @@ const VALID_FIELDS = {
 };
 
 // ---------------------------------------------------------------------------
+// Helper: set up the three common vi.doMock calls shared by every test.
+// Returns a redirectCalls array that accumulates redirect URLs.
+// ---------------------------------------------------------------------------
+function setupMocks(role = "Reception/Billing", supabaseStub: unknown = {}) {
+  const redirectCalls: string[] = [];
+  vi.doMock("next/navigation", () => ({
+    redirect: (url: string): never => {
+      redirectCalls.push(url);
+      throw Object.assign(new Error("NEXT_REDIRECT"), { digest: "NEXT_REDIRECT" });
+    },
+  }));
+  vi.doMock("next/cache", () => ({ revalidatePath: vi.fn() }));
+  vi.doMock("@/lib/supabase/role-routing", () => ({
+    resolveCurrentUserRoleContext: async () => ({
+      supabase: supabaseStub,
+      userId: "uid-1",
+      role,
+    }),
+  }));
+  return { redirectCalls };
+}
+
+// ---------------------------------------------------------------------------
 // Helper: build a supabase stub wired to a makeAuditCollector
 // ---------------------------------------------------------------------------
 function makePatientInsertSupabase(
@@ -44,28 +67,11 @@ function makePatientInsertSupabase(
 }
 
 // ---------------------------------------------------------------------------
-// Test 1: rejects empty fullName
+// Validation tests (tests 1–4)
 // ---------------------------------------------------------------------------
 describe("createReceptionPatientAction — validation", () => {
   it("rejects empty fullName with a redirect error", async () => {
-    const redirectCalls: string[] = [];
-
-    vi.doMock("next/navigation", () => ({
-      redirect: (url: string): never => {
-        redirectCalls.push(url);
-        throw Object.assign(new Error("NEXT_REDIRECT"), { digest: "NEXT_REDIRECT" });
-      },
-    }));
-
-    vi.doMock("next/cache", () => ({ revalidatePath: vi.fn() }));
-
-    vi.doMock("@/lib/supabase/role-routing", () => ({
-      resolveCurrentUserRoleContext: async () => ({
-        supabase: { from: vi.fn() },
-        userId: "uid-1",
-        role: "Reception/Billing",
-      }),
-    }));
+    const { redirectCalls } = setupMocks("Reception/Billing", { from: vi.fn() });
 
     const { createReceptionPatientAction } = await import(
       "@/features/dashboard/staff/actions"
@@ -80,28 +86,8 @@ describe("createReceptionPatientAction — validation", () => {
     expect(url.searchParams.get("error")).toContain("Full name is required");
   });
 
-  // -------------------------------------------------------------------------
-  // Test 2: rejects future dateOfBirth
-  // -------------------------------------------------------------------------
   it("rejects a future dateOfBirth with a redirect error", async () => {
-    const redirectCalls: string[] = [];
-
-    vi.doMock("next/navigation", () => ({
-      redirect: (url: string): never => {
-        redirectCalls.push(url);
-        throw Object.assign(new Error("NEXT_REDIRECT"), { digest: "NEXT_REDIRECT" });
-      },
-    }));
-
-    vi.doMock("next/cache", () => ({ revalidatePath: vi.fn() }));
-
-    vi.doMock("@/lib/supabase/role-routing", () => ({
-      resolveCurrentUserRoleContext: async () => ({
-        supabase: { from: vi.fn() },
-        userId: "uid-1",
-        role: "Reception/Billing",
-      }),
-    }));
+    const { redirectCalls } = setupMocks("Reception/Billing", { from: vi.fn() });
 
     const { createReceptionPatientAction } = await import(
       "@/features/dashboard/staff/actions"
@@ -116,28 +102,8 @@ describe("createReceptionPatientAction — validation", () => {
     expect(url.searchParams.get("error")).toContain("valid date of birth");
   });
 
-  // -------------------------------------------------------------------------
-  // Test 3: rejects malformed governmentId (no :: separator)
-  // -------------------------------------------------------------------------
   it("rejects a malformed governmentId without :: separator", async () => {
-    const redirectCalls: string[] = [];
-
-    vi.doMock("next/navigation", () => ({
-      redirect: (url: string): never => {
-        redirectCalls.push(url);
-        throw Object.assign(new Error("NEXT_REDIRECT"), { digest: "NEXT_REDIRECT" });
-      },
-    }));
-
-    vi.doMock("next/cache", () => ({ revalidatePath: vi.fn() }));
-
-    vi.doMock("@/lib/supabase/role-routing", () => ({
-      resolveCurrentUserRoleContext: async () => ({
-        supabase: { from: vi.fn() },
-        userId: "uid-1",
-        role: "Reception/Billing",
-      }),
-    }));
+    const { redirectCalls } = setupMocks("Reception/Billing", { from: vi.fn() });
 
     const { createReceptionPatientAction } = await import(
       "@/features/dashboard/staff/actions"
@@ -153,28 +119,8 @@ describe("createReceptionPatientAction — validation", () => {
     expect(url.searchParams.get("error")).toContain("TYPE::NUMBER");
   });
 
-  // -------------------------------------------------------------------------
-  // Test 4: blocks non-reception roles
-  // -------------------------------------------------------------------------
   it("blocks a non-Reception role with a redirect error", async () => {
-    const redirectCalls: string[] = [];
-
-    vi.doMock("next/navigation", () => ({
-      redirect: (url: string): never => {
-        redirectCalls.push(url);
-        throw Object.assign(new Error("NEXT_REDIRECT"), { digest: "NEXT_REDIRECT" });
-      },
-    }));
-
-    vi.doMock("next/cache", () => ({ revalidatePath: vi.fn() }));
-
-    vi.doMock("@/lib/supabase/role-routing", () => ({
-      resolveCurrentUserRoleContext: async () => ({
-        supabase: { from: vi.fn() },
-        userId: "uid-1",
-        role: "Patient",
-      }),
-    }));
+    const { redirectCalls } = setupMocks("Patient", { from: vi.fn() });
 
     const { createReceptionPatientAction } = await import(
       "@/features/dashboard/staff/actions"
@@ -188,22 +134,13 @@ describe("createReceptionPatientAction — validation", () => {
     const url = new URL(redirectCalls[0], "http://localhost");
     expect(url.searchParams.get("error")).toContain("not allowed");
   });
+});
 
-  // -------------------------------------------------------------------------
-  // Test 5: inserts patient and writes audit log on success
-  // -------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
+// Happy path (test 5)
+// ---------------------------------------------------------------------------
+describe("createReceptionPatientAction — happy path", () => {
   it("inserts patient and writes audit log on success, then redirects with notice", async () => {
-    const redirectCalls: string[] = [];
-
-    vi.doMock("next/navigation", () => ({
-      redirect: (url: string): never => {
-        redirectCalls.push(url);
-        throw Object.assign(new Error("NEXT_REDIRECT"), { digest: "NEXT_REDIRECT" });
-      },
-    }));
-
-    vi.doMock("next/cache", () => ({ revalidatePath: vi.fn() }));
-
     const auditCollector = makeAuditCollector();
 
     const supabaseStub = makePatientInsertSupabase(
@@ -211,13 +148,7 @@ describe("createReceptionPatientAction — validation", () => {
       auditCollector
     );
 
-    vi.doMock("@/lib/supabase/role-routing", () => ({
-      resolveCurrentUserRoleContext: async () => ({
-        supabase: supabaseStub,
-        userId: "uid-1",
-        role: "Reception/Billing",
-      }),
-    }));
+    const { redirectCalls } = setupMocks("Reception/Billing", supabaseStub);
 
     const { createReceptionPatientAction } = await import(
       "@/features/dashboard/staff/actions"
