@@ -98,6 +98,29 @@ export default defineConfig({
       },
       dependencies: ["setup-deptstaff"],
     },
+    {
+      name: "patient-portal",
+      testMatch: /patient-portal\.spec\.ts/,
+      use: {
+        ...devices["Desktop Chrome"],
+        storageState: path.join(__dirname, "tests/e2e/.auth/patient.json"),
+      },
+      dependencies: ["setup-patient"],
+    },
+    {
+      name: "client-portal",
+      testMatch: /client-portal\.spec\.ts/,
+      use: {
+        ...devices["Desktop Chrome"],
+        storageState: path.join(__dirname, "tests/e2e/.auth/client.json"),
+      },
+      dependencies: ["setup-client"],
+    },
+    {
+      name: "signup",
+      testMatch: /sign-up\.spec\.ts/,
+      use: { ...devices["Desktop Chrome"] },
+    },
   ],
 
   // Automatically start the dev server if not already running.
