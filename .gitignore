@@ -45,3 +45,12 @@ tsconfig.tsbuildinfo
 playwright-report/
 test-results/
 tests/e2e/.auth/
+
+# Local dev tooling (opencode, agent framework, MCP scripts)
+.agent/
+.opencode/
+mcp-tools/
+shared/
+
+# Claude Code project-local settings (machine-specific)
+.claude/settings.json
