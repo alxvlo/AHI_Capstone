@@ -8,7 +8,7 @@ This repo is optimized for team execution, planning, QA, and traceable delivery 
 
 - **Project:** Real-Time PEME Monitoring and Result Access System for American Hospital Inc.
 - **Primary goal:** Replace fragmented paper-heavy PEME tracking with role-based dashboards, secure portals, and real-time workflow visibility.
-- **Current phase:** Phase 2 (External Portals), Jira Sprint 08/09 sequence active.
+- **Current phase:** Phase 4 (Backend Wiring and Storage, completing). See `memory-bank/current-sprint.md` for the authoritative state.
 - **Team:** Keith Avellaneda, Deejay Clark Datu, Alexander Velo.
 
 ## What Is In This Repository
@@ -177,42 +177,65 @@ npm run start
 
 ## Common Commands
 
-```bash
-# Code quality
-npm run lint
-npm run typecheck
+<!-- AUTO-GENERATED:scripts START — generated from package.json, do not edit by hand -->
 
-# Tests
-npm run test:run
-npm run test:coverage
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Start Next.js dev server with hot reload |
+| `npm run build` | Production build |
+| `npm run start` | Run the production build |
+| `npm run lint` | ESLint over the repo |
+| `npm run typecheck` | `tsc --noEmit` strict type check |
+| `npm run test` | Vitest in default (watch) mode |
+| `npm run test:run` | One-shot Vitest run |
+| `npm run test:watch` | Vitest in explicit watch mode |
+| `npm run test:coverage` | Vitest with V8 coverage |
+| `npm run test:integration` | Integration Vitest config (loads `.env.local`) |
+| `npm run test:e2e` | Playwright E2E suite (loads `.env.local`) |
+| `npm run test:e2e:ui` | Playwright E2E in UI mode |
+| `npm run test:e2e:headed` | Playwright E2E in headed browser mode |
+| `npm run qa:local` | `lint` + `typecheck` + `test:run` — pre-PR baseline |
+| `npm run qa:ci` | `lint` + `typecheck` + `test:coverage` — CI baseline |
+| `npm run qa:supabase` | All Supabase-backed audits (roles, write policies, auth logs, auth E2E) |
+| `npm run qa:security` | OWASP ZAP baseline scan against `http://localhost:3000` (requires Docker) |
+| `npm run seed:reference` | Seed reference data into the linked Supabase project |
+| `npm run probe:bootstrap` | Bootstrap role-probe users for audits |
+| `npm run probe:deptstaff:noclaim:bootstrap` | Seed the dept-staff missing-claim probe scenario |
+| `npm run probe:cleanup` | Remove probe users from the linked Supabase project |
+| `npm run audit:roles:redirect` | Verify role → dashboard redirects |
+| `npm run audit:roles:protected:all` | Verify protected-route access across all roles |
+| `npm run audit:roles:smoke:all` | Smoke-test all role landing pages |
+| `npm run audit:roles:all` | Run all three role audits in sequence |
+| `npm run audit:roles:deptstaff:noclaim` | Audit dept-staff with missing department claim |
+| `npm run audit:write-policies` | Validate RLS write-policy baseline |
+| `npm run audit:write:workflow` | Validate workflow write matrix |
+| `npm run audit:write:all` | Run both write-policy audits |
+| `npm run audit:auth:logs` | Validate `audit_log` rows produced by auth flows |
+| `npm run audit:auth:e2e` | End-to-end auth audit (signup, signin, role gating) |
 
-# Local QA baseline
-npm run qa:local
-npm run qa:ci
+<!-- AUTO-GENERATED:scripts END -->
 
-# Supabase-backed audits
-npm run qa:supabase
-```
-
-Use `qa:supabase` only against a safe seeded environment.
+`qa:supabase` and every `audit:*` / `seed:*` / `probe:*` script hits the linked Supabase project via `.env.local`. Run them only against a seeded dev/staging project — never production.
 
 ## Current Implementation State
 
+> The authoritative state lives in `memory-bank/current-sprint.md` and `memory-bank/slice-progress.md`. The snapshot below is regenerated when docs are synced — defer to the memory bank on conflict.
+
 Implemented or stabilized:
 
-- Supabase-backed auth flow for patient signup/signin.
-- SSR-compatible session handling and role-aware redirects.
-- Dashboard guard middleware and role-protected routing.
-- Phase 1 staff dashboards complete (all 8 slices: shared primitives + triage vitals + lifecycle RPC + releasing enhancements).
-- Vitest-based QA baseline and GitHub Actions QA workflow.
+- Supabase-backed auth flow for patient signup/signin and SSR session handling.
+- Dashboard guard middleware and role-aware redirects across all 8 roles.
+- Phase 1 staff dashboards (Reception, Triage with vitals, Department, Physician, Releasing) and lifecycle RPCs.
+- Patient portal progress tracker, agency/client DPA-gated portal, and result file storage (Slices 9, 10, 13).
+- Lifecycle integration tests, result verification, additional-tests workflow (SCRUM-22/23/25/26/31/52).
+- E2E coverage across patient, client, and admin portals with enforced coverage thresholds.
 
-Still active / not yet complete:
+Open / deferred:
 
-- `SCRUM-33`: Patient portal progress tracker and result view (Slice 9).
-- `SCRUM-34`: Patient portal PDF download entrypoint (subject to existing PDF/template blockers).
-- `SCRUM-40`: Portal mobile optimization (`360-428px`).
-- `SCRUM-35`: Agency portal DPA-gated search and result access (Slice 10).
-- `SCRUM-36`, `SCRUM-37`, `SCRUM-38`: queued in Sprint 09 per current sprint ordering.
+- `SCRUM-30` — Supabase Realtime (Slice 14). Marked Done in Jira but no code in repo; reopened 2026-04-28. TODO seams left in `saveResultItemsAction` and `verifyResultItemAction`.
+- `SCRUM-36` — Email notifications. Marked Done in Jira; no code in repo; scope to be confirmed.
+- `SCRUM-37` — PDF certificate generation. BLOCKED on AHI template/signature requirements.
+- `SCRUM-38` — Deployment authorization.
 
 ## Team Workflow
 
