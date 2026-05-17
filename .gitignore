@@ -21,6 +21,7 @@ __pycache__/
 .env
 .env.*
 !.env.example
+!.env.local.example
 
 # OS / Editor
 .DS_Store
@@ -51,6 +52,12 @@ tests/e2e/.auth/
 .opencode/
 mcp-tools/
 shared/
+plans/
+.playwright-mcp/
+qa-visual-dashboard-staff.png
 
 # Claude Code project-local settings (machine-specific)
 .claude/settings.json
+
+# Git worktrees
+.worktrees/

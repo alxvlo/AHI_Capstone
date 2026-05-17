@@ -8,7 +8,7 @@ import {
   isValidPhilippineMobile,
   normalizePhilippineMobileForStorage,
 } from "@/lib/phone";
-import { buildGovernmentIdForStorage } from "@/lib/government-id";
+import { buildGovernmentIdForStorage, validateGovernmentIdFormat } from "@/lib/government-id";
 
 interface AuthUser {
   id: string;
@@ -416,6 +416,11 @@ export function AuthProvider({
         success: false,
         error: "ID number is required.",
       };
+    }
+
+    const idFormatError = validateGovernmentIdFormat(governmentIdType, governmentId);
+    if (idFormatError) {
+      return { success: false, error: idFormatError };
     }
 
     const normalizedContactNumber =

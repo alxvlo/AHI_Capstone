@@ -87,8 +87,8 @@ American Hospital Inc. (AHI) processes ~1,000 Pre-Employment Medical Examination
 | E2E case lifecycle validation (Slice 15, `SCRUM-31`) | In Progress per Jira | No |
 | Defect triage and regression testing (`SCRUM-32`) | In Progress per Jira | No |
 | Package completion percentage and auto-detection (`SCRUM-26`) | To Do per Jira | No |
-| Realtime WebSocket subscriptions (Slice 14, `SCRUM-30`) | Done per Jira (2026-04-15); no code found in repo as of 2026-04-25 — verify | ⚠️ |
-| Email notification pipeline on release (`SCRUM-36`, Slice 16) | Done per Jira (2026-04-15); no code found in repo as of 2026-04-25 — verify | ⚠️ |
+| Realtime WebSocket subscriptions (Slice 14, `SCRUM-30`) | Done 2026-05-08 | ✅ |
+| Email notification pipeline on release (`SCRUM-36`, Slice 16) | Done 2026-05-08 | ✅ |
 | PDF certificate and transmittal generation (`SCRUM-37`, Slice 17) | Deferred | Yes (AHI Sections 2-3) |
 | Deployment authorization request (`SCRUM-38`) | Deferred | No |
 | Deployment config (Vercel) | Deferred | No |
@@ -513,7 +513,7 @@ npm run qa:local
 
 ---
 
-### Slice 14 — Realtime WebSocket Subscriptions [DONE per Jira 2026-04-15 — NOT FOUND IN CODEBASE]
+### Slice 14 — Realtime WebSocket Subscriptions [DONE 2026-05-08]
 
 **Goal:** Auto-refresh queues when data changes, without manual page reload.
 
@@ -547,7 +547,7 @@ npm run qa:local
 
 ---
 
-### Slice 16 — Email Notifications (SCRUM-36, SPRINT-09 QUEUE)
+### Slice 16 — Email Notifications [DONE 2026-05-08]
 
 **Goal:** Auto-notify patient and crewing officer when a case is released.
 
@@ -559,17 +559,21 @@ npm run qa:local
 
 ---
 
-### Slice 17 — PDF Certificate Generation (SCRUM-37, SPRINT-09 QUEUE)
+### Slice 17 — Test Catalog Phase 1 (SCRUM-37) ✅ DONE 2026-05-12
 
-**Goal:** Generate downloadable fitness certificates.
+**Goal:** Replace freeform result entry with a catalog-driven encoding form that enforces required tests and auto-detects abnormal values.
 
-> **BLOCKED** by AHI Sections 2-3 (file formats, templates, branding, digital signature needs).
+**Delivered:**
+1. Static test catalog (`lib/test-catalog/`) — ~50 tests, dept/category grouping, sex-aware reference ranges.
+2. Catalog-driven encoding form — `<select>` with `<optgroup>` by category; auto-fills unit + reference range on selection.
+3. Auto-abnormal detection (`isAbnormal`) — fires on blur/change; sex-aware numeric bound comparison.
+4. Required-tests panel — shows required count and per-test completion badges.
+5. Hybrid package-fence rule — required tests locked; off-package extras freely allowed.
+6. `+ Custom test` toggle — freeform fallback for off-catalog entries.
+7. Admin catalog tab — entry count, package-to-test mapping table, column headers.
+8. Playwright E2E: 41/44 pass (3 data-dependent skips); ESLint and TypeScript clean.
 
-**Steps (once unblocked):**
-1. Design PDF template based on AHI samples.
-2. Server-side generation via Edge Function or API route.
-3. Download endpoint: role-gated. Patient gets full certificate. Company gets summary only (FIT/UNFIT).
-4. Transmittal summary for releasing staff (per-company batch).
+**Note:** Original Slice 17 (PDF certificate generation) remains pending AHI template/signature requirements and will be addressed in a future sprint.
 
 ---
 

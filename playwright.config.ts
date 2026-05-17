@@ -47,6 +47,10 @@ export default defineConfig({
       name: "setup-admin",
       testMatch: /auth\.admin\.setup\.ts/,
     },
+    {
+      name: "setup-deptstaff",
+      testMatch: /auth\.deptstaff\.setup\.ts/,
+    },
 
     // Test projects — each reuses the matching stored session
     {
@@ -84,6 +88,38 @@ export default defineConfig({
         storageState: path.join(__dirname, "tests/e2e/.auth/admin.json"),
       },
       dependencies: ["setup-admin"],
+    },
+    {
+      name: "deptstaff",
+      testMatch: /dept-staff-catalog\.spec\.ts/,
+      use: {
+        ...devices["Desktop Chrome"],
+        storageState: path.join(__dirname, "tests/e2e/.auth/deptstaff.json"),
+      },
+      dependencies: ["setup-deptstaff"],
+    },
+    {
+      name: "patient-portal",
+      testMatch: /patient-portal\.spec\.ts/,
+      use: {
+        ...devices["Desktop Chrome"],
+        storageState: path.join(__dirname, "tests/e2e/.auth/patient.json"),
+      },
+      dependencies: ["setup-patient"],
+    },
+    {
+      name: "client-portal",
+      testMatch: /client-portal\.spec\.ts/,
+      use: {
+        ...devices["Desktop Chrome"],
+        storageState: path.join(__dirname, "tests/e2e/.auth/client.json"),
+      },
+      dependencies: ["setup-client"],
+    },
+    {
+      name: "signup",
+      testMatch: /sign-up\.spec\.ts/,
+      use: { ...devices["Desktop Chrome"] },
     },
   ],
 

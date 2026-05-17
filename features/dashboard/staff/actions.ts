@@ -16,6 +16,19 @@ import {
 } from "@/lib/supabase/roles";
 import { normalizePhilippineMobileForStorage } from "@/lib/phone";
 import { normalizeDashboardReturnPath } from "@/lib/dashboard/return-path";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { validateTestValue, isAbnormal } from "@/lib/test-catalog/validate";
+import {
+  getTestById,
+  getRequiredTestIds,
+  getEncodedTestIds,
+  isTestInPackage,
+} from "@/lib/test-catalog/queries";
+import {
+  notifyClientOnRelease,
+  notifyPatientOnRelease,
+  notifyReleasingStaffOnDecision,
+} from "@/features/dashboard/staff/email-notifications";
 
 const STAFF_DASHBOARD_PATH = "/dashboard/staff";
 
@@ -144,7 +157,7 @@ function parseDepartmentIdsFromForm(formData: FormData) {
   return Array.from(new Set(ids));
 }
 
-async function syncCaseWorkflowStatusAfterVisitUpdate(
+export async function syncCaseWorkflowStatusAfterVisitUpdate(
   supabase: CurrentUserRoleContext["supabase"],
   caseId: string
 ) {
@@ -155,13 +168,16 @@ async function syncCaseWorkflowStatusAfterVisitUpdate(
     "CASE",
     "PENDING_ADDITIONAL_TESTS"
   );
-  const completedVisitStatusId = await getStatusId(supabase, "VISIT", "COMPLETED");
 
-  if (!forDecisionStatusId || !inProgressStatusId || !completedVisitStatusId) {
+  if (!forDecisionStatusId || !inProgressStatusId) {
     return;
   }
 
-  const { data: caseRow, error: caseError } = await supabase
+  // Use service-role client for the case SELECT so Department Staff can read it
+  // even when RLS would normally restrict cross-dept access.
+  const adminClient = createSupabaseAdminClient();
+
+  const { data: caseRow, error: caseError } = await adminClient
     .from("peme_case")
     .select("casestatuscodeid")
     .eq("caseid", caseId)
@@ -181,7 +197,18 @@ async function syncCaseWorkflowStatusAfterVisitUpdate(
     return;
   }
 
-  const { count: totalVisits, error: totalError } = await supabase
+  // Pull terminal status ids from the database (COMPLETED / CANCELLED / SKIPPED).
+  const { data: terminalIds, error: terminalError } = await adminClient.rpc(
+    "rls_terminal_visit_status_ids"
+  );
+
+  if (terminalError || !Array.isArray(terminalIds) || terminalIds.length === 0) {
+    return;
+  }
+
+  // Count ALL visits for the case (unscoped) — RLS-scoped client only sees the
+  // acting dept's visits, causing premature "all complete" when other depts haven't finished.
+  const { count: totalVisits, error: totalError } = await adminClient
     .from("department_visit")
     .select("visitid", { count: "exact", head: true })
     .eq("caseid", caseId);
@@ -190,31 +217,33 @@ async function syncCaseWorkflowStatusAfterVisitUpdate(
     return;
   }
 
-  const { count: completedVisits, error: completedError } = await supabase
+  const { count: terminalVisits, error: terminalCountError } = await adminClient
     .from("department_visit")
     .select("visitid", { count: "exact", head: true })
     .eq("caseid", caseId)
-    .eq("visitstatuscodeid", completedVisitStatusId);
+    .in("visitstatuscodeid", terminalIds);
 
-  if (completedError || typeof completedVisits !== "number") {
+  if (terminalCountError || typeof terminalVisits !== "number") {
     return;
   }
 
-  const allVisitsCompleted = completedVisits === totalVisits;
+  const allVisitsTerminal = terminalVisits === totalVisits;
 
-  if (allVisitsCompleted && caseRow.casestatuscodeid !== forDecisionStatusId) {
-    await supabase
+  if (allVisitsTerminal && caseRow.casestatuscodeid !== forDecisionStatusId) {
+    // Use service-role client — Department Staff is not in peme_case_update_role_scoped
+    // so the RLS-scoped client silently returns 0 rows affected.
+    await adminClient
       .from("peme_case")
       .update({ casestatuscodeid: forDecisionStatusId })
       .eq("caseid", caseId);
     return;
   }
 
-  if (!allVisitsCompleted) {
-    // Incomplete visits while case sits at FOR_DECISION → fall back to PENDING_ADDITIONAL_TESTS or IN_PROGRESS.
+  if (!allVisitsTerminal) {
+    // Non-terminal visits while case sits at FOR_DECISION → fall back to PENDING_ADDITIONAL_TESTS or IN_PROGRESS.
     if (caseRow.casestatuscodeid === forDecisionStatusId && inProgressStatusId) {
       const fallbackStatusId = pendingAdditionalStatusId ?? inProgressStatusId;
-      await supabase
+      await adminClient
         .from("peme_case")
         .update({ casestatuscodeid: fallbackStatusId })
         .eq("caseid", caseId);
@@ -227,7 +256,7 @@ async function syncCaseWorkflowStatusAfterVisitUpdate(
       caseRow.casestatuscodeid === pendingAdditionalStatusId &&
       inProgressStatusId
     ) {
-      await supabase
+      await adminClient
         .from("peme_case")
         .update({ casestatuscodeid: inProgressStatusId })
         .eq("caseid", caseId);
@@ -341,26 +370,6 @@ export async function createReceptionPatientAction(formData: FormData) {
   const { supabase, userId, role } = await resolveActionContext();
   ensureAllowedRole(role, [RECEPTION_ROLE, ADMIN_ROLE], returnPath);
 
-  const { data: existingPatient, error: existingPatientError } = await supabase
-    .from("patient")
-    .select("patientid")
-    .eq("governmentid", governmentId)
-    .maybeSingle();
-
-  if (existingPatientError) {
-    redirectWithError(
-      returnPath,
-      `Unable to validate duplicate patient record: ${existingPatientError.message}`
-    );
-  }
-
-  if (existingPatient?.patientid) {
-    redirectWithError(
-      returnPath,
-      "A patient record with the same government ID already exists."
-    );
-  }
-
   const { data: insertedPatient, error: insertError } = await supabase
     .from("patient")
     .insert({
@@ -377,6 +386,16 @@ export async function createReceptionPatientAction(formData: FormData) {
     .maybeSingle();
 
   if (insertError || !insertedPatient) {
+    const isUniqueViolation =
+      typeof insertError?.code === "string" && insertError.code === "23505";
+
+    if (isUniqueViolation) {
+      redirectWithError(
+        returnPath,
+        "A patient record with the same government ID already exists."
+      );
+    }
+
     redirectWithError(
       returnPath,
       `Patient registration failed: ${insertError?.message ?? "No patient record was created."}`
@@ -423,7 +442,7 @@ export async function createReceptionCaseAction(formData: FormData) {
     );
   }
 
-  const { supabase, userId, role } = await resolveActionContext();
+  const { supabase, role } = await resolveActionContext();
   ensureAllowedRole(role, [RECEPTION_ROLE, ADMIN_ROLE], returnPath);
 
   // Use atomic RPC — creates case + department visits in a single transaction
@@ -437,7 +456,7 @@ export async function createReceptionCaseAction(formData: FormData) {
       p_rush: isRush,
       p_waiver: waiverSigned,
       p_remarks: remarks || null,
-      p_created_by: userId,
+      // p_created_by removed — RPC now forces auth.uid() internally.
     }
   );
 
@@ -552,18 +571,29 @@ export async function softCancelCaseAction(formData: FormData) {
     }
   }
 
-  const { error: caseUpdateError } = await supabase
+  const { data: updated, error: caseUpdateError } = await supabase
     .from("peme_case")
     .update({
       casestatuscodeid: archivedStatusId,
       portalvisible: false,
+      archivedat: new Date().toISOString(),
     })
-    .eq("caseid", caseId);
+    .eq("caseid", caseId)
+    .eq("casestatuscodeid", caseRow.casestatuscodeid)
+    .select("caseid")
+    .maybeSingle();
 
   if (caseUpdateError) {
     redirectWithError(
       returnPath,
       `Case cancellation failed: ${caseUpdateError.message}`
+    );
+  }
+
+  if (!updated) {
+    redirectWithError(
+      returnPath,
+      `Case ${caseRow.casenumber} status changed during this operation. Refresh and retry.`
     );
   }
 
@@ -683,6 +713,17 @@ export async function bootstrapCaseVisitsAction(formData: FormData) {
     .insert(visitBootstrapRows);
 
   if (visitBootstrapError) {
+    const isConflict =
+      typeof visitBootstrapError.code === "string" &&
+      visitBootstrapError.code === "23505";
+
+    if (isConflict) {
+      redirectWithNotice(
+        returnPath,
+        `Case ${caseRow.casenumber} already has open visits for the mapped departments.`
+      );
+    }
+
     redirectWithError(
       returnPath,
       `Visit initialization failed for case ${caseRow.casenumber}: ${visitBootstrapError.message}`
@@ -959,6 +1000,38 @@ export async function updateDepartmentVisitStatusAction(formData: FormData) {
     updatePayload.remarks = note;
   }
 
+  // Required-test gate: only applies when transitioning to COMPLETED
+  if (nextStatusCode === "COMPLETED") {
+    const { data: visitRow } = await supabase
+      .from("department_visit")
+      .select("visitid, caseid, departmentid")
+      .eq("visitid", visitId)
+      .maybeSingle();
+
+    if (visitRow) {
+      const { data: caseForPackage } = await supabase
+        .from("peme_case")
+        .select("packageid")
+        .eq("caseid", visitRow.caseid)
+        .maybeSingle();
+
+      const packageId = caseForPackage?.packageid;
+      if (packageId) {
+        const required = await getRequiredTestIds(supabase, packageId, visitRow.departmentid);
+        if (required.length > 0) {
+          const encoded = await getEncodedTestIds(supabase, visitRow.visitid);
+          const missing = required.filter((id) => !encoded.includes(id));
+          if (missing.length > 0) {
+            redirectWithError(
+              returnPath,
+              `Cannot mark COMPLETED — ${missing.length} required test(s) not yet encoded for this package.`
+            );
+          }
+        }
+      }
+    }
+  }
+
   const { data: updatedVisit, error: updateError } = await supabase
     .from("department_visit")
     .update(updatePayload)
@@ -990,19 +1063,17 @@ export async function updateDepartmentVisitStatusAction(formData: FormData) {
 export async function saveResultItemsAction(formData: FormData) {
   const returnPath = normalizeReturnPath(normalizeText(formData.get("returnPath")));
   const visitId = parseOptionalPositiveInt(normalizeText(formData.get("visitId")));
-  const testName = normalizeText(formData.get("testName")).slice(0, 100);
+  const testIdRaw = normalizeText(formData.get("testId"));
+  const testId = parseOptionalPositiveInt(testIdRaw);
+  const testNameRaw = normalizeText(formData.get("testName")).slice(0, 100);
   const value = normalizeText(formData.get("value")).slice(0, 100);
-  const unit = normalizeText(formData.get("unit")).slice(0, 20);
-  const referenceRange = normalizeText(formData.get("referenceRange")).slice(0, 50);
+  const unitRaw = normalizeText(formData.get("unit")).slice(0, 20);
+  const referenceRangeRaw = normalizeText(formData.get("referenceRange")).slice(0, 50);
   const remarks = normalizeText(formData.get("remarks")).slice(0, 255);
-  const isAbnormal = formData.get("isAbnormal") === "on";
+  const userIsAbnormalChecked = formData.get("isAbnormal") === "on";
 
   if (!visitId) {
     redirectWithError(returnPath, "Please select a valid visit before saving results.");
-  }
-
-  if (!testName) {
-    redirectWithError(returnPath, "Test name is required.");
   }
 
   if (!value) {
@@ -1048,51 +1119,138 @@ export async function saveResultItemsAction(formData: FormData) {
     }
   }
 
+  // Fetch case context (sex for abnormal detection, casenumber, package + category for fence)
   const { data: caseRow } = await supabase
     .from("peme_case")
-    .select("casenumber")
+    .select(
+      "casenumber, packageid, casecategory, patient:patientid(sex), status:casestatuscodeid(code)"
+    )
     .eq("caseid", visitRow.caseid)
     .maybeSingle();
 
   const caseNumber = caseRow?.casenumber ?? `CASE-${visitRow.caseid.slice(0, 8)}`;
+  const patientSex =
+    (caseRow?.patient as { sex?: string } | undefined)?.sex === "Female"
+      ? "F"
+      : (caseRow?.patient as { sex?: string } | undefined)?.sex === "Male"
+        ? "M"
+        : null;
+
+  // ─── Catalog path ──────────────────────────────────────────────────────────
+  let resolvedTestName = testNameRaw;
+  let resolvedUnit: string | null = unitRaw || null;
+  let resolvedRefRange: string | null = referenceRangeRaw || null;
+  let resolvedIsAbnormal = userIsAbnormalChecked;
+  let isAdditional = false;
+  let additionalRemark: string | null = null;
+
+  if (testId !== null) {
+    const test = await getTestById(supabase, testId);
+    if (!test) {
+      redirectWithError(returnPath, "Selected test is not in the catalog.");
+    }
+
+    const validationError = validateTestValue(test!, value, patientSex);
+    if (validationError) {
+      redirectWithError(returnPath, validationError);
+    }
+
+    resolvedTestName = test!.testname;
+    resolvedUnit = test!.defaultunit;
+    resolvedRefRange = test!.defaultref ?? resolvedRefRange;
+    resolvedIsAbnormal = userIsAbnormalChecked || isAbnormal(test!, value, patientSex);
+
+    // ─── Package-fence check (Hybrid rule) ───────────────────────────────────
+    if (caseRow?.packageid) {
+      const inPackage = await isTestInPackage(supabase, caseRow.packageid, testId);
+
+      if (!inPackage) {
+        const caseStatusCode =
+          (caseRow.status as { code?: string } | undefined)?.code ?? null;
+        const caseCategory = caseRow.casecategory ?? null;
+
+        const autoAuthorized =
+          caseStatusCode === "PENDING_ADDITIONAL_TESTS" ||
+          caseCategory === "Re-medical" ||
+          caseCategory === "Additional Tests";
+
+        if (autoAuthorized) {
+          isAdditional = true;
+          additionalRemark =
+            caseStatusCode === "PENDING_ADDITIONAL_TESTS"
+              ? "Auto-authorized: case in PENDING_ADDITIONAL_TESTS status"
+              : `Auto-authorized: case category is ${caseCategory}`;
+        } else {
+          const userRemark = normalizeText(formData.get("additionalTestRemark")).slice(0, 500);
+          if (!userRemark) {
+            redirectWithError(
+              returnPath,
+              `${resolvedTestName} is not part of this package. Provide a justification (>=10 characters) in the "Additional test reason" field, or have the physician request additional tests via the decision panel.`
+            );
+          }
+          if (userRemark.length < 10) {
+            redirectWithError(
+              returnPath,
+              "Additional test reason must be at least 10 characters."
+            );
+          }
+          isAdditional = true;
+          additionalRemark = userRemark;
+        }
+      }
+    }
+  } else {
+    // Freeform fallback — testName must be provided
+    if (!resolvedTestName) {
+      redirectWithError(returnPath, "Test name is required.");
+    }
+  }
 
   const { error: resultInsertError } = await supabase.from("result_item").insert({
     visitid: visitRow.visitid,
     caseid: visitRow.caseid,
     departmentid: visitRow.departmentid,
-    testname: testName,
+    testid: testId,
+    testname: resolvedTestName,
     value,
-    unit: unit || null,
-    referencerange: referenceRange || null,
-    isabnormal: isAbnormal,
+    unit: resolvedUnit,
+    referencerange: resolvedRefRange,
+    isabnormal: resolvedIsAbnormal,
     verificationstatus: "PENDING",
     remarks: remarks || null,
+    is_additional_test: isAdditional,
+    additional_test_remark: additionalRemark,
   });
 
   if (resultInsertError) {
-    redirectWithError(
-      returnPath,
-      `Result save failed: ${resultInsertError.message}`
-    );
+    if (resultInsertError.code === "23505") {
+      redirectWithError(
+        returnPath,
+        `${resolvedTestName} has already been encoded for this visit. Refresh and re-check.`
+      );
+    }
+    redirectWithError(returnPath, `Result save failed: ${resultInsertError.message}`);
   }
 
   await supabase.from("audit_log").insert({
     userid: userId,
-    actiontype: "DEPARTMENT_RESULT_ITEM_SAVED",
+    actiontype: isAdditional
+      ? "DEPARTMENT_ADDITIONAL_TEST_ENCODED"
+      : "DEPARTMENT_RESULT_ITEM_SAVED",
     entityname: "result_item",
     entityid: String(visitRow.visitid),
-    details: `Result "${testName}" saved for ${caseNumber} (visit ${visitRow.visitid}).`,
+    details: isAdditional
+      ? `Off-package result "${resolvedTestName}" saved for ${caseNumber} (visit ${visitRow.visitid}). Reason: ${additionalRemark}`
+      : `Result "${resolvedTestName}" saved for ${caseNumber} (visit ${visitRow.visitid}).`,
   });
 
-  // TODO(SCRUM-30): broadcast result_item changes via Supabase Realtime once SCRUM-30 ships.
   revalidatePath(STAFF_DASHBOARD_PATH);
   redirectWithNotice(
     returnPath,
-    `Result "${testName}" saved for ${caseNumber}.`
+    `Result saved for ${resolvedTestName}.`
   );
 }
 
-// TODO(SCRUM-30): broadcast result_item changes via Supabase Realtime once SCRUM-30 ships.
 export async function verifyResultItemAction(formData: FormData) {
   const returnPath = normalizeReturnPath(normalizeText(formData.get("returnPath")));
   const resultId = parseOptionalPositiveInt(normalizeText(formData.get("resultId")));
@@ -1296,6 +1454,16 @@ export async function requestAdditionalTestsAction(formData: FormData) {
   const { error: visitInsertError } = await supabase.from("department_visit").insert(visitRows);
 
   if (visitInsertError) {
+    const isConflict =
+      typeof visitInsertError.code === "string" && visitInsertError.code === "23505";
+
+    if (isConflict) {
+      redirectWithError(
+        returnPath,
+        "An open additional-test visit already exists for one of the selected departments. Refresh and retry."
+      );
+    }
+
     redirectWithError(
       returnPath,
       `Unable to queue additional test visits: ${visitInsertError.message}`
@@ -1491,6 +1659,10 @@ export async function submitPhysicianDecisionAction(formData: FormData) {
     details: `Case ${caseRow.casenumber} decision recorded as ${fitnessStatus}.`,
   });
 
+  // Fire-and-forget: notify the releasing staff shared mailbox that
+  // case is now FOR_RELEASING. Body carries no PHI (no fitness status).
+  void notifyReleasingStaffOnDecision(supabase, caseRow.caseid, caseRow.casenumber);
+
   revalidatePath(STAFF_DASHBOARD_PATH);
   redirectWithNotice(
     returnPath,
@@ -1522,7 +1694,9 @@ export async function releaseCaseAction(formData: FormData) {
 
   const { data: caseRow, error: caseReadError } = await supabase
     .from("peme_case")
-    .select("caseid, casenumber, casestatuscodeid")
+    .select(
+      "caseid, casenumber, casestatuscodeid, patient:patientid(fullname, emailaddress), company:companyid(name, contactperson, emailaddress)"
+    )
     .eq("caseid", caseId)
     .maybeSingle();
 
@@ -1618,6 +1792,16 @@ export async function releaseCaseAction(formData: FormData) {
     entityid: caseRow.caseid,
     details: `Case ${caseRow.casenumber} released and portal visibility enabled.`,
   });
+
+  // Pre-fetched before the status transition so RLS (FOR_RELEASING scope)
+  // doesn't block the lookup after the case moves to RELEASED.
+  const patient = (caseRow.patient as unknown as { fullname: string; emailaddress: string | null } | null) ?? null;
+  const company = (caseRow.company as unknown as { name: string; contactperson: string | null; emailaddress: string | null } | null) ?? null;
+
+  // Fire-and-forget: emails must never block the redirect.
+  // Errors are caught inside sendEmail and logged to audit_log.
+  void notifyPatientOnRelease(supabase, caseRow.caseid, caseRow.casenumber, patient?.fullname ?? "", patient?.emailaddress ?? null);
+  void notifyClientOnRelease(supabase, caseRow.caseid, caseRow.casenumber, company?.name ?? null, company?.contactperson ?? null, company?.emailaddress ?? null);
 
   revalidatePath(STAFF_DASHBOARD_PATH);
   redirectWithNotice(returnPath, `Case ${caseRow.casenumber} was released.`);

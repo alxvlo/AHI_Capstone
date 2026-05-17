@@ -1,9 +1,73 @@
 # Slice Progress Log
 
-**Last Updated:** 2026-04-28  
+**Last Updated:** 2026-05-08  
 **Plan Reference:** [DEVELOPMENT-PLAN.md](../DEVELOPMENT-PLAN.md)
 
 This file tracks completion status and verification results for each development slice.
+
+---
+
+## Slice 17 — Test Catalog Phase 1 (SCRUM-37)
+
+**Status:** Done
+**Date Completed:** 2026-05-12
+
+**What was done:**
+- New `lib/test-catalog/types.ts`: `TestCatalogEntry` and `Sex` types.
+- New `lib/test-catalog/catalog.ts`: static catalog of ~50 lab/clinical tests grouped by department and category. Each entry carries unit, reference ranges (by sex), and abnormal thresholds.
+- New `lib/test-catalog/validate.ts`: `isAbnormal(test, value, sex)` — compares numeric result against reference bounds; `validateTestValue(test, value, _sex)` — returns a user-facing error string or null.
+- New `lib/test-catalog/index.ts`: clean re-export surface.
+- Updated `components/dashboard/staff/encoding-form.tsx`: replaced freeform text input with a catalog-driven `<select>` grouped by category (`<optgroup>`). Selecting a test auto-fills unit and reference range. Abnormal flag is auto-detected on blur/change. `+ Custom test` toggle restores freeform input for off-catalog entries.
+- Required-tests panel added to encoding form: shows count of required tests for the package/department, with per-test completion badges.
+- Hybrid package-fence rule: if a test is in the standard package the staff cannot drop it; off-package extras are always allowed.
+- Unit tests: `tests/lib/test-catalog/validate.test.ts` (isAbnormal + validateTestValue — multiple sex/age/numeric edge cases).
+- E2E tests: `tests/e2e/dept-staff-catalog.spec.ts` (8 smoke tests: queue heading, dept name, test dropdown, optgroups, FBS auto-fill, Save button, required tests panel + count).
+- Auth setup fixtures: `tests/e2e/auth.deptstaff.setup.ts`, `tests/e2e/auth.admin.setup.ts`.
+- Admin catalog tab: `app/dashboard/admin/page.tsx` extended with a Test Catalog tab — shows seeded entry count, package-to-test mapping table, and department/category/test columns.
+
+**Bugfix:** Also fixed Tailwind v4 `Invalid code point` CSS crash on Windows — added `plans/`, `.playwright-mcp/`, and screenshot to `.gitignore` so Tailwind's content scanner skips tooling directories that contained Windows UUIDs in file paths.
+
+**Verification:** lint clean (0 warnings), typecheck clean (0 errors), Playwright E2E 41/44 passed (3 data-dependent skips — expected).
+
+---
+
+## Slice 16 — Email Notification Pipeline (SCRUM-36)
+
+**Status:** Done
+**Date Completed:** 2026-05-08
+
+**What was done:**
+- Added `nodemailer` + `@types/nodemailer`.
+- New `lib/email/transport.ts`: SMTP transport factory; reads `SMTP_HOST`/`PORT`/`USER`/`PASS`/`EMAIL_FROM`; throws if required env vars missing.
+- New `lib/email/templates.ts`: three plain-text templates (patient release, client release, releasing-staff decision); PHI-leak guards in tests.
+- New `lib/email/send.ts`: `sendEmail()` wrapper that always audit-logs `EMAIL_SENT` / `EMAIL_FAILED`; never throws. `logSkippedEmail()` for missing-recipient cases.
+- New `features/dashboard/staff/email-notifications.ts`: `notifyPatientOnRelease`, `notifyClientOnRelease`, `notifyReleasingStaffOnDecision`; each looks up recipient and skips with audit when email is null.
+- Wired into `releaseCaseAction` (fires patient + client emails after audit log) and `submitPhysicianDecisionAction` (fires releasing-staff email after physician → FOR_RELEASING transition).
+- Documented SMTP env vars in `.env.local.example`.
+- Unit tests: `tests/lib/email-{transport,templates,send}.test.ts` and `tests/features/dashboard/staff/email-notifications.test.ts`.
+- Integration test: `tests/integration/email-pipeline.test.ts` — Ethereal SMTP, single-send + 5 concurrent + failure + skip.
+
+**Verification:** lint clean, typecheck clean, vitest 126 passed / 22 skipped. Integration tests cleanly skipped without Supabase creds.
+
+---
+
+## Slice 14 — Realtime WebSocket Subscriptions (SCRUM-30)
+
+**Status:** Done  
+**Date Completed:** 2026-05-08
+
+**What was done:**
+- Applied Supabase migration: `supabase/migrations/20260508_enable_realtime_publications.sql` — adds `peme_case` and `department_visit` to the `supabase_realtime` publication and sets `REPLICA IDENTITY FULL` on both tables.
+- New `useRealtimeRefresh` hook (`lib/realtime/use-realtime-refresh.ts`): opens a `postgres_changes` channel, debounces `router.refresh()`, cleans up on unmount.
+- New `RealtimeBridge` component (`components/dashboard/shared/realtime-bridge.tsx`): invisible client component wrapping the hook so server modules can subscribe by embedding it.
+- Wired `<RealtimeBridge table="peme_case" />` into Reception, Physician, and Releasing modules.
+- Wired `<RealtimeBridge table="department_visit" filter={...} />` into Department module (scoped by `userDepartmentClaim`).
+- Wired two bridges (peme_case + department_visit scoped by caseid) into the Patient portal page.
+- Removed two `TODO(SCRUM-30)` comments from `features/dashboard/staff/actions.ts`.
+- Unit tests: `tests/lib/realtime-refresh.test.ts` (5 tests — subscribe, refresh, debounce, cleanup, filter).
+- Integration tests: `tests/integration/realtime-subscriptions.test.ts` (4 tests — INSERT delivery, UPDATE filter, concurrent updates, RLS gating; env-guarded skip without probe creds).
+
+**Verification:** lint clean, typecheck clean (excluding pre-existing e2e Playwright errors), vitest 105 passed / 18 skipped.
 
 ---
 

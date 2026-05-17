@@ -33,7 +33,9 @@
     "audit:auth:logs": "node --env-file=.env.local scripts/supabase/validate-auth-audit-events.mjs",
     "audit:auth:e2e": "node --env-file=.env.local scripts/supabase/validate-auth-e2e.mjs",
     "probe:cleanup": "npx supabase db query --linked --file scripts/supabase/cleanup-probe-users.sql",
-    "qa:security": "docker run --rm -t zaproxy/zap-stable zap-baseline.py -t http://host.docker.internal:3000"
+    "qa:security": "docker run --rm -t zaproxy/zap-stable zap-baseline.py -t http://host.docker.internal:3000",
+    "maintenance:sweep-orphan-files": "node --env-file=.env.local --import tsx scripts/maintenance/sweep-orphan-result-files.ts",
+    "maintenance:sweep-orphan-files:delete": "node --env-file=.env.local --import tsx scripts/maintenance/sweep-orphan-result-files.ts --delete"
   },
   "dependencies": {
     "@radix-ui/react-label": "^2.1.8",
@@ -48,19 +50,21 @@
     "framer-motion": "^12.36.0",
     "lucide-react": "^0.577.0",
     "next": "^15.2.2",
+    "nodemailer": "^8.0.7",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.5.0"
   },
   "devDependencies": {
-    "@playwright/test": "^1.51.1",
     "@eslint/eslintrc": "^3.3.1",
+    "@playwright/test": "^1.51.1",
     "@tailwindcss/postcss": "^4.0.14",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",
     "@types/node": "^22.13.10",
+    "@types/nodemailer": "^8.0.0",
     "@types/react": "^19.0.10",
     "@types/react-dom": "^19.0.4",
     "@vitejs/plugin-react": "^6.0.1",

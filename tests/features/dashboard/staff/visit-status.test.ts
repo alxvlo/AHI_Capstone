@@ -5,6 +5,10 @@ import {
   makeCountThenable,
 } from "./_helpers";
 
+const { mockCreateAdminClient } = vi.hoisted(() => ({
+  mockCreateAdminClient: vi.fn(),
+}));
+
 vi.mock("next/navigation", () => ({
   redirect: vi.fn().mockImplementation((url: string) => {
     throw new Error(`__REDIRECT__:${url}`);
@@ -15,6 +19,10 @@ vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 
 vi.mock("@/lib/supabase/role-routing", () => ({
   resolveCurrentUserRoleContext: vi.fn(),
+}));
+
+vi.mock("@/lib/supabase/admin", () => ({
+  createSupabaseAdminClient: mockCreateAdminClient,
 }));
 
 import { updateDepartmentVisitStatusAction } from "@/features/dashboard/staff/actions";
@@ -43,6 +51,7 @@ function mockRoleContext(supa: ReturnType<typeof makeSupabaseMock>) {
     userId: "user-uuid",
     role: DEPARTMENT_STAFF_ROLE,
   });
+  mockCreateAdminClient.mockReturnValue(supa.client);
 }
 
 function setupVisitStub(
@@ -229,6 +238,7 @@ describe("PENDING_ADDITIONAL_TESTS → IN_PROGRESS auto-transition (SCRUM-25)", 
       userId: "user-uuid",
       role: DEPARTMENT_STAFF_ROLE,
     });
+    mockCreateAdminClient.mockReturnValue(supa.client);
 
     const fd = buildFormData("IN_PROGRESS", { visitId: "50" });
     await expect(updateDepartmentVisitStatusAction(fd)).rejects.toThrow(/__REDIRECT__/);

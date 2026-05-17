@@ -9,6 +9,7 @@ import { MetricCard } from "@/components/dashboard/shared/metric-card";
 import { StatusBadge } from "@/components/dashboard/shared/status-badge";
 import { ActionPanel } from "@/components/dashboard/shared/action-panel";
 import { DataTableContainer } from "@/components/dashboard/shared/data-table-container";
+import { RealtimeBridge } from "@/components/dashboard/shared/realtime-bridge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -203,6 +204,7 @@ export async function ReceptionModule({
 
   return (
     <div className="space-y-6">
+      <RealtimeBridge table="peme_case" />
       <div>
         <h2 className="text-2xl font-bold tracking-tight">Reception and Billing</h2>
         <p className="mt-2 text-sm text-muted-foreground">
