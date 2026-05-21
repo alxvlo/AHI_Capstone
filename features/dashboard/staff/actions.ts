@@ -315,6 +315,52 @@ async function getStatusId(
   return statusRow.statuscodeid;
 }
 
+// ---------------------------------------------------------------------------
+// Helpers for release-case visit validation
+// ---------------------------------------------------------------------------
+
+type JoinedActionRecord<T> = T | T[] | null | undefined;
+
+function pickActionJoined<T>(value: JoinedActionRecord<T>): T | null {
+  if (!value) {
+    return null;
+  }
+
+  if (Array.isArray(value)) {
+    return value[0] ?? null;
+  }
+
+  return value;
+}
+
+type UnresolvedReleaseVisitRow = {
+  visitid: number;
+  department?: JoinedActionRecord<{
+    name: string | null;
+  }>;
+  visitStatus?: JoinedActionRecord<{
+    code: string | null;
+    label: string | null;
+  }>;
+};
+
+function buildUnresolvedVisitReleaseMessage(rows: UnresolvedReleaseVisitRow[]) {
+  const statusCounts = new Map<string, number>();
+
+  for (const row of rows) {
+    const status = pickActionJoined(row.visitStatus);
+    const key = (status?.code ?? status?.label ?? "UNKNOWN").toUpperCase();
+    statusCounts.set(key, (statusCounts.get(key) ?? 0) + 1);
+  }
+
+  const summary = Array.from(statusCounts.entries())
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([status, count]) => `${count} ${status}`)
+    .join(", ");
+
+  return `Release blocked: case is not ready for release. ${summary} visit(s) are terminal but not COMPLETED. Resolve, requeue, or archive before release.`;
+}
+
 export async function createReceptionPatientAction(formData: FormData) {
   const returnPath = normalizeReturnPath(normalizeText(formData.get("returnPath")));
   const fullName = normalizeText(formData.get("fullName")).slice(0, 100);
@@ -1746,9 +1792,11 @@ export async function releaseCaseAction(formData: FormData) {
     );
   }
 
-  const { count: incompleteVisits, error: incompleteError } = await supabase
+  const { data: unresolvedVisitsRaw, error: incompleteError } = await supabase
     .from("department_visit")
-    .select("visitid", { count: "exact", head: true })
+    .select(
+      "visitid, department:departmentid(name), visitStatus:visitstatuscodeid(code, label)"
+    )
     .eq("caseid", caseId)
     .neq("visitstatuscodeid", completedVisitStatusId);
 
@@ -1756,10 +1804,12 @@ export async function releaseCaseAction(formData: FormData) {
     redirectWithError(returnPath, `Release validation failed: ${incompleteError.message}`);
   }
 
-  if (incompleteVisits && incompleteVisits > 0) {
+  const unresolvedVisits = (unresolvedVisitsRaw ?? []) as UnresolvedReleaseVisitRow[];
+
+  if (unresolvedVisits.length > 0) {
     redirectWithError(
       returnPath,
-      "Release blocked: all required department visits must be COMPLETED first."
+      buildUnresolvedVisitReleaseMessage(unresolvedVisits)
     );
   }
 

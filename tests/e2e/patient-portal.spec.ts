@@ -18,12 +18,15 @@ async function goToPatientPortal(page: Page): Promise<void> {
 // ---------------------------------------------------------------------------
 
 test.describe("Patient portal — sign-in page", () => {
-  test("sign-in page renders email, password fields and Sign In button", async ({ page }) => {
+  test("sign-in page renders email, password fields and Sign In button", async ({ browser }) => {
+    const ctx = await browser.newContext({ storageState: undefined });
+    const page = await ctx.newPage();
     await page.goto("/auth/patient/sign-in");
     await expect(page).toHaveURL(/\/auth\/patient\/sign-in/, { timeout: 10_000 });
     await expect(page.getByLabel(/email/i)).toBeVisible({ timeout: 10_000 });
     await expect(page.getByLabel(/password/i)).toBeVisible({ timeout: 10_000 });
     await expect(page.getByRole("button", { name: /sign in/i })).toBeVisible({ timeout: 10_000 });
+    await ctx.close();
   });
 });
 

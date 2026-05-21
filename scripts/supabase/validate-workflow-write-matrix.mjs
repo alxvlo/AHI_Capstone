@@ -368,6 +368,7 @@ async function runWorkflowWriteValidation() {
     );
     const statusReleased = await getStatusId(adminClient, "CASE", "RELEASED");
     const visitStatusPending = await getStatusId(adminClient, "VISIT", "PENDING");
+    const visitStatusCancelled = await getStatusId(adminClient, "VISIT", "CANCELLED");
 
     const departmentLab = await getDepartmentId(adminClient, "LAB");
     const departmentXray = await getDepartmentId(adminClient, "XRAY");
@@ -703,6 +704,14 @@ async function runWorkflowWriteValidation() {
       }
     );
 
+    // Cancel the seeded LAB visit so the unique partial index allows a new PENDING insert.
+    // The index covers (caseid, departmentid) WHERE status is not terminal; cancelling
+    // the existing visit removes it from the index scope.
+    await adminClient
+      .from("department_visit")
+      .update({ visitstatuscodeid: visitStatusCancelled })
+      .eq("visitid", visitLabRegistered.visitid);
+
     await runCheck(
       "receptionInsertDepartmentVisitAllowed",
       "allow",
@@ -715,6 +724,11 @@ async function runWorkflowWriteValidation() {
           remarks: `${prefix} reception visit insert`,
         })
     );
+
+    await adminClient
+      .from("department_visit")
+      .update({ visitstatuscodeid: visitStatusCancelled })
+      .eq("visitid", visitLabForDecision.visitid);
 
     await runCheck(
       "physicianInsertDepartmentVisitAllowed",

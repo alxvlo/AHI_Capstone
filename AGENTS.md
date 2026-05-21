@@ -18,6 +18,13 @@ Use this file as the repo-specific source of truth for commands, code style, and
 - Treat this `AGENTS.md` as the effective agent instruction file for the repository.
 - Ignore `.opencode/` unless the task is specifically about local agent tooling; it is not app runtime code.
 
+## Collaboration And Approval Rules
+- Before acting on any new user request, clarify the goal, scope, constraints, and approval boundaries first. Ask the necessary questions before editing files, running commands, giving implementation recommendations, or making irreversible assumptions.
+- Do not run Supabase/database changes without first explaining what the change does, which database objects it affects, whether it reads/writes/deletes/backfills data, the data-loss and lock/performance risks, the rollback or mitigation path, and the exact command or migration that would be used.
+- Avoid destructive database operations by default, including `delete`, `truncate`, `drop`, cleanup scripts, reseeding, and bulk updates. If one is genuinely needed, stop and get explicit user approval first.
+- Avoid triggering Supabase Auth email flows, including confirmation emails, password resets, magic links, invites, and resend-email actions. Prefer mocks, existing confirmed probe users, stored auth states, or local validation that does not send email.
+- Treat production data and production Supabase projects as out of scope unless the user explicitly names them and approves the exact operation.
+
 ## Repo Layout
 - `app/`: Next.js route entrypoints, layouts, loading/error boundaries, and page-level orchestration.
 - `components/`: reusable UI and view components.
