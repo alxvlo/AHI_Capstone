@@ -3,6 +3,7 @@ import {
   upsertCompanyAction,
   upsertDepartmentAction,
   upsertPackageAction,
+  upsertStatusCodeAction,
 } from "@/features/dashboard/admin/actions";
 import { DataTableContainer } from "@/components/dashboard/shared/data-table-container";
 import { StatusBadge } from "@/components/dashboard/shared/status-badge";
@@ -12,6 +13,7 @@ import type {
   DepartmentRecord,
   PackageDepartmentRecord,
   PackageRecord,
+  StatusCodeRecord,
 } from "@/features/dashboard/admin/shared";
 
 type ReferencePanelProps = {
@@ -19,6 +21,7 @@ type ReferencePanelProps = {
   departments: DepartmentRecord[];
   packages: PackageRecord[];
   packageDepartmentMappings: PackageDepartmentRecord[];
+  statusCodes: StatusCodeRecord[];
   referenceError?: string | null;
 };
 
@@ -27,6 +30,7 @@ export function ReferencePanel({
   departments,
   packages,
   packageDepartmentMappings,
+  statusCodes,
   referenceError = null,
 }: ReferencePanelProps) {
   return (
@@ -219,6 +223,86 @@ export function ReferencePanel({
                   </tr>
                 );
               })}
+            </tbody>
+          </table>
+        </div>
+      </DataTableContainer>
+
+      <DataTableContainer
+        title="Status Codes"
+        description="Manage PEME case and visit status codes. Core workflow codes cannot be deactivated."
+        isEmpty={statusCodes.length === 0}
+        emptyTitle="No status codes found"
+        emptyMessage="Add a status code below."
+        tableWrapperClassName="max-h-[420px] overflow-auto"
+      >
+        <div className="min-w-[840px] p-4">
+          <form action={upsertStatusCodeAction} className="mb-4 grid gap-3 md:grid-cols-4">
+            <input type="hidden" name="returnPath" value={returnPath} />
+            <input
+              name="domain"
+              placeholder="Domain (e.g. CASE)"
+              className="flex h-11 rounded-md border border-input bg-background px-3 py-2 text-sm uppercase"
+              required
+            />
+            <input
+              name="code"
+              placeholder="Code (e.g. REGISTERED)"
+              className="flex h-11 rounded-md border border-input bg-background px-3 py-2 text-sm uppercase"
+              required
+            />
+            <input
+              name="label"
+              placeholder="Label (e.g. Registered)"
+              className="flex h-11 rounded-md border border-input bg-background px-3 py-2 text-sm"
+              required
+            />
+            <div className="flex items-center gap-3">
+              <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                <input type="checkbox" name="isActive" defaultChecked className="h-4 w-4" />
+                Active
+              </label>
+              <Button type="submit" className="h-11 flex-1 px-4">
+                Add Status Code
+              </Button>
+            </div>
+          </form>
+
+          <table className="min-w-full text-sm">
+            <thead className="bg-muted/50 text-left">
+              <tr>
+                <th className="px-3 py-2 font-semibold">Domain</th>
+                <th className="px-3 py-2 font-semibold">Code</th>
+                <th className="px-3 py-2 font-semibold">Label</th>
+                <th className="px-3 py-2 font-semibold">Active</th>
+                <th className="px-3 py-2 font-semibold">Save</th>
+              </tr>
+            </thead>
+            <tbody>
+              {statusCodes.map((status) => (
+                <tr key={status.statuscodeid} className="border-t align-middle">
+                  <td className="px-3 py-2 font-mono text-xs">{status.domain}</td>
+                  <td className="px-3 py-2 font-mono text-xs">{status.code}</td>
+                  <td className="px-3 py-2" colSpan={3}>
+                    <form action={upsertStatusCodeAction} className="grid gap-2 md:grid-cols-[1fr_auto_auto]">
+                      <input type="hidden" name="returnPath" value={returnPath} />
+                      <input type="hidden" name="statusCodeId" value={String(status.statuscodeid)} />
+                      <input
+                        name="label"
+                        defaultValue={status.label ?? ""}
+                        className="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
+                      />
+                      <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <input type="checkbox" name="isActive" defaultChecked={status.isactive !== false} className="h-4 w-4" />
+                        Active
+                      </label>
+                      <Button type="submit" size="sm" variant="outline" className="h-10 px-3">
+                        Save
+                      </Button>
+                    </form>
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>

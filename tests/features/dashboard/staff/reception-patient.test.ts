@@ -34,6 +34,9 @@ function setupMocks(role = "Reception/Billing", supabaseStub: unknown = {}) {
       role,
     }),
   }));
+  vi.doMock("@/lib/supabase/admin", () => ({
+    createSupabaseAdminClient: () => supabaseStub,
+  }));
   return { redirectCalls };
 }
 

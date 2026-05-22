@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import {
   CaseRow,
   CompanyRecord,
@@ -90,7 +91,11 @@ export async function ReceptionModule({
     .order("name", { ascending: true });
   const companyOptions = (companiesRaw ?? []) as CompanyRecord[];
 
-  let patientLookupQuery = supabase
+  // RLS patient_select_own_or_role_scoped excludes Reception from the direct
+  // role check; new patients (no linked user_account yet) are invisible.
+  // Use service role for the patient search so Reception can find any patient.
+  const adminClient = createSupabaseAdminClient();
+  let patientLookupQuery = adminClient
     .from("patient")
     .select(
       "patientid, fullname, dateofbirth, governmentid, contactnumber, emailaddress"

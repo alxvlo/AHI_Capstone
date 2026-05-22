@@ -19,6 +19,8 @@ import { Building } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 
+const CLIENT_DASHBOARD_PATH = "/dashboard/client";
+
 export default function AgencySignInPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -28,7 +30,7 @@ export default function AgencySignInPage() {
 
   useEffect(() => {
     if (!isLoading && user) {
-      router.replace("/dashboard");
+      router.replace(CLIENT_DASHBOARD_PATH);
     }
   }, [isLoading, router, user]);
 
@@ -46,7 +48,7 @@ export default function AgencySignInPage() {
 
     if (result.success) {
       toast.success("Authentication successful");
-      router.push("/dashboard");
+      router.replace(CLIENT_DASHBOARD_PATH);
       router.refresh();
       return;
     }

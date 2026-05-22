@@ -416,7 +416,9 @@ export async function createReceptionPatientAction(formData: FormData) {
   const { supabase, userId, role } = await resolveActionContext();
   ensureAllowedRole(role, [RECEPTION_ROLE, ADMIN_ROLE], returnPath);
 
-  const { data: insertedPatient, error: insertError } = await supabase
+  // RLS does not grant Reception an INSERT policy on patient; use service role.
+  const adminClient = createSupabaseAdminClient();
+  const { data: insertedPatient, error: insertError } = await adminClient
     .from("patient")
     .insert({
       fullname: fullName,
@@ -986,6 +988,18 @@ export async function updateTriageCompletionAction(formData: FormData) {
   );
 }
 
+function getDepartmentVisitAuditActionType(nextStatusCode: string) {
+  if (nextStatusCode === "SKIPPED") {
+    return "VISIT_SKIPPED";
+  }
+
+  if (nextStatusCode === "PENDING") {
+    return "VISIT_REQUEUED";
+  }
+
+  return "DEPARTMENT_VISIT_STATUS_UPDATED";
+}
+
 export async function updateDepartmentVisitStatusAction(formData: FormData) {
   const returnPath = normalizeReturnPath(normalizeText(formData.get("returnPath")));
   const visitId = parseOptionalPositiveInt(normalizeText(formData.get("visitId")));
@@ -1094,12 +1108,16 @@ export async function updateDepartmentVisitStatusAction(formData: FormData) {
 
   await syncCaseWorkflowStatusAfterVisitUpdate(supabase, updatedVisit.caseid);
 
+  const auditActionType = getDepartmentVisitAuditActionType(nextStatusCode);
+
   await supabase.from("audit_log").insert({
     userid: userId,
-    actiontype: "DEPARTMENT_VISIT_STATUS_UPDATED",
+    actiontype: auditActionType,
     entityname: "department_visit",
     entityid: String(updatedVisit.visitid),
-    details: `Visit moved to ${nextStatusCode}.`,
+    details: note
+      ? `Visit moved to ${nextStatusCode}. Note: ${note}`
+      : `Visit moved to ${nextStatusCode}.`,
   });
 
   revalidatePath(STAFF_DASHBOARD_PATH);

@@ -406,6 +406,103 @@ export async function upsertCompanyAction(formData: FormData) {
   redirectWithNotice(returnPath, `Company ${name} created.`);
 }
 
+const CORE_STATUS_KEYS = new Set([
+  "CASE.REGISTERED",
+  "CASE.IN_PROGRESS",
+  "CASE.FOR_DECISION",
+  "CASE.FOR_RELEASING",
+  "CASE.RELEASED",
+  "CASE.ARCHIVED",
+  "CASE.PENDING_ADDITIONAL_TESTS",
+  "VISIT.PENDING",
+  "VISIT.IN_PROGRESS",
+  "VISIT.COMPLETED",
+  "VISIT.SKIPPED",
+  "VISIT.CANCELLED",
+  "DECISION.PENDING",
+  "DECISION.FIT",
+  "DECISION.UNFIT",
+  "DECISION.FIT_WITH_RESTRICTIONS",
+]);
+
+export async function upsertStatusCodeAction(formData: FormData) {
+  const returnPath = normalizeReturnPath(normalizeText(formData.get("returnPath")));
+  const statusCodeId = parseOptionalPositiveInt(normalizeText(formData.get("statusCodeId")));
+  const domain = normalizeText(formData.get("domain")).toUpperCase().slice(0, 30);
+  const code = normalizeText(formData.get("code")).toUpperCase().slice(0, 50);
+  const label = normalizeText(formData.get("label")).slice(0, 100);
+  const isActive = parseBooleanFlag(formData, "isActive");
+
+  if (!statusCodeId && (!domain || !code || !label)) {
+    redirectWithError(returnPath, "Domain, code, and label are required for status code creation.");
+  }
+
+  const { supabase, userId } = await resolveAdminContext(returnPath);
+
+  if (statusCodeId) {
+    const { data: existing, error: existingError } = await supabase
+      .from("status_code")
+      .select("statuscodeid, domain, code, label, isactive")
+      .eq("statuscodeid", statusCodeId)
+      .maybeSingle();
+
+    if (existingError || !existing) {
+      redirectWithError(
+        returnPath,
+        `Unable to load status code: ${existingError?.message ?? "Status code not found."}`
+      );
+    }
+
+    const existingKey = `${existing.domain}.${existing.code}`;
+    if (CORE_STATUS_KEYS.has(existingKey) && !isActive) {
+      redirectWithError(returnPath, "Core workflow status codes cannot be deactivated.");
+    }
+
+    const { error: updateError } = await supabase
+      .from("status_code")
+      .update({
+        label: label || existing.label,
+        isactive: isActive,
+      })
+      .eq("statuscodeid", statusCodeId);
+
+    if (updateError) {
+      redirectWithError(returnPath, `Status code update failed: ${updateError.message}`);
+    }
+
+    await writeAdminAuditLog(
+      supabase,
+      userId,
+      "ADMIN_STATUS_CODE_UPDATED",
+      `Updated status code ${existingKey}: active=${isActive}`
+    );
+
+    revalidatePath(ADMIN_DASHBOARD_PATH);
+    redirectWithNotice(returnPath, `Status code ${existingKey} updated.`);
+  }
+
+  const { error: insertError } = await supabase.from("status_code").insert({
+    domain,
+    code,
+    label,
+    isactive: isActive,
+  });
+
+  if (insertError) {
+    redirectWithError(returnPath, `Status code creation failed: ${insertError.message}`);
+  }
+
+  await writeAdminAuditLog(
+    supabase,
+    userId,
+    "ADMIN_STATUS_CODE_CREATED",
+    `Created status code ${domain}.${code}`
+  );
+
+  revalidatePath(ADMIN_DASHBOARD_PATH);
+  redirectWithNotice(returnPath, `Status code ${domain}.${code} created.`);
+}
+
 export async function setPackageDepartmentMappingAction(formData: FormData) {
   const returnPath = normalizeReturnPath(normalizeText(formData.get("returnPath")));
   const packageId = parseOptionalPositiveInt(normalizeText(formData.get("packageId")));

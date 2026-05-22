@@ -52,6 +52,14 @@ export type PackageDepartmentRecord = {
   }[] | null;
 };
 
+export type StatusCodeRecord = {
+  statuscodeid: number;
+  domain: string;
+  code: string;
+  label: string | null;
+  isactive: boolean | null;
+};
+
 export type UserAdminRow = {
   userid: string;
   username: string;
