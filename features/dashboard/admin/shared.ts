@@ -12,6 +12,10 @@ export type RoleRecord = {
 export type CompanyRecord = {
   companyid: number;
   name: string;
+  address: string | null;
+  contactperson: string | null;
+  contactnumber: string | null;
+  emailaddress: string | null;
   isactive: boolean | null;
 };
 

@@ -15,6 +15,11 @@ import {
   TRIAGE_ROLE,
 } from "@/lib/supabase/roles";
 import { normalizePhilippineMobileForStorage } from "@/lib/phone";
+import {
+  GOVERNMENT_ID_TYPES,
+  buildGovernmentIdForStorage,
+  validateGovernmentIdFormat,
+} from "@/lib/government-id";
 import { normalizeDashboardReturnPath } from "@/lib/dashboard/return-path";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { validateTestValue, isAbnormal } from "@/lib/test-catalog/validate";
@@ -31,6 +36,7 @@ import {
 } from "@/features/dashboard/staff/email-notifications";
 
 const STAFF_DASHBOARD_PATH = "/dashboard/staff";
+const SUPPORTED_GOVERNMENT_ID_TYPES = new Set<string>(GOVERNMENT_ID_TYPES);
 
 type ActionContext = {
   supabase: CurrentUserRoleContext["supabase"];
@@ -369,7 +375,10 @@ export async function createReceptionPatientAction(formData: FormData) {
   const nationality = normalizeText(formData.get("nationality")).slice(0, 50);
   const contactNumberRaw = normalizeText(formData.get("contactNumber"));
   const emailAddressRaw = normalizeText(formData.get("emailAddress")).toLowerCase();
-  const governmentId = normalizeText(formData.get("governmentId")).slice(0, 50);
+  const governmentIdType = normalizeText(formData.get("governmentIdType")).slice(0, 50);
+  const governmentIdNumber = normalizeText(formData.get("governmentIdNumber")).slice(0, 50);
+  const legacyGovernmentId = normalizeText(formData.get("governmentId")).slice(0, 80);
+  let governmentId = legacyGovernmentId;
 
   if (!fullName) {
     redirectWithError(returnPath, "Full name is required for patient registration.");
@@ -400,6 +409,36 @@ export async function createReceptionPatientAction(formData: FormData) {
 
   if (!emailAddressRaw || !isLikelyEmail(emailAddressRaw)) {
     redirectWithError(returnPath, "A valid email address is required.");
+  }
+
+  if (governmentIdType || governmentIdNumber) {
+    if (!governmentIdType || !governmentIdNumber) {
+      redirectWithError(returnPath, "Government ID type and number are required.");
+    }
+
+    if (!SUPPORTED_GOVERNMENT_ID_TYPES.has(governmentIdType)) {
+      redirectWithError(returnPath, "Please select a supported government ID type.");
+    }
+
+    const idFormatError = validateGovernmentIdFormat(
+      governmentIdType,
+      governmentIdNumber
+    );
+
+    if (idFormatError) {
+      redirectWithError(returnPath, idFormatError);
+    }
+
+    const normalizedGovernmentId = buildGovernmentIdForStorage(
+      governmentIdType,
+      governmentIdNumber
+    );
+
+    if (!normalizedGovernmentId) {
+      redirectWithError(returnPath, "Government ID type and number are required.");
+    }
+
+    governmentId = normalizedGovernmentId;
   }
 
   if (!governmentId) {

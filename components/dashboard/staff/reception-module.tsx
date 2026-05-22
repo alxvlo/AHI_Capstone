@@ -15,6 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { GOVERNMENT_ID_TYPES } from "@/lib/government-id";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import {
@@ -190,6 +191,11 @@ export async function ReceptionModule({
   }
 
   const todayDatePrefix = new Date().toISOString().slice(0, 10);
+  const { count: todayPatientRegistrationCount, error: todayPatientRegistrationError } =
+    await adminClient
+      .from("patient")
+      .select("patientid", { count: "exact", head: true })
+      .gte("updatedat", `${todayDatePrefix}T00:00:00`);
   const panelStatusCode = pickJoined(panelCase?.status)?.code ?? null;
   const canCancelPanelCase =
     panelStatusCode === "REGISTERED" ||
@@ -203,9 +209,7 @@ export async function ReceptionModule({
   });
   const rushCases = cases.filter((row) => row.isrush).length;
   const waiverPendingCases = cases.filter((row) => !row.waiversigned).length;
-  const todayRegisteredCases = cases.filter((row) =>
-    row.registrationtimestamp?.startsWith(todayDatePrefix)
-  ).length;
+  const todayRegisteredPatients = todayPatientRegistrationCount ?? 0;
 
   return (
     <div className="space-y-6">
@@ -225,7 +229,11 @@ export async function ReceptionModule({
           value={waiverPendingCases}
           tone={waiverPendingCases > 0 ? "danger" : "positive"}
         />
-        <MetricCard label="Registered Today" value={todayRegisteredCases} />
+        <MetricCard
+          label="Patients Registered Today"
+          value={todayRegisteredPatients}
+          tone={todayPatientRegistrationError ? "warning" : undefined}
+        />
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[1.1fr,1fr]">
@@ -341,14 +349,35 @@ export async function ReceptionModule({
                       required
                     />
                   </div>
-                  <div className="space-y-2 sm:col-span-2">
-                    <Label htmlFor="governmentId">Government ID / Passport</Label>
+                  <div className="space-y-2">
+                    <Label htmlFor="governmentIdType">Government ID Type</Label>
+                    <select
+                      id="governmentIdType"
+                      name="governmentIdType"
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                      required
+                    >
+                      <option value="">Select ID type</option>
+                      {GOVERNMENT_ID_TYPES.map((idType) => (
+                        <option key={idType} value={idType}>
+                          {idType}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="governmentIdNumber">ID Number</Label>
                     <Input
-                      id="governmentId"
-                      name="governmentId"
-                      placeholder="Passport::P1234567"
+                      id="governmentIdNumber"
+                      name="governmentIdNumber"
+                      placeholder="Enter ID number"
                       required
                     />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <p className="text-xs text-muted-foreground">
+                      Use the same ID type and number the patient will use for portal signup.
+                    </p>
                   </div>
                 </div>
                 <Button type="submit" variant="outline" className="w-full sm:w-auto">
@@ -455,8 +484,8 @@ export async function ReceptionModule({
       </div>
 
       <DataTableContainer
-        title="Active Case Tracker"
-        description="Filter active cases by status, company, rush flag, and registration date."
+        title="Active Case Tracker (All Cases)"
+        description="All active PEME cases. Use the case filters below to narrow this table."
         toolbar={
           <form className="grid gap-3 md:grid-cols-5">
             <Input name="caseSearch" defaultValue={caseSearch} placeholder="Case number" />

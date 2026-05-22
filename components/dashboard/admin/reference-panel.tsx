@@ -10,6 +10,7 @@ import { StatusBadge } from "@/components/dashboard/shared/status-badge";
 import { Button } from "@/components/ui/button";
 import { pickJoined } from "@/features/dashboard/admin/shared";
 import type {
+  CompanyRecord,
   DepartmentRecord,
   PackageDepartmentRecord,
   PackageRecord,
@@ -20,6 +21,7 @@ type ReferencePanelProps = {
   returnPath: string;
   departments: DepartmentRecord[];
   packages: PackageRecord[];
+  companies: CompanyRecord[];
   packageDepartmentMappings: PackageDepartmentRecord[];
   statusCodes: StatusCodeRecord[];
   referenceError?: string | null;
@@ -29,6 +31,7 @@ export function ReferencePanel({
   returnPath,
   departments,
   packages,
+  companies,
   packageDepartmentMappings,
   statusCodes,
   referenceError = null,
@@ -128,6 +131,153 @@ export function ReferencePanel({
               Add Company
             </Button>
           </form>
+        </div>
+
+        <div className="grid min-w-[840px] gap-4 border-t p-4 xl:grid-cols-3">
+          <section className="space-y-3">
+            <h3 className="text-sm font-semibold">Departments</h3>
+            <div className="space-y-3">
+              {departments.map((department) => (
+                <form
+                  key={department.departmentid}
+                  action={upsertDepartmentAction}
+                  className="grid gap-2 rounded-md border p-3"
+                >
+                  <input type="hidden" name="returnPath" value={returnPath} />
+                  <input type="hidden" name="departmentId" value={String(department.departmentid)} />
+                  <input
+                    name="code"
+                    defaultValue={department.code}
+                    className="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm uppercase"
+                    required
+                  />
+                  <input
+                    name="name"
+                    defaultValue={department.name}
+                    className="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    required
+                  />
+                  <div className="flex items-center justify-between gap-3">
+                    <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <input
+                        type="checkbox"
+                        name="isActive"
+                        defaultChecked={department.isactive !== false}
+                        className="h-4 w-4"
+                      />
+                      Active
+                    </label>
+                    <Button type="submit" size="sm" variant="outline" className="h-9 px-3">
+                      Save
+                    </Button>
+                  </div>
+                </form>
+              ))}
+            </div>
+          </section>
+
+          <section className="space-y-3">
+            <h3 className="text-sm font-semibold">Packages</h3>
+            <div className="space-y-3">
+              {packages.map((packageInfo) => (
+                <form
+                  key={packageInfo.packageid}
+                  action={upsertPackageAction}
+                  className="grid gap-2 rounded-md border p-3"
+                >
+                  <input type="hidden" name="returnPath" value={returnPath} />
+                  <input type="hidden" name="packageId" value={String(packageInfo.packageid)} />
+                  <input
+                    name="packageName"
+                    defaultValue={packageInfo.packagename}
+                    className="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    required
+                  />
+                  <input
+                    name="category"
+                    defaultValue={packageInfo.category ?? ""}
+                    className="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  />
+                  <textarea
+                    name="description"
+                    defaultValue={packageInfo.description ?? ""}
+                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    rows={2}
+                  />
+                  <div className="flex items-center justify-between gap-3">
+                    <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <input
+                        type="checkbox"
+                        name="isActive"
+                        defaultChecked={packageInfo.isactive !== false}
+                        className="h-4 w-4"
+                      />
+                      Active
+                    </label>
+                    <Button type="submit" size="sm" variant="outline" className="h-9 px-3">
+                      Save
+                    </Button>
+                  </div>
+                </form>
+              ))}
+            </div>
+          </section>
+
+          <section className="space-y-3">
+            <h3 className="text-sm font-semibold">Companies</h3>
+            <div className="space-y-3">
+              {companies.map((company) => (
+                <form
+                  key={company.companyid}
+                  action={upsertCompanyAction}
+                  className="grid gap-2 rounded-md border p-3"
+                >
+                  <input type="hidden" name="returnPath" value={returnPath} />
+                  <input type="hidden" name="companyId" value={String(company.companyid)} />
+                  <input
+                    name="name"
+                    defaultValue={company.name}
+                    className="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    required
+                  />
+                  <input
+                    name="emailAddress"
+                    defaultValue={company.emailaddress ?? ""}
+                    className="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  />
+                  <input
+                    name="contactPerson"
+                    defaultValue={company.contactperson ?? ""}
+                    className="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  />
+                  <input
+                    name="contactNumber"
+                    defaultValue={company.contactnumber ?? ""}
+                    className="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  />
+                  <input
+                    name="address"
+                    defaultValue={company.address ?? ""}
+                    className="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  />
+                  <div className="flex items-center justify-between gap-3">
+                    <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <input
+                        type="checkbox"
+                        name="isActive"
+                        defaultChecked={company.isactive !== false}
+                        className="h-4 w-4"
+                      />
+                      Active
+                    </label>
+                    <Button type="submit" size="sm" variant="outline" className="h-9 px-3">
+                      Save
+                    </Button>
+                  </div>
+                </form>
+              ))}
+            </div>
+          </section>
         </div>
       </DataTableContainer>
 

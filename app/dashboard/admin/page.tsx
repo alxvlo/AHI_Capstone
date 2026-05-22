@@ -100,7 +100,10 @@ export default async function AdminDashboardPage({
       .select("caseid", { count: "exact", head: true })
       .not("releasedtimestamp", "is", null),
     supabase.from("role").select("roleid, rolename, isactive").order("rolename", { ascending: true }),
-    supabase.from("company").select("companyid, name, isactive").order("name", { ascending: true }),
+    supabase
+      .from("company")
+      .select("companyid, name, address, contactperson, contactnumber, emailaddress, isactive")
+      .order("name", { ascending: true }),
   ]);
 
   const roles = (rolesResponse.data ?? []) as RoleRecord[];
@@ -388,6 +391,7 @@ export default async function AdminDashboardPage({
           returnPath={referenceTabReturnPath}
           departments={departments}
           packages={packages}
+          companies={companies}
           packageDepartmentMappings={packageDepartmentMappings}
           statusCodes={statusCodes}
           referenceError={referenceError}
