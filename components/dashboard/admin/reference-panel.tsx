@@ -3,22 +3,27 @@ import {
   upsertCompanyAction,
   upsertDepartmentAction,
   upsertPackageAction,
+  upsertStatusCodeAction,
 } from "@/features/dashboard/admin/actions";
 import { DataTableContainer } from "@/components/dashboard/shared/data-table-container";
 import { StatusBadge } from "@/components/dashboard/shared/status-badge";
 import { Button } from "@/components/ui/button";
 import { pickJoined } from "@/features/dashboard/admin/shared";
 import type {
+  CompanyRecord,
   DepartmentRecord,
   PackageDepartmentRecord,
   PackageRecord,
+  StatusCodeRecord,
 } from "@/features/dashboard/admin/shared";
 
 type ReferencePanelProps = {
   returnPath: string;
   departments: DepartmentRecord[];
   packages: PackageRecord[];
+  companies: CompanyRecord[];
   packageDepartmentMappings: PackageDepartmentRecord[];
+  statusCodes: StatusCodeRecord[];
   referenceError?: string | null;
 };
 
@@ -26,7 +31,9 @@ export function ReferencePanel({
   returnPath,
   departments,
   packages,
+  companies,
   packageDepartmentMappings,
+  statusCodes,
   referenceError = null,
 }: ReferencePanelProps) {
   return (
@@ -125,6 +132,153 @@ export function ReferencePanel({
             </Button>
           </form>
         </div>
+
+        <div className="grid min-w-[840px] gap-4 border-t p-4 xl:grid-cols-3">
+          <section className="space-y-3">
+            <h3 className="text-sm font-semibold">Departments</h3>
+            <div className="space-y-3">
+              {departments.map((department) => (
+                <form
+                  key={department.departmentid}
+                  action={upsertDepartmentAction}
+                  className="grid gap-2 rounded-md border p-3"
+                >
+                  <input type="hidden" name="returnPath" value={returnPath} />
+                  <input type="hidden" name="departmentId" value={String(department.departmentid)} />
+                  <input
+                    name="code"
+                    defaultValue={department.code}
+                    className="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm uppercase"
+                    required
+                  />
+                  <input
+                    name="name"
+                    defaultValue={department.name}
+                    className="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    required
+                  />
+                  <div className="flex items-center justify-between gap-3">
+                    <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <input
+                        type="checkbox"
+                        name="isActive"
+                        defaultChecked={department.isactive !== false}
+                        className="h-4 w-4"
+                      />
+                      Active
+                    </label>
+                    <Button type="submit" size="sm" variant="outline" className="h-9 px-3">
+                      Save
+                    </Button>
+                  </div>
+                </form>
+              ))}
+            </div>
+          </section>
+
+          <section className="space-y-3">
+            <h3 className="text-sm font-semibold">Packages</h3>
+            <div className="space-y-3">
+              {packages.map((packageInfo) => (
+                <form
+                  key={packageInfo.packageid}
+                  action={upsertPackageAction}
+                  className="grid gap-2 rounded-md border p-3"
+                >
+                  <input type="hidden" name="returnPath" value={returnPath} />
+                  <input type="hidden" name="packageId" value={String(packageInfo.packageid)} />
+                  <input
+                    name="packageName"
+                    defaultValue={packageInfo.packagename}
+                    className="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    required
+                  />
+                  <input
+                    name="category"
+                    defaultValue={packageInfo.category ?? ""}
+                    className="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  />
+                  <textarea
+                    name="description"
+                    defaultValue={packageInfo.description ?? ""}
+                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    rows={2}
+                  />
+                  <div className="flex items-center justify-between gap-3">
+                    <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <input
+                        type="checkbox"
+                        name="isActive"
+                        defaultChecked={packageInfo.isactive !== false}
+                        className="h-4 w-4"
+                      />
+                      Active
+                    </label>
+                    <Button type="submit" size="sm" variant="outline" className="h-9 px-3">
+                      Save
+                    </Button>
+                  </div>
+                </form>
+              ))}
+            </div>
+          </section>
+
+          <section className="space-y-3">
+            <h3 className="text-sm font-semibold">Companies</h3>
+            <div className="space-y-3">
+              {companies.map((company) => (
+                <form
+                  key={company.companyid}
+                  action={upsertCompanyAction}
+                  className="grid gap-2 rounded-md border p-3"
+                >
+                  <input type="hidden" name="returnPath" value={returnPath} />
+                  <input type="hidden" name="companyId" value={String(company.companyid)} />
+                  <input
+                    name="name"
+                    defaultValue={company.name}
+                    className="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    required
+                  />
+                  <input
+                    name="emailAddress"
+                    defaultValue={company.emailaddress ?? ""}
+                    className="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  />
+                  <input
+                    name="contactPerson"
+                    defaultValue={company.contactperson ?? ""}
+                    className="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  />
+                  <input
+                    name="contactNumber"
+                    defaultValue={company.contactnumber ?? ""}
+                    className="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  />
+                  <input
+                    name="address"
+                    defaultValue={company.address ?? ""}
+                    className="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  />
+                  <div className="flex items-center justify-between gap-3">
+                    <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <input
+                        type="checkbox"
+                        name="isActive"
+                        defaultChecked={company.isactive !== false}
+                        className="h-4 w-4"
+                      />
+                      Active
+                    </label>
+                    <Button type="submit" size="sm" variant="outline" className="h-9 px-3">
+                      Save
+                    </Button>
+                  </div>
+                </form>
+              ))}
+            </div>
+          </section>
+        </div>
       </DataTableContainer>
 
       <DataTableContainer
@@ -219,6 +373,86 @@ export function ReferencePanel({
                   </tr>
                 );
               })}
+            </tbody>
+          </table>
+        </div>
+      </DataTableContainer>
+
+      <DataTableContainer
+        title="Status Codes"
+        description="Manage PEME case and visit status codes. Core workflow codes cannot be deactivated."
+        isEmpty={statusCodes.length === 0}
+        emptyTitle="No status codes found"
+        emptyMessage="Add a status code below."
+        tableWrapperClassName="max-h-[420px] overflow-auto"
+      >
+        <div className="min-w-[840px] p-4">
+          <form action={upsertStatusCodeAction} className="mb-4 grid gap-3 md:grid-cols-4">
+            <input type="hidden" name="returnPath" value={returnPath} />
+            <input
+              name="domain"
+              placeholder="Domain (e.g. CASE)"
+              className="flex h-11 rounded-md border border-input bg-background px-3 py-2 text-sm uppercase"
+              required
+            />
+            <input
+              name="code"
+              placeholder="Code (e.g. REGISTERED)"
+              className="flex h-11 rounded-md border border-input bg-background px-3 py-2 text-sm uppercase"
+              required
+            />
+            <input
+              name="label"
+              placeholder="Label (e.g. Registered)"
+              className="flex h-11 rounded-md border border-input bg-background px-3 py-2 text-sm"
+              required
+            />
+            <div className="flex items-center gap-3">
+              <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                <input type="checkbox" name="isActive" defaultChecked className="h-4 w-4" />
+                Active
+              </label>
+              <Button type="submit" className="h-11 flex-1 px-4">
+                Add Status Code
+              </Button>
+            </div>
+          </form>
+
+          <table className="min-w-full text-sm">
+            <thead className="bg-muted/50 text-left">
+              <tr>
+                <th className="px-3 py-2 font-semibold">Domain</th>
+                <th className="px-3 py-2 font-semibold">Code</th>
+                <th className="px-3 py-2 font-semibold">Label</th>
+                <th className="px-3 py-2 font-semibold">Active</th>
+                <th className="px-3 py-2 font-semibold">Save</th>
+              </tr>
+            </thead>
+            <tbody>
+              {statusCodes.map((status) => (
+                <tr key={status.statuscodeid} className="border-t align-middle">
+                  <td className="px-3 py-2 font-mono text-xs">{status.domain}</td>
+                  <td className="px-3 py-2 font-mono text-xs">{status.code}</td>
+                  <td className="px-3 py-2" colSpan={3}>
+                    <form action={upsertStatusCodeAction} className="grid gap-2 md:grid-cols-[1fr_auto_auto]">
+                      <input type="hidden" name="returnPath" value={returnPath} />
+                      <input type="hidden" name="statusCodeId" value={String(status.statuscodeid)} />
+                      <input
+                        name="label"
+                        defaultValue={status.label ?? ""}
+                        className="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
+                      />
+                      <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <input type="checkbox" name="isActive" defaultChecked={status.isactive !== false} className="h-4 w-4" />
+                        Active
+                      </label>
+                      <Button type="submit" size="sm" variant="outline" className="h-10 px-3">
+                        Save
+                      </Button>
+                    </form>
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>

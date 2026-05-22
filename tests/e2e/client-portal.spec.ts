@@ -14,12 +14,15 @@ async function goToClientPortal(page: Page): Promise<void> {
 }
 
 test.describe("Client portal — agency sign-in page", () => {
-  test("agency sign-in renders email, password fields and Sign In button", async ({ page }) => {
+  test("agency sign-in renders email, password fields and Sign In button", async ({ browser }) => {
+    const ctx = await browser.newContext({ storageState: undefined });
+    const page = await ctx.newPage();
     await page.goto("/auth/agency/sign-in");
     await expect(page).toHaveURL(/\/auth\/agency\/sign-in/, { timeout: 10_000 });
     await expect(page.getByLabel(/email/i)).toBeVisible({ timeout: 10_000 });
     await expect(page.getByLabel(/password/i)).toBeVisible({ timeout: 10_000 });
     await expect(page.getByRole("button", { name: /sign in/i })).toBeVisible({ timeout: 10_000 });
+    await ctx.close();
   });
 });
 

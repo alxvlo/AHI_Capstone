@@ -304,6 +304,9 @@ export default function PatientSignUpPage() {
                   onChange={(e) => update("governmentId", e.target.value)}
                   className="rounded-xl"
                 />
+                <p className="text-xs text-muted-foreground">
+                  Use the same ID type and number recorded during Reception registration.
+                </p>
               </div>
             </CardContent>
             <CardFooter className="flex flex-col gap-3">

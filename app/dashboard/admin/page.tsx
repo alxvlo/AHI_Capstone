@@ -23,6 +23,7 @@ import {
   type PackageRecord,
   type RoleRecord,
   type SearchParamValue,
+  type StatusCodeRecord,
   type UserAdminRow,
 } from "@/features/dashboard/admin/shared";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -99,7 +100,10 @@ export default async function AdminDashboardPage({
       .select("caseid", { count: "exact", head: true })
       .not("releasedtimestamp", "is", null),
     supabase.from("role").select("roleid, rolename, isactive").order("rolename", { ascending: true }),
-    supabase.from("company").select("companyid, name, isactive").order("name", { ascending: true }),
+    supabase
+      .from("company")
+      .select("companyid, name, address, contactperson, contactnumber, emailaddress, isactive")
+      .order("name", { ascending: true }),
   ]);
 
   const roles = (rolesResponse.data ?? []) as RoleRecord[];
@@ -153,10 +157,11 @@ export default async function AdminDashboardPage({
   let departments: DepartmentRecord[] = [];
   let packages: PackageRecord[] = [];
   let packageDepartmentMappings: PackageDepartmentRecord[] = [];
+  let statusCodes: StatusCodeRecord[] = [];
   let referenceError: string | null = null;
 
   if (activeTab === "reference") {
-    const [departmentResponse, packageResponse, mappingResponse] = await Promise.all([
+    const [departmentResponse, packageResponse, mappingResponse, statusCodeResponse] = await Promise.all([
       supabase
         .from("department")
         .select("departmentid, code, name, isactive")
@@ -172,16 +177,23 @@ export default async function AdminDashboardPage({
         )
         .order("packageid", { ascending: true })
         .order("departmentid", { ascending: true }),
+      supabase
+        .from("status_code")
+        .select("statuscodeid, domain, code, label, isactive")
+        .order("domain", { ascending: true })
+        .order("code", { ascending: true }),
     ]);
 
     departments = (departmentResponse.data ?? []) as DepartmentRecord[];
     packages = (packageResponse.data ?? []) as PackageRecord[];
     packageDepartmentMappings = (mappingResponse.data ?? []) as PackageDepartmentRecord[];
+    statusCodes = (statusCodeResponse.data ?? []) as StatusCodeRecord[];
 
     referenceError =
       departmentResponse.error?.message ??
       packageResponse.error?.message ??
       mappingResponse.error?.message ??
+      statusCodeResponse.error?.message ??
       null;
   }
 
@@ -379,7 +391,9 @@ export default async function AdminDashboardPage({
           returnPath={referenceTabReturnPath}
           departments={departments}
           packages={packages}
+          companies={companies}
           packageDepartmentMappings={packageDepartmentMappings}
+          statusCodes={statusCodes}
           referenceError={referenceError}
         />
       ) : null}

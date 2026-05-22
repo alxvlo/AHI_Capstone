@@ -94,6 +94,64 @@ function makePemeCaseStub(
 }
 
 // ---------------------------------------------------------------------------
+// department_visit stub for release validation — handles totalCount (call 1)
+// and unresolved-rows query (call 2, after .neq())
+// ---------------------------------------------------------------------------
+function makeDepartmentVisitReleaseStub(options: {
+  totalVisits: number;
+  unresolvedVisits: Array<{
+    visitid: number;
+    departmentName: string;
+    statusCode: string;
+    statusLabel: string;
+  }>;
+}) {
+  let callIndex = 0;
+
+  return {
+    select: () => ({
+      eq: () => {
+        callIndex += 1;
+
+        if (callIndex === 1) {
+          return {
+            then(resolve: (value: { count: number; error: null }) => unknown) {
+              return Promise.resolve({
+                count: options.totalVisits,
+                error: null,
+              }).then(resolve);
+            },
+            catch(reject: (error: unknown) => unknown) {
+              return Promise.resolve({
+                count: options.totalVisits,
+                error: null,
+              }).catch(reject);
+            },
+          };
+        }
+
+        return {
+          neq: () =>
+            Promise.resolve({
+              data: options.unresolvedVisits.map((visit) => ({
+                visitid: visit.visitid,
+                department: {
+                  name: visit.departmentName,
+                },
+                visitStatus: {
+                  code: visit.statusCode,
+                  label: visit.statusLabel,
+                },
+              })),
+              error: null,
+            }),
+        };
+      },
+    }),
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Test 1: case not in FOR_RELEASING — casestatuscodeid=4 (FOR_DECISION)
 // ---------------------------------------------------------------------------
 describe("releaseCaseAction — case not FOR_RELEASING", () => {
@@ -212,8 +270,18 @@ describe("releaseCaseAction — incomplete visits", () => {
       { data: null, error: null }
     );
 
-    // Track department_visit call index to serve two different count responses
-    let dvCallCount = 0;
+    const departmentVisitStub = makeDepartmentVisitReleaseStub({
+      totalVisits: 2,
+      unresolvedVisits: [
+        {
+          visitid: 10,
+          departmentName: "Laboratory",
+          statusCode: "PENDING",
+          statusLabel: "Pending",
+        },
+      ],
+    });
+
     const supabaseStub = {
       from: (table: string) => {
         if (table === "status_code") return statusCodeStub;
@@ -227,35 +295,7 @@ describe("releaseCaseAction — incomplete visits", () => {
             }),
           };
         }
-        if (table === "department_visit") {
-          dvCallCount++;
-          if (dvCallCount === 1) {
-            // First call: totalCount query — ends at .eq("caseid", caseId)
-            return {
-              select: () => ({
-                eq: () => {
-                  return {
-                    neq: () => Promise.resolve({ count: 1, error: null }),
-                    then(resolve: (v: { count: number; error: null }) => unknown) {
-                      return Promise.resolve({ count: 2, error: null }).then(resolve);
-                    },
-                    catch(reject: (e: unknown) => unknown) {
-                      return Promise.resolve({ count: 2, error: null }).catch(reject);
-                    },
-                  };
-                },
-              }),
-            };
-          }
-          // Second call: incompleteCount query — ends at .neq(...)
-          return {
-            select: () => ({
-              eq: () => ({
-                neq: () => Promise.resolve({ count: 1, error: null }),
-              }),
-            }),
-          };
-        }
+        if (table === "department_visit") return departmentVisitStub;
         return {};
       },
     };
@@ -270,7 +310,79 @@ describe("releaseCaseAction — incomplete visits", () => {
 
     expect(redirectCalls).toHaveLength(1);
     const url = new URL(redirectCalls[0], "http://localhost");
-    expect(url.searchParams.get("error")).toContain("COMPLETED first");
+    expect(url.searchParams.get("error")).toContain("not ready for release");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Test 5: terminal but unreleasable visits — SKIPPED and CANCELLED block release
+// ---------------------------------------------------------------------------
+describe("releaseCaseAction - terminal but unreleasable visits", () => {
+  it("redirects with a clear error when visits are SKIPPED or CANCELLED", async () => {
+    const statusCodeStub = makeStatusCodeStub();
+    const pemeCaseStub = makePemeCaseStub(
+      {
+        data: {
+          caseid: CASE_ID,
+          casenumber: "AHI-104",
+          casestatuscodeid: 5,
+          patient: null,
+          company: null,
+        },
+        error: null,
+      },
+      { data: null, error: null }
+    );
+
+    const departmentVisitStub = makeDepartmentVisitReleaseStub({
+      totalVisits: 3,
+      unresolvedVisits: [
+        {
+          visitid: 10,
+          departmentName: "Radiology",
+          statusCode: "SKIPPED",
+          statusLabel: "Skipped",
+        },
+        {
+          visitid: 11,
+          departmentName: "Laboratory",
+          statusCode: "CANCELLED",
+          statusLabel: "Cancelled",
+        },
+      ],
+    });
+
+    const supabaseStub = {
+      from: (table: string) => {
+        if (table === "status_code") return statusCodeStub;
+        if (table === "peme_case") return pemeCaseStub;
+        if (table === "peme_decision") {
+          return {
+            select: () => ({
+              eq: () => ({
+                maybeSingle: async () => ({
+                  data: { decisionid: 1 },
+                  error: null,
+                }),
+              }),
+            }),
+          };
+        }
+        if (table === "department_visit") return departmentVisitStub;
+        return {};
+      },
+    };
+
+    const { redirectCalls } = setupMocks("Releasing Staff", supabaseStub);
+    const { releaseCaseAction } = await import("@/features/dashboard/staff/actions");
+
+    await expect(releaseCaseAction(makeFormData(VALID))).rejects.toThrow("NEXT_REDIRECT");
+
+    const url = new URL(redirectCalls[0], "http://localhost");
+    const error = url.searchParams.get("error") ?? "";
+    expect(error).toContain("not ready for release");
+    expect(error).toContain("1 SKIPPED");
+    expect(error).toContain("1 CANCELLED");
   });
 });
 
@@ -297,7 +409,11 @@ describe("releaseCaseAction — happy path", () => {
       { data: { caseid: CASE_ID }, error: null }
     );
 
-    let dvCallCount = 0;
+    const departmentVisitStub = makeDepartmentVisitReleaseStub({
+      totalVisits: 2,
+      unresolvedVisits: [],
+    });
+
     const supabaseStub = {
       from: (table: string) => {
         if (table === "status_code") return statusCodeStub;
@@ -311,35 +427,7 @@ describe("releaseCaseAction — happy path", () => {
             }),
           };
         }
-        if (table === "department_visit") {
-          dvCallCount++;
-          if (dvCallCount === 1) {
-            // First call: totalCount=2, thenable
-            return {
-              select: () => ({
-                eq: () => {
-                  return {
-                    neq: () => Promise.resolve({ count: 0, error: null }),
-                    then(resolve: (v: { count: number; error: null }) => unknown) {
-                      return Promise.resolve({ count: 2, error: null }).then(resolve);
-                    },
-                    catch(reject: (e: unknown) => unknown) {
-                      return Promise.resolve({ count: 2, error: null }).catch(reject);
-                    },
-                  };
-                },
-              }),
-            };
-          }
-          // Second call: incompleteCount=0 — all visits COMPLETED
-          return {
-            select: () => ({
-              eq: () => ({
-                neq: () => Promise.resolve({ count: 0, error: null }),
-              }),
-            }),
-          };
-        }
+        if (table === "department_visit") return departmentVisitStub;
         if (table === "audit_log") {
           return {
             insert: (row: Parameters<typeof auditCollector.handler>[0]) =>

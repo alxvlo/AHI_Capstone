@@ -19,6 +19,8 @@ import { Plus } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 
+const PATIENT_DASHBOARD_PATH = "/dashboard/patient";
+
 export default function PatientSignInPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -30,7 +32,7 @@ export default function PatientSignInPage() {
 
   useEffect(() => {
     if (!isLoading && user) {
-      router.replace("/dashboard");
+      router.replace(PATIENT_DASHBOARD_PATH);
     }
   }, [isLoading, router, user]);
 
@@ -53,7 +55,7 @@ export default function PatientSignInPage() {
       if (result.error) {
         toast.info(result.error);
       }
-      router.push("/dashboard");
+      router.replace(PATIENT_DASHBOARD_PATH);
       router.refresh();
       return;
     }

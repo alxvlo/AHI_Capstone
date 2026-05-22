@@ -196,6 +196,36 @@ describe("updateDepartmentVisitStatusAction", () => {
     expect((err as Error).message).toMatch(/__REDIRECT__/);
     expect((err as Error).message).toMatch(/error=/);
   });
+
+  it("writes VISIT_SKIPPED when a visit is skipped", async () => {
+    const supa = makeSupabaseMock();
+    setupVisitStub(supa);
+    mockRoleContext(supa);
+
+    await expect(
+      updateDepartmentVisitStatusAction(buildFormData("SKIPPED", { statusNote: "Patient unavailable." }))
+    ).rejects.toThrow(/__REDIRECT__/);
+
+    const audit = supa.auditInsert.mock.calls[0]?.[0];
+    expect(audit.actiontype).toBe("VISIT_SKIPPED");
+    expect(audit.details).toMatch(/SKIPPED/);
+    expect(audit.details).toMatch(/Patient unavailable/);
+  });
+
+  it("writes VISIT_REQUEUED when a skipped visit is returned to pending", async () => {
+    const supa = makeSupabaseMock();
+    setupVisitStub(supa);
+    mockRoleContext(supa);
+
+    await expect(
+      updateDepartmentVisitStatusAction(buildFormData("PENDING", { statusNote: "Ready for retry." }))
+    ).rejects.toThrow(/__REDIRECT__/);
+
+    const audit = supa.auditInsert.mock.calls[0]?.[0];
+    expect(audit.actiontype).toBe("VISIT_REQUEUED");
+    expect(audit.details).toMatch(/PENDING/);
+    expect(audit.details).toMatch(/Ready for retry/);
+  });
 });
 
 // ---------------------------------------------------------------------------

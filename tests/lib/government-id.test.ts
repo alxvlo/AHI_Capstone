@@ -11,6 +11,10 @@ describe("government ID helpers", () => {
       "Passport",
       "National ID",
       "Driver's License",
+      "SSS",
+      "PhilHealth",
+      "UMID",
+      "PRC",
       "Other Government ID",
     ]);
   });
@@ -50,6 +54,23 @@ describe("validateGovernmentIdFormat", () => {
   it("validates Driver's License format", () => {
     expect(validateGovernmentIdFormat("Driver's License", "A00-00-000000")).toBeNull();
     expect(validateGovernmentIdFormat("Driver's License", "AB")).not.toBeNull();
+  });
+
+  it("validates common Philippine government ID formats", () => {
+    expect(validateGovernmentIdFormat("SSS", "12-3456789-0")).toBeNull();
+    expect(validateGovernmentIdFormat("SSS", "1234567890")).toBeNull();
+    expect(validateGovernmentIdFormat("SSS", "123")).not.toBeNull();
+
+    expect(validateGovernmentIdFormat("PhilHealth", "12-345678901-2")).toBeNull();
+    expect(validateGovernmentIdFormat("PhilHealth", "123456789012")).toBeNull();
+    expect(validateGovernmentIdFormat("PhilHealth", "ABC123")).not.toBeNull();
+
+    expect(validateGovernmentIdFormat("UMID", "1234-5678901-2")).toBeNull();
+    expect(validateGovernmentIdFormat("UMID", "123456789012")).toBeNull();
+    expect(validateGovernmentIdFormat("UMID", "12345")).not.toBeNull();
+
+    expect(validateGovernmentIdFormat("PRC", "1234567")).toBeNull();
+    expect(validateGovernmentIdFormat("PRC", "ABC123")).not.toBeNull();
   });
 
   it("accepts valid Other Government ID", () => {

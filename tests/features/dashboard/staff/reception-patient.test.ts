@@ -10,7 +10,8 @@ const VALID_FIELDS = {
   sex: "Male",
   contactNumber: "+639171234567",
   emailAddress: "juan@example.com",
-  governmentId: "Passport::P1234567",
+  governmentIdType: "Passport",
+  governmentIdNumber: " p1234567 ",
   nationality: "Filipino",
 };
 
@@ -34,6 +35,9 @@ function setupMocks(role = "Reception/Billing", supabaseStub: unknown = {}) {
       role,
     }),
   }));
+  vi.doMock("@/lib/supabase/admin", () => ({
+    createSupabaseAdminClient: () => supabaseStub,
+  }));
   return { redirectCalls };
 }
 
@@ -44,15 +48,18 @@ function makePatientInsertSupabase(
   patientResult: { data: { patientid: string; fullname: string } | null; error: null | { code?: string; message?: string } },
   auditCollector: ReturnType<typeof makeAuditCollector>
 ) {
+  const patientInsert = vi.fn().mockReturnValue({
+    select: () => ({
+      maybeSingle: async () => patientResult,
+    }),
+  });
+
   return {
+    patientInsert,
     from: vi.fn().mockImplementation((table: string) => {
       if (table === "patient") {
         return {
-          insert: () => ({
-            select: () => ({
-              maybeSingle: async () => patientResult,
-            }),
-          }),
+          insert: patientInsert,
         };
       }
       if (table === "audit_log") {
@@ -102,7 +109,7 @@ describe("createReceptionPatientAction — validation", () => {
     expect(url.searchParams.get("error")).toContain("valid date of birth");
   });
 
-  it("rejects a malformed governmentId without :: separator", async () => {
+  it("rejects a malformed legacy governmentId without :: separator", async () => {
     const { redirectCalls } = setupMocks("Reception/Billing", { from: vi.fn() });
 
     const { createReceptionPatientAction } = await import(
@@ -110,13 +117,38 @@ describe("createReceptionPatientAction — validation", () => {
     );
 
     // Missing :: — bare passport number with no type prefix
-    const formData = makeFormData({ ...VALID_FIELDS, governmentId: "P1234567" });
+    const formData = makeFormData({
+      ...VALID_FIELDS,
+      governmentIdType: undefined,
+      governmentIdNumber: undefined,
+      governmentId: "P1234567",
+    });
 
     await expect(createReceptionPatientAction(formData)).rejects.toThrow("NEXT_REDIRECT");
 
     expect(redirectCalls).toHaveLength(1);
     const url = new URL(redirectCalls[0], "http://localhost");
     expect(url.searchParams.get("error")).toContain("TYPE::NUMBER");
+  });
+
+  it("rejects an unsupported split government ID type", async () => {
+    const { redirectCalls } = setupMocks("Reception/Billing", { from: vi.fn() });
+
+    const { createReceptionPatientAction } = await import(
+      "@/features/dashboard/staff/actions"
+    );
+
+    const formData = makeFormData({
+      ...VALID_FIELDS,
+      governmentIdType: "Company ID",
+      governmentIdNumber: "123456",
+    });
+
+    await expect(createReceptionPatientAction(formData)).rejects.toThrow("NEXT_REDIRECT");
+
+    expect(redirectCalls).toHaveLength(1);
+    const url = new URL(redirectCalls[0], "http://localhost");
+    expect(url.searchParams.get("error")).toContain("supported government ID type");
   });
 
   it("blocks a non-Reception role with a redirect error", async () => {
@@ -171,5 +203,31 @@ describe("createReceptionPatientAction — happy path", () => {
     expect(auditRow.actiontype).toBe("PATIENT_REGISTERED_BY_RECEPTION");
     expect(auditRow.entityid).toBe("p-1");
     expect(auditRow.entityname).toBe("patient");
+  });
+
+  it("normalizes split government ID type and number before insert", async () => {
+    const auditCollector = makeAuditCollector();
+
+    const supabaseStub = makePatientInsertSupabase(
+      { data: { patientid: "p-2", fullname: "Juan Dela Cruz" }, error: null },
+      auditCollector
+    );
+
+    const { redirectCalls } = setupMocks("Reception/Billing", supabaseStub);
+
+    const { createReceptionPatientAction } = await import(
+      "@/features/dashboard/staff/actions"
+    );
+
+    const formData = makeFormData(VALID_FIELDS);
+
+    await expect(createReceptionPatientAction(formData)).rejects.toThrow("NEXT_REDIRECT");
+
+    expect(redirectCalls).toHaveLength(1);
+    expect(supabaseStub.patientInsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        governmentid: "Passport::P1234567",
+      })
+    );
   });
 });

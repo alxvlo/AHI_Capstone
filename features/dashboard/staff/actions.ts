@@ -15,6 +15,11 @@ import {
   TRIAGE_ROLE,
 } from "@/lib/supabase/roles";
 import { normalizePhilippineMobileForStorage } from "@/lib/phone";
+import {
+  GOVERNMENT_ID_TYPES,
+  buildGovernmentIdForStorage,
+  validateGovernmentIdFormat,
+} from "@/lib/government-id";
 import { normalizeDashboardReturnPath } from "@/lib/dashboard/return-path";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { validateTestValue, isAbnormal } from "@/lib/test-catalog/validate";
@@ -31,6 +36,7 @@ import {
 } from "@/features/dashboard/staff/email-notifications";
 
 const STAFF_DASHBOARD_PATH = "/dashboard/staff";
+const SUPPORTED_GOVERNMENT_ID_TYPES = new Set<string>(GOVERNMENT_ID_TYPES);
 
 type ActionContext = {
   supabase: CurrentUserRoleContext["supabase"];
@@ -315,6 +321,52 @@ async function getStatusId(
   return statusRow.statuscodeid;
 }
 
+// ---------------------------------------------------------------------------
+// Helpers for release-case visit validation
+// ---------------------------------------------------------------------------
+
+type JoinedActionRecord<T> = T | T[] | null | undefined;
+
+function pickActionJoined<T>(value: JoinedActionRecord<T>): T | null {
+  if (!value) {
+    return null;
+  }
+
+  if (Array.isArray(value)) {
+    return value[0] ?? null;
+  }
+
+  return value;
+}
+
+type UnresolvedReleaseVisitRow = {
+  visitid: number;
+  department?: JoinedActionRecord<{
+    name: string | null;
+  }>;
+  visitStatus?: JoinedActionRecord<{
+    code: string | null;
+    label: string | null;
+  }>;
+};
+
+function buildUnresolvedVisitReleaseMessage(rows: UnresolvedReleaseVisitRow[]) {
+  const statusCounts = new Map<string, number>();
+
+  for (const row of rows) {
+    const status = pickActionJoined(row.visitStatus);
+    const key = (status?.code ?? status?.label ?? "UNKNOWN").toUpperCase();
+    statusCounts.set(key, (statusCounts.get(key) ?? 0) + 1);
+  }
+
+  const summary = Array.from(statusCounts.entries())
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([status, count]) => `${count} ${status}`)
+    .join(", ");
+
+  return `Release blocked: case is not ready for release. ${summary} visit(s) are terminal but not COMPLETED. Resolve, requeue, or archive before release.`;
+}
+
 export async function createReceptionPatientAction(formData: FormData) {
   const returnPath = normalizeReturnPath(normalizeText(formData.get("returnPath")));
   const fullName = normalizeText(formData.get("fullName")).slice(0, 100);
@@ -323,7 +375,10 @@ export async function createReceptionPatientAction(formData: FormData) {
   const nationality = normalizeText(formData.get("nationality")).slice(0, 50);
   const contactNumberRaw = normalizeText(formData.get("contactNumber"));
   const emailAddressRaw = normalizeText(formData.get("emailAddress")).toLowerCase();
-  const governmentId = normalizeText(formData.get("governmentId")).slice(0, 50);
+  const governmentIdType = normalizeText(formData.get("governmentIdType")).slice(0, 50);
+  const governmentIdNumber = normalizeText(formData.get("governmentIdNumber")).slice(0, 50);
+  const legacyGovernmentId = normalizeText(formData.get("governmentId")).slice(0, 80);
+  let governmentId = legacyGovernmentId;
 
   if (!fullName) {
     redirectWithError(returnPath, "Full name is required for patient registration.");
@@ -356,6 +411,36 @@ export async function createReceptionPatientAction(formData: FormData) {
     redirectWithError(returnPath, "A valid email address is required.");
   }
 
+  if (governmentIdType || governmentIdNumber) {
+    if (!governmentIdType || !governmentIdNumber) {
+      redirectWithError(returnPath, "Government ID type and number are required.");
+    }
+
+    if (!SUPPORTED_GOVERNMENT_ID_TYPES.has(governmentIdType)) {
+      redirectWithError(returnPath, "Please select a supported government ID type.");
+    }
+
+    const idFormatError = validateGovernmentIdFormat(
+      governmentIdType,
+      governmentIdNumber
+    );
+
+    if (idFormatError) {
+      redirectWithError(returnPath, idFormatError);
+    }
+
+    const normalizedGovernmentId = buildGovernmentIdForStorage(
+      governmentIdType,
+      governmentIdNumber
+    );
+
+    if (!normalizedGovernmentId) {
+      redirectWithError(returnPath, "Government ID type and number are required.");
+    }
+
+    governmentId = normalizedGovernmentId;
+  }
+
   if (!governmentId) {
     redirectWithError(returnPath, "Government ID or passport is required.");
   }
@@ -370,7 +455,9 @@ export async function createReceptionPatientAction(formData: FormData) {
   const { supabase, userId, role } = await resolveActionContext();
   ensureAllowedRole(role, [RECEPTION_ROLE, ADMIN_ROLE], returnPath);
 
-  const { data: insertedPatient, error: insertError } = await supabase
+  // RLS does not grant Reception an INSERT policy on patient; use service role.
+  const adminClient = createSupabaseAdminClient();
+  const { data: insertedPatient, error: insertError } = await adminClient
     .from("patient")
     .insert({
       fullname: fullName,
@@ -940,6 +1027,18 @@ export async function updateTriageCompletionAction(formData: FormData) {
   );
 }
 
+function getDepartmentVisitAuditActionType(nextStatusCode: string) {
+  if (nextStatusCode === "SKIPPED") {
+    return "VISIT_SKIPPED";
+  }
+
+  if (nextStatusCode === "PENDING") {
+    return "VISIT_REQUEUED";
+  }
+
+  return "DEPARTMENT_VISIT_STATUS_UPDATED";
+}
+
 export async function updateDepartmentVisitStatusAction(formData: FormData) {
   const returnPath = normalizeReturnPath(normalizeText(formData.get("returnPath")));
   const visitId = parseOptionalPositiveInt(normalizeText(formData.get("visitId")));
@@ -1048,12 +1147,16 @@ export async function updateDepartmentVisitStatusAction(formData: FormData) {
 
   await syncCaseWorkflowStatusAfterVisitUpdate(supabase, updatedVisit.caseid);
 
+  const auditActionType = getDepartmentVisitAuditActionType(nextStatusCode);
+
   await supabase.from("audit_log").insert({
     userid: userId,
-    actiontype: "DEPARTMENT_VISIT_STATUS_UPDATED",
+    actiontype: auditActionType,
     entityname: "department_visit",
     entityid: String(updatedVisit.visitid),
-    details: `Visit moved to ${nextStatusCode}.`,
+    details: note
+      ? `Visit moved to ${nextStatusCode}. Note: ${note}`
+      : `Visit moved to ${nextStatusCode}.`,
   });
 
   revalidatePath(STAFF_DASHBOARD_PATH);
@@ -1746,9 +1849,11 @@ export async function releaseCaseAction(formData: FormData) {
     );
   }
 
-  const { count: incompleteVisits, error: incompleteError } = await supabase
+  const { data: unresolvedVisitsRaw, error: incompleteError } = await supabase
     .from("department_visit")
-    .select("visitid", { count: "exact", head: true })
+    .select(
+      "visitid, department:departmentid(name), visitStatus:visitstatuscodeid(code, label)"
+    )
     .eq("caseid", caseId)
     .neq("visitstatuscodeid", completedVisitStatusId);
 
@@ -1756,10 +1861,12 @@ export async function releaseCaseAction(formData: FormData) {
     redirectWithError(returnPath, `Release validation failed: ${incompleteError.message}`);
   }
 
-  if (incompleteVisits && incompleteVisits > 0) {
+  const unresolvedVisits = (unresolvedVisitsRaw ?? []) as UnresolvedReleaseVisitRow[];
+
+  if (unresolvedVisits.length > 0) {
     redirectWithError(
       returnPath,
-      "Release blocked: all required department visits must be COMPLETED first."
+      buildUnresolvedVisitReleaseMessage(unresolvedVisits)
     );
   }
 
