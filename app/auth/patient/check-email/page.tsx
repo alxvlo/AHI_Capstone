@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { MailCheck, Plus, RotateCw } from "lucide-react";
-import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { useAuth } from "@/components/providers/auth-provider";
 import { Button } from "@/components/ui/button";
@@ -51,12 +50,7 @@ export default function PatientCheckEmailPage() {
       <div className="absolute inset-0 -z-10 bg-gradient-to-br from-primary/[0.04] via-background to-secondary/40" />
       <div className="absolute right-0 top-0 -z-10 h-[420px] w-[420px] rounded-full bg-primary/[0.06] blur-3xl" />
 
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-        className="w-full max-w-lg"
-      >
+      <div className="w-full max-w-lg animate-fade-in-up">
         <Card className="border-2 shadow-xl shadow-primary/[0.04]">
           <CardHeader className="text-center">
             <Link
@@ -112,7 +106,7 @@ export default function PatientCheckEmailPage() {
             </p>
           </CardFooter>
         </Card>
-      </motion.div>
+      </div>
     </div>
   );
 }

@@ -51,36 +51,24 @@ export default async function StaffDashboardPage({
     redirect("/auth/patient/sign-in");
   }
 
-  const { data: caseStatusesRaw } = await supabase
+  const { data: allStatusesRaw } = await supabase
     .from("status_code")
     .select("statuscodeid, code, label, domain")
-    .eq("domain", "CASE")
+    .in("domain", ["CASE", "VISIT"])
     .eq("isactive", true)
     .order("sortorder", { ascending: true });
-  const caseStatuses = (caseStatusesRaw ?? []).map((row) => ({
+  const allStatuses = (allStatusesRaw ?? []).map((row) => ({
     statuscodeid: row.statuscodeid as number,
     code: row.code as string,
     label: (row.label as string | null) ?? null,
     domain: (row.domain as string | null) ?? null,
   }));
+  const caseStatuses = allStatuses.filter((s) => s.domain === "CASE");
   const caseStatusIdByCode = new Map(
-    caseStatuses.map((status) => [status.code, status.statuscodeid])
+    caseStatuses.map((s) => [s.code, s.statuscodeid])
   );
-
-  const { data: visitStatusesRaw } = await supabase
-    .from("status_code")
-    .select("statuscodeid, code, label, domain")
-    .eq("domain", "VISIT")
-    .eq("isactive", true)
-    .order("sortorder", { ascending: true });
-  const visitStatuses = (visitStatusesRaw ?? []).map((row) => ({
-    statuscodeid: row.statuscodeid as number,
-    code: row.code as string,
-    label: (row.label as string | null) ?? null,
-    domain: (row.domain as string | null) ?? null,
-  }));
   const visitStatusIdByCode = new Map(
-    visitStatuses.map((status) => [status.code, status.statuscodeid])
+    allStatuses.filter((s) => s.domain === "VISIT").map((s) => [s.code, s.statuscodeid])
   );
 
   return (

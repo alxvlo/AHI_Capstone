@@ -43,21 +43,28 @@ export async function resolveCurrentUserRoleContext(): Promise<CurrentUserRoleCo
     return { supabase, user: null, userId: null, role: null };
   }
 
-  // Fetch role in a single joined query to reduce round trips on dashboard loads.
-  const { data: account, error: accountError } = await supabase
-    .from("user_account")
-    .select("role:roleid(rolename)")
-    .eq("userid", user.id)
-    .maybeSingle();
+  // Primary: read role from JWT claim (zero DB round-trip after backfill)
+  let roleName = typeof user.app_metadata?.role === "string"
+    ? user.app_metadata.role
+    : null;
 
-  if (accountError) {
-    return { supabase, user, userId: user.id, role: null };
+  // Fallback: query DB if claim is absent (new user or pre-migration session)
+  if (!roleName) {
+    const { data: account, error: accountError } = await supabase
+      .from("user_account")
+      .select("role:roleid(rolename)")
+      .eq("userid", user.id)
+      .maybeSingle();
+
+    if (accountError) {
+      return { supabase, user, userId: user.id, role: null };
+    }
+
+    roleName = extractRoleName(
+      (account as { role?: JoinedRoleRecord | JoinedRoleRecord[] | null } | null)
+        ?.role ?? null
+    );
   }
-
-  const roleName = extractRoleName(
-    (account as { role?: JoinedRoleRecord | JoinedRoleRecord[] | null } | null)
-      ?.role ?? null
-  );
 
   return { supabase, user, userId: user.id, role: roleName };
 }

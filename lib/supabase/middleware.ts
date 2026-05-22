@@ -186,16 +186,24 @@ export async function updateSession(request: NextRequest) {
     });
   }
 
-  const { data: account } = await supabase
-    .from("user_account")
-    .select("role:roleid(rolename)")
-    .eq("userid", user.id)
-    .maybeSingle();
+  // Primary: read role from JWT claim (zero DB round-trip after backfill)
+  let role = typeof user.app_metadata?.role === "string"
+    ? user.app_metadata.role
+    : null;
 
-  const role = extractRoleName(
-    (account as { role?: { rolename?: string | null } | Array<{ rolename?: string | null }> | null } | null)
-      ?.role ?? null
-  );
+  // Fallback: query DB if claim is absent (new user or pre-migration session)
+  if (!role) {
+    const { data: account } = await supabase
+      .from("user_account")
+      .select("role:roleid(rolename)")
+      .eq("userid", user.id)
+      .maybeSingle();
+
+    role = extractRoleName(
+      (account as { role?: { rolename?: string | null } | Array<{ rolename?: string | null }> | null } | null)
+        ?.role ?? null
+    );
+  }
 
   if (!role) {
     return createRedirectResponse(request, response, "/unauthorized", {

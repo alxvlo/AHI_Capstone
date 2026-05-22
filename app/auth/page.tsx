@@ -5,16 +5,6 @@ import { ArrowRight, BriefcaseMedical, Building, User } from "lucide-react";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { Card, CardContent } from "@/components/ui/card";
-import { motion } from "framer-motion";
-
-const fadeUp = {
-  hidden: { opacity: 0, y: 20 },
-  visible: (i: number) => ({
-    opacity: 1,
-    y: 0,
-    transition: { delay: i * 0.1, duration: 0.5 },
-  }),
-} as const;
 
 export default function AuthSelectionPage() {
   return (
@@ -26,13 +16,7 @@ export default function AuthSelectionPage() {
         <div className="absolute right-0 top-0 -z-10 h-[400px] w-[400px] rounded-full bg-primary/[0.06] blur-3xl" />
 
         <div className="container mx-auto px-4">
-          <motion.div
-            variants={fadeUp}
-            custom={0}
-            initial="hidden"
-            animate="visible"
-            className="mb-12 text-center"
-          >
+          <div className="mb-12 text-center animate-fade-in-up">
             <h1 className="mb-4 text-4xl font-extrabold tracking-tight lg:text-5xl">
               Sign In to AHI Portals
             </h1>
@@ -40,7 +24,7 @@ export default function AuthSelectionPage() {
               Please select your role to proceed to the appropriate secure
               dashboard interface.
             </p>
-          </motion.div>
+          </div>
 
           <div className="mx-auto grid max-w-4xl gap-6 md:grid-cols-3">
             {[
@@ -69,12 +53,10 @@ export default function AuthSelectionPage() {
                 shadow: "hover:shadow-indigo-600/20",
               },
             ].map((item, i) => (
-              <motion.div
+              <div
                 key={item.role}
-                custom={i + 1}
-                variants={fadeUp}
-                initial="hidden"
-                animate="visible"
+                className="animate-fade-in-up"
+                style={{ animationDelay: `${(i + 1) * 100}ms` }}
               >
                 <Link href={item.href} className="block h-full cursor-pointer">
                   <Card
@@ -96,7 +78,7 @@ export default function AuthSelectionPage() {
                     </CardContent>
                   </Card>
                 </Link>
-              </motion.div>
+              </div>
             ))}
           </div>
         </div>

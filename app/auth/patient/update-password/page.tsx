@@ -17,7 +17,6 @@ import {
 } from "@/components/ui/card";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
-import { motion } from "framer-motion";
 
 export default function UpdatePasswordPage() {
   const [password, setPassword] = useState("");
@@ -65,12 +64,7 @@ export default function UpdatePasswordPage() {
       <div className="absolute inset-0 -z-10 bg-gradient-to-br from-primary/[0.04] via-background to-secondary/40" />
       <div className="absolute right-0 top-0 -z-10 h-[400px] w-[400px] rounded-full bg-primary/[0.06] blur-3xl" />
 
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-        className="w-full max-w-md"
-      >
+      <div className="w-full max-w-md animate-fade-in-up">
         <Card className="border-2 shadow-xl shadow-primary/[0.04]">
           <CardHeader className="text-center">
             <Link
@@ -131,7 +125,7 @@ export default function UpdatePasswordPage() {
             </CardFooter>
           </form>
         </Card>
-      </motion.div>
+      </div>
     </div>
   );
 }

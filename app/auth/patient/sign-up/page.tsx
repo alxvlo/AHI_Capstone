@@ -17,7 +17,6 @@ import {
 } from "@/components/ui/card";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
-import { motion } from "framer-motion";
 import {
   formatPhilippineMobileInput,
   isValidPhilippineMobile,
@@ -115,7 +114,6 @@ export default function PatientSignUpPage() {
     if (result.success) {
       toast.success("Account and patient profile created successfully!");
       router.push("/dashboard");
-      router.refresh();
       return;
     }
 
@@ -127,12 +125,7 @@ export default function PatientSignUpPage() {
       <div className="absolute inset-0 -z-10 bg-gradient-to-br from-primary/[0.04] via-background to-secondary/40" />
       <div className="absolute -left-20 bottom-0 -z-10 h-[400px] w-[400px] rounded-full bg-accent/[0.08] blur-3xl" />
 
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-        className="w-full max-w-lg"
-      >
+      <div className="w-full max-w-lg animate-fade-in-up">
         <Card className="border-2 shadow-xl shadow-primary/[0.04]">
           <CardHeader className="text-center">
             <Link
@@ -329,7 +322,7 @@ export default function PatientSignUpPage() {
             </CardFooter>
           </form>
         </Card>
-      </motion.div>
+      </div>
     </div>
   );
 }

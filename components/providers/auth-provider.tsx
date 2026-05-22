@@ -151,25 +151,10 @@ export function AuthProvider({
 }) {
   const [supabase] = useState(() => createSupabaseBrowserClient());
   const [user, setUser] = useState<AuthUser | null>(() => mapUser(initialUser));
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
-
-    async function loadUser() {
-      const {
-        data: { user: currentUser },
-      } = await supabase.auth.getUser();
-
-      if (!isMounted) {
-        return;
-      }
-
-      setUser(mapUser(currentUser));
-      setIsLoading(false);
-    }
-
-    void loadUser();
 
     const {
       data: { subscription },

@@ -1,9 +1,32 @@
 # Slice Progress Log
 
-**Last Updated:** 2026-05-08  
+**Last Updated:** 2026-05-23  
 **Plan Reference:** [DEVELOPMENT-PLAN.md](../DEVELOPMENT-PLAN.md)
 
 This file tracks completion status and verification results for each development slice.
+
+---
+
+## Tech Debt — Query Performance Log Indexes (2026-05-23)
+
+**Status:** Done  
+**Date Completed:** 2026-05-23
+
+**What was done:**
+- Analysed `memory-bank/Query Performance.txt` (pg_stat_statements output from Supabase).
+- Identified two missing indexes from app query patterns not covered by the March 2026 core index set:
+  1. `idx_dept_visit_dept_timepending (departmentid, timepending)` on `department_visit` — covers the Kanban queue query (`WHERE departmentid = ? ORDER BY timepending ASC`). Strictly better than the advisor's single-column suggestion because the composite uses the equality filter as the leading column.
+  2. `idx_peme_case_released_ts (releasedtimestamp DESC) WHERE releasedtimestamp IS NOT NULL` on `peme_case` — partial index covering the released-cases list used by Releasing Staff and Client portal. Observed max 893 ms before index.
+- Applied via migration `20260523_query_log_indexes.sql`.
+- Confirmed advisor no longer flags `department_visit (timepending)` as needing an index; new indexes show "unused" (expected — brand new, no queries hit them yet in dev).
+
+**Explicitly deferred:**
+- Realtime polling overhead (66% of total DB time) — expected cost of the `useRealtimeRefresh` feature; not a bug.
+- 3 unindexed FK warnings (`package_department_departmentid_fkey`, `result_file_uploadedby_fkey`, `triage_assessment_recorded_by_fkey`) — pre-existing, defer to next tech-debt sweep.
+
+**Key files:**
+- `supabase/migrations/20260523_query_log_indexes.sql`
+- `memory-bank/Query Performance.txt` (source data)
 
 ---
 
