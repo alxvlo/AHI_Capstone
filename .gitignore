@@ -20,7 +20,6 @@ __pycache__/
 # Environment
 .env
 .env.*
-!.env.example
 !.env.local.example
 
 # OS / Editor
@@ -61,3 +60,5 @@ qa-visual-dashboard-staff.png
 
 # Git worktrees
 .worktrees/
+.vercel
+.env*.local

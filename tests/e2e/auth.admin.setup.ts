@@ -17,23 +17,26 @@ setup("authenticate as admin probe user", async ({ page }) => {
   await page.goto("/auth/staff/sign-in");
   await expect(page).toHaveURL(/\/auth\/staff\/sign-in/, { timeout: 10_000 });
 
-  await page.getByLabel(/email/i).pressSequentially(ADMIN_EMAIL);
-  await page.getByLabel(/password/i).pressSequentially(ADMIN_PASSWORD);
+  await page.getByLabel("Staff Email", { exact: true }).fill(ADMIN_EMAIL);
+  await page.getByLabel("Password", { exact: true }).fill(ADMIN_PASSWORD);
 
-  const supabaseAuthResponse = page.waitForResponse(
-    (r) => r.url().includes("/auth/v1/token") && r.request().method() === "POST",
-    { timeout: 30_000 }
-  );
+  const [authRes] = await Promise.all([
+    page.waitForResponse(
+      (r) => r.url().includes("/auth/v1/token") && r.request().method() === "POST",
+      { timeout: 30_000 },
+    ),
+    page.getByRole("button", { name: /sign in/i }).click(),
+  ]);
 
-  await page.getByRole("button", { name: /sign in/i }).click();
-
-  const authRes = await supabaseAuthResponse;
   if (!authRes.ok()) {
     const body = await authRes.text().catch(() => "<unreadable>");
     throw new Error(`Supabase sign-in returned HTTP ${authRes.status()} — Body: ${body}`);
   }
 
-  await page.waitForURL("**/dashboard/admin**", { timeout: 30_000 });
+  await page.waitForURL("**/dashboard/admin**", {
+    timeout: 30_000,
+    waitUntil: "commit",
+  });
   await expect(page).toHaveURL(/\/dashboard\/admin/);
 
   await page.context().storageState({ path: ADMIN_AUTH_FILE });

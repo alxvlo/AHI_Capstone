@@ -13,8 +13,7 @@ import {
 } from "@/lib/supabase/roles";
 
 const AUTH_RATE_LIMIT_WINDOW_MS = 60_000;
-// TEMP: bumped from 10 to 500 for Chapter 4 screenshot capture session. Restore to 10 before deleting /api/dev-screenshot-upload.
-const AUTH_RATE_LIMIT_MAX_REQUESTS = 500;
+const AUTH_RATE_LIMIT_MAX_REQUESTS = 10;
 
 interface RateLimitEntry {
   timestamps: number[];
