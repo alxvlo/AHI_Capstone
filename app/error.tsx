@@ -13,8 +13,9 @@ export default function Error({
   reset: () => void;
 }) {
   useEffect(() => {
-    // Log the error to an error reporting service if applicable
-    console.error(error);
+    // Avoid printing the raw Error: it may carry PHI from upstream throws.
+    // Next.js exposes `digest` as the opaque id that maps to the server log.
+    console.error("System error", { digest: error.digest });
   }, [error]);
 
   return (

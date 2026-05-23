@@ -494,7 +494,7 @@ export async function createReceptionPatientAction(formData: FormData) {
     actiontype: "PATIENT_REGISTERED_BY_RECEPTION",
     entityname: "patient",
     entityid: insertedPatient.patientid,
-    details: `Reception registered patient ${insertedPatient.fullname} (${insertedPatient.patientid}).`,
+    details: `Reception registered patient ${insertedPatient.patientid}.`,
   });
 
   revalidatePath(STAFF_DASHBOARD_PATH);
@@ -954,7 +954,7 @@ export async function submitTriageAssessmentAction(formData: FormData) {
     actiontype: "TRIAGE_ASSESSMENT_COMPLETED",
     entityname: "triage_assessment",
     entityid: caseRow.caseid,
-    details: `Case ${caseRow.casenumber} triage vitals recorded (BP ${bpSystolic}/${bpDiastolic}, HR ${heartRate}, T ${temperatureC}C, W ${weightKg}kg, H ${heightCm}cm) and moved to IN_PROGRESS.`,
+    details: `Case ${caseRow.casenumber} triage vitals recorded and moved to IN_PROGRESS.`,
   });
 
   revalidatePath(STAFF_DASHBOARD_PATH);

@@ -28,7 +28,14 @@ async function writeAudit(
       details: `${audit.recipientType}: ${detailMessage}`,
     });
   } catch (err) {
-    console.error("[email] audit_log insert failed", err);
+    // Log only a sanitized message: the raw err can echo the rejected
+    // audit row payload. Strip to message string only.
+    const message = err instanceof Error ? err.message : "unknown error";
+    console.error("[email] audit_log insert failed", {
+      actiontype,
+      caseId: audit.caseId,
+      message,
+    });
   }
 }
 
