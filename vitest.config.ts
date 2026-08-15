@@ -1,16 +1,11 @@
-import path from "node:path";
-import { fileURLToPath } from "node:url";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vitest/config";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
-      "@": __dirname,
+      "@": import.meta.dirname,
     },
   },
   test: {
@@ -22,7 +17,13 @@ export default defineConfig({
       "components/**/*.{test,spec}.{ts,tsx}",
       "lib/**/*.{test,spec}.{ts,tsx}",
     ],
-    exclude: [".next/**", ".opencode/**", "coverage/**", "**/node_modules/**", "tests/e2e/**"],
+    exclude: [
+      ".next/**",
+      "coverage/**",
+      "**/node_modules/**",
+      "tests/e2e/**",
+      "tests/integration/**",
+    ],
     reporters: process.env.CI ? ["default"] : ["dot"],
     environmentOptions: {
       jsdom: {
