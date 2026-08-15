@@ -10,10 +10,12 @@ import {
 } from "@/lib/format";
 import { pickJoined, type JoinedRecord } from "@/lib/supabase/joined";
 import { statusTone } from "@/lib/dashboard/status-tone";
+import { parseOptionalPositiveInt } from "@/lib/dashboard/action-redirect";
 
 export { PHYSICIAN_ROLE, RECEPTION_ROLE, RELEASING_ROLE, TRIAGE_ROLE };
 export { pickJoined, type JoinedRecord };
 export { statusTone as caseStatusTone };
+export { parseOptionalPositiveInt };
 
 export type SearchParamValue = string | string[] | undefined;
 
@@ -134,19 +136,6 @@ export function resolveParam(
   return fallback;
 }
 
-export function parseOptionalPositiveInt(value: string) {
-  if (!value) {
-    return null;
-  }
-
-  const parsed = Number.parseInt(value, 10);
-
-  if (!Number.isInteger(parsed) || parsed <= 0) {
-    return null;
-  }
-
-  return parsed;
-}
 
 export function parseDepartmentClaim(rawClaim: unknown) {
   if (typeof rawClaim === "number" && Number.isInteger(rawClaim) && rawClaim > 0) {

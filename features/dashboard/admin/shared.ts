@@ -1,9 +1,11 @@
 import type { StatusBadgeTone } from "@/components/dashboard/shared/status-badge";
 import { formatTimestamp } from "@/lib/format";
 import { pickJoined, type JoinedRecord } from "@/lib/supabase/joined";
+import { parseOptionalPositiveInt } from "@/lib/dashboard/action-redirect";
 
 export { formatTimestamp };
 export { pickJoined, type JoinedRecord };
+export { parseOptionalPositiveInt };
 
 export type SearchParamValue = string | string[] | undefined;
 export type AdminTab = "overview" | "users" | "reference" | "audit" | "catalog";
@@ -139,20 +141,6 @@ export function resolveAdminTab(params: Record<string, SearchParamValue>): Admin
   }
 
   return "overview";
-}
-
-export function parseOptionalPositiveInt(value: string) {
-  if (!value) {
-    return null;
-  }
-
-  const parsed = Number.parseInt(value, 10);
-
-  if (!Number.isInteger(parsed) || parsed <= 0) {
-    return null;
-  }
-
-  return parsed;
 }
 
 export function buildAdminReturnPath(
