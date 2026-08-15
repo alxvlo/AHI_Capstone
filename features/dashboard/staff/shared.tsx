@@ -136,7 +136,6 @@ export function resolveParam(
   return fallback;
 }
 
-
 export function parseDepartmentClaim(rawClaim: unknown) {
   if (typeof rawClaim === "number" && Number.isInteger(rawClaim) && rawClaim > 0) {
     return rawClaim;

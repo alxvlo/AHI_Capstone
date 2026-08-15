@@ -6,7 +6,7 @@
 > because they are an accurate record; they are not live references. See
 > `guides/workflow-policy.md`.
 
-**Last Updated:** 2026-05-20
+**Last Updated:** 2026-08-16
 **Phase:** Phase 5 - QA hardening, risk closure, and coverage stabilization
 **Current Checkpoint:** `main` is aligned with `SCRUM-sprint-b-test-coverage` at `e81c48d`.
 

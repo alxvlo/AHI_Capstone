@@ -21,7 +21,10 @@ const STATUS_TONE: Record<string, StatusBadgeTone> = {
   UNFIT: "danger",
   CANCELLED: "danger",
   SKIPPED: "danger",
-  ARCHIVED: "danger",
+
+  // ARCHIVED is terminal for BOTH soft-cancel and normal post-RELEASED retention
+  // archival, so it is not an error state. CANCELLED alone is danger.
+  ARCHIVED: "neutral",
 };
 
 export function statusTone(code: string | null): StatusBadgeTone {

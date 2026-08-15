@@ -22,12 +22,12 @@ describe("statusTone", () => {
     expect(statusTone("UNFIT")).toBe("danger");
     expect(statusTone("CANCELLED")).toBe("danger");
     expect(statusTone("SKIPPED")).toBe("danger");
-    expect(statusTone("ARCHIVED")).toBe("danger");
   });
 
   it("falls back to neutral for null and unknown codes", () => {
     expect(statusTone(null)).toBe("neutral");
     expect(statusTone("")).toBe("neutral");
     expect(statusTone("SOME_FUTURE_CODE")).toBe("neutral");
+    expect(statusTone("ARCHIVED")).toBe("neutral");
   });
 });
