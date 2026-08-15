@@ -9,9 +9,11 @@ import {
   formatTimestamp as formatTimestampBase,
 } from "@/lib/format";
 import { pickJoined, type JoinedRecord } from "@/lib/supabase/joined";
+import { statusTone } from "@/lib/dashboard/status-tone";
 
 export { PHYSICIAN_ROLE, RECEPTION_ROLE, RELEASING_ROLE, TRIAGE_ROLE };
 export { pickJoined, type JoinedRecord };
+export { statusTone as caseStatusTone };
 
 export type SearchParamValue = string | string[] | undefined;
 
@@ -164,39 +166,6 @@ export function formatTimestamp(value: string | null) {
 
 export function formatDateOnly(value: string | null) {
   return formatDateOnlyBase(value, "Not set");
-}
-
-export function caseStatusTone(
-  code: string | null
-): "neutral" | "positive" | "warning" | "danger" {
-  if (!code) {
-    return "neutral";
-  }
-
-  if (code === "RELEASED" || code === "COMPLETED" || code === "FIT") {
-    return "positive";
-  }
-
-  if (code === "FIT_WITH_RESTRICTIONS") {
-    return "warning";
-  }
-
-  if (
-    code === "PENDING" ||
-    code === "IN_PROGRESS" ||
-    code === "REGISTERED" ||
-    code === "PENDING_ADDITIONAL_TESTS" ||
-    code === "FOR_DECISION" ||
-    code === "FOR_RELEASING"
-  ) {
-    return "warning";
-  }
-
-  if (code === "SKIPPED" || code === "UNFIT" || code === "CANCELLED") {
-    return "danger";
-  }
-
-  return "neutral";
 }
 
 export function buildReturnPath(params: Record<string, SearchParamValue>) {

@@ -1,9 +1,11 @@
 import type { StatusBadgeTone } from "@/components/dashboard/shared/status-badge";
 import { formatTimestamp, formatDateOnly } from "@/lib/format";
 import { pickJoined, type JoinedRecord } from "@/lib/supabase/joined";
+import { statusTone } from "@/lib/dashboard/status-tone";
 
 export { formatTimestamp, formatDateOnly };
 export { pickJoined, type JoinedRecord };
+export { statusTone as caseStatusTone };
 
 export type SearchParamValue = string | string[] | undefined;
 
@@ -115,31 +117,6 @@ export function buildClientDashboardHref(searchState: ClientDashboardSearchState
   const searchValue = params.toString();
 
   return searchValue ? `/dashboard/client?${searchValue}` : "/dashboard/client";
-}
-
-export function caseStatusTone(code: string | null): StatusBadgeTone {
-  if (!code) {
-    return "neutral";
-  }
-
-  if (code === "RELEASED") {
-    return "positive";
-  }
-
-  if (
-    code === "REGISTERED" ||
-    code === "IN_PROGRESS" ||
-    code === "FOR_DECISION" ||
-    code === "FOR_RELEASING"
-  ) {
-    return "warning";
-  }
-
-  if (code === "CANCELLED" || code === "ARCHIVED") {
-    return "danger";
-  }
-
-  return "neutral";
 }
 
 export function normalizeAgencyFitnessStatus(fitnessStatus: string | null) {

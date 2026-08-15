@@ -1,9 +1,14 @@
-import type { StatusBadgeTone } from "@/components/dashboard/shared/status-badge";
 import { formatTimestamp, formatDateOnly } from "@/lib/format";
 import { pickJoined, type JoinedRecord } from "@/lib/supabase/joined";
+import { statusTone } from "@/lib/dashboard/status-tone";
 
 export { formatTimestamp, formatDateOnly };
 export { pickJoined, type JoinedRecord };
+export {
+  statusTone as caseStatusTone,
+  statusTone as visitStatusTone,
+  statusTone as fitnessStatusTone,
+};
 
 export type SearchParamValue = string | string[] | undefined;
 
@@ -185,72 +190,6 @@ export function resolveSearchParam(
   }
 
   return fallback;
-}
-
-export function caseStatusTone(code: string | null): StatusBadgeTone {
-  if (!code) {
-    return "neutral";
-  }
-
-  if (code === "RELEASED") {
-    return "positive";
-  }
-
-  if (
-    code === "REGISTERED" ||
-    code === "IN_PROGRESS" ||
-    code === "FOR_DECISION" ||
-    code === "FOR_RELEASING" ||
-    code === "PENDING_ADDITIONAL_TESTS"
-  ) {
-    return "warning";
-  }
-
-  if (code === "CANCELLED" || code === "ARCHIVED") {
-    return "danger";
-  }
-
-  return "neutral";
-}
-
-export function visitStatusTone(code: string | null): StatusBadgeTone {
-  if (!code) {
-    return "neutral";
-  }
-
-  if (code === "COMPLETED") {
-    return "positive";
-  }
-
-  if (code === "IN_PROGRESS") {
-    return "warning";
-  }
-
-  if (code === "SKIPPED" || code === "CANCELLED") {
-    return "danger";
-  }
-
-  return "neutral";
-}
-
-export function fitnessStatusTone(code: string | null): StatusBadgeTone {
-  if (!code) {
-    return "neutral";
-  }
-
-  if (code === "FIT") {
-    return "positive";
-  }
-
-  if (code === "FIT_WITH_RESTRICTIONS") {
-    return "warning";
-  }
-
-  if (code === "UNFIT") {
-    return "danger";
-  }
-
-  return "neutral";
 }
 
 export function formatCaseSelectorLabel(caseRow: PatientCaseRow) {
