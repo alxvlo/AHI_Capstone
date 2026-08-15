@@ -34,6 +34,7 @@ import {
   notifyPatientOnRelease,
   notifyReleasingStaffOnDecision,
 } from "@/features/dashboard/staff/email-notifications";
+import { pickJoined, type JoinedRecord } from "@/lib/supabase/joined";
 
 const STAFF_DASHBOARD_PATH = "/dashboard/staff";
 const SUPPORTED_GOVERNMENT_ID_TYPES = new Set<string>(GOVERNMENT_ID_TYPES);
@@ -325,26 +326,12 @@ async function getStatusId(
 // Helpers for release-case visit validation
 // ---------------------------------------------------------------------------
 
-type JoinedActionRecord<T> = T | T[] | null | undefined;
-
-function pickActionJoined<T>(value: JoinedActionRecord<T>): T | null {
-  if (!value) {
-    return null;
-  }
-
-  if (Array.isArray(value)) {
-    return value[0] ?? null;
-  }
-
-  return value;
-}
-
 type UnresolvedReleaseVisitRow = {
   visitid: number;
-  department?: JoinedActionRecord<{
+  department?: JoinedRecord<{
     name: string | null;
   }>;
-  visitStatus?: JoinedActionRecord<{
+  visitStatus?: JoinedRecord<{
     code: string | null;
     label: string | null;
   }>;
@@ -354,7 +341,7 @@ function buildUnresolvedVisitReleaseMessage(rows: UnresolvedReleaseVisitRow[]) {
   const statusCounts = new Map<string, number>();
 
   for (const row of rows) {
-    const status = pickActionJoined(row.visitStatus);
+    const status = pickJoined(row.visitStatus);
     const key = (status?.code ?? status?.label ?? "UNKNOWN").toUpperCase();
     statusCounts.set(key, (statusCounts.get(key) ?? 0) + 1);
   }

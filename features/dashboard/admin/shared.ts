@@ -1,7 +1,9 @@
 import type { StatusBadgeTone } from "@/components/dashboard/shared/status-badge";
 import { formatTimestamp } from "@/lib/format";
+import { pickJoined, type JoinedRecord } from "@/lib/supabase/joined";
 
 export { formatTimestamp };
+export { pickJoined, type JoinedRecord };
 
 export type SearchParamValue = string | string[] | undefined;
 export type AdminTab = "overview" | "users" | "reference" | "audit" | "catalog";
@@ -151,18 +153,6 @@ export function parseOptionalPositiveInt(value: string) {
   }
 
   return parsed;
-}
-
-export function pickJoined<T>(value: T | T[] | null | undefined): T | null {
-  if (!value) {
-    return null;
-  }
-
-  if (Array.isArray(value)) {
-    return value[0] ?? null;
-  }
-
-  return value;
 }
 
 export function buildAdminReturnPath(

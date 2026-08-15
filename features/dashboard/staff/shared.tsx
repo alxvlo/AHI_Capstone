@@ -8,12 +8,12 @@ import {
   formatDateOnly as formatDateOnlyBase,
   formatTimestamp as formatTimestampBase,
 } from "@/lib/format";
+import { pickJoined, type JoinedRecord } from "@/lib/supabase/joined";
 
 export { PHYSICIAN_ROLE, RECEPTION_ROLE, RELEASING_ROLE, TRIAGE_ROLE };
+export { pickJoined, type JoinedRecord };
 
 export type SearchParamValue = string | string[] | undefined;
-
-export type JoinedRecord<T> = T | T[] | null;
 
 export type StatusRecord = {
   statuscodeid: number;
@@ -156,18 +156,6 @@ export function parseDepartmentClaim(rawClaim: unknown) {
   }
 
   return null;
-}
-
-export function pickJoined<T>(value: JoinedRecord<T> | undefined): T | null {
-  if (!value) {
-    return null;
-  }
-
-  if (Array.isArray(value)) {
-    return value[0] ?? null;
-  }
-
-  return value;
 }
 
 export function formatTimestamp(value: string | null) {

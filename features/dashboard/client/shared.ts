@@ -1,10 +1,11 @@
 import type { StatusBadgeTone } from "@/components/dashboard/shared/status-badge";
 import { formatTimestamp, formatDateOnly } from "@/lib/format";
+import { pickJoined, type JoinedRecord } from "@/lib/supabase/joined";
 
 export { formatTimestamp, formatDateOnly };
+export { pickJoined, type JoinedRecord };
 
 export type SearchParamValue = string | string[] | undefined;
-export type JoinedRecord<T> = T | T[] | null;
 
 export type ClientDashboardSearchState = {
   caseId: string;
@@ -65,18 +66,6 @@ export type ClientDashboardData = {
     decision?: string | null;
   };
 };
-
-export function pickJoined<T>(value: JoinedRecord<T> | undefined): T | null {
-  if (!value) {
-    return null;
-  }
-
-  if (Array.isArray(value)) {
-    return value[0] ?? null;
-  }
-
-  return value;
-}
 
 export function resolveSearchParam(
   params: Record<string, SearchParamValue>,
