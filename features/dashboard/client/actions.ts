@@ -246,19 +246,6 @@ async function loadCaseFitnessFromContext(
   };
 }
 
-export async function fetchReleasedCases(searchState: ClientDashboardSearchState) {
-  const context = await resolveCurrentUserRoleContext();
-  const normalizedSearchState = normalizeSearchState(searchState);
-
-  return loadReleasedCasesFromContext(context, normalizedSearchState);
-}
-
-export async function fetchCaseFitness(selectedCase: ClientCaseRow | null) {
-  const context = await resolveCurrentUserRoleContext();
-
-  return loadCaseFitnessFromContext(context, selectedCase);
-}
-
 export async function fetchClientDashboardData(
   searchState: ClientDashboardSearchState
 ): Promise<ClientDashboardData> {

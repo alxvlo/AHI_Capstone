@@ -373,24 +373,6 @@ async function loadResultFilesFromContext(
   };
 }
 
-export async function fetchOwnCase(requestedCaseId: string | null) {
-  const context = await resolveCurrentUserRoleContext();
-
-  return loadOwnCaseFromContext(context, requestedCaseId);
-}
-
-export async function fetchOwnResults(selectedCase: PatientCaseRow | null) {
-  const context = await resolveCurrentUserRoleContext();
-
-  return loadOwnResultsFromContext(context, selectedCase);
-}
-
-export async function fetchResultFiles(selectedCase: PatientCaseRow | null) {
-  const context = await resolveCurrentUserRoleContext();
-
-  return loadResultFilesFromContext(context, selectedCase);
-}
-
 export async function requestCertificateDownloadAction(formData: FormData) {
   const returnPath = normalizeReturnPath(normalizeText(formData.get("returnPath")));
   const caseId = normalizeText(formData.get("caseId"));
