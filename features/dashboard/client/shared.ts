@@ -1,4 +1,7 @@
 import type { StatusBadgeTone } from "@/components/dashboard/shared/status-badge";
+import { formatTimestamp, formatDateOnly } from "@/lib/format";
+
+export { formatTimestamp, formatDateOnly };
 
 export type SearchParamValue = string | string[] | undefined;
 export type JoinedRecord<T> = T | T[] | null;
@@ -190,40 +193,3 @@ export function normalizeAgencyFitnessStatus(fitnessStatus: string | null) {
   };
 }
 
-export function formatTimestamp(value: string | null) {
-  if (!value) {
-    return "Not available";
-  }
-
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return "Not available";
-  }
-
-  return date.toLocaleString("en-PH", {
-    year: "numeric",
-    month: "short",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
-
-export function formatDateOnly(value: string | null) {
-  if (!value) {
-    return "Not available";
-  }
-
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return "Not available";
-  }
-
-  return date.toLocaleDateString("en-PH", {
-    year: "numeric",
-    month: "short",
-    day: "2-digit",
-  });
-}

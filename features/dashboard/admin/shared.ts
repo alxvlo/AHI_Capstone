@@ -1,4 +1,7 @@
 import type { StatusBadgeTone } from "@/components/dashboard/shared/status-badge";
+import { formatTimestamp } from "@/lib/format";
+
+export { formatTimestamp };
 
 export type SearchParamValue = string | string[] | undefined;
 export type AdminTab = "overview" | "users" | "reference" | "audit" | "catalog";
@@ -160,26 +163,6 @@ export function pickJoined<T>(value: T | T[] | null | undefined): T | null {
   }
 
   return value;
-}
-
-export function formatTimestamp(value: string | null) {
-  if (!value) {
-    return "Not available";
-  }
-
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return "Not available";
-  }
-
-  return date.toLocaleString("en-PH", {
-    year: "numeric",
-    month: "short",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
 }
 
 export function buildAdminReturnPath(

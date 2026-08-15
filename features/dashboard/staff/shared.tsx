@@ -4,6 +4,10 @@ import {
   RELEASING_ROLE,
   TRIAGE_ROLE,
 } from "@/lib/supabase/roles";
+import {
+  formatDateOnly as formatDateOnlyBase,
+  formatTimestamp as formatTimestampBase,
+} from "@/lib/format";
 
 export { PHYSICIAN_ROLE, RECEPTION_ROLE, RELEASING_ROLE, TRIAGE_ROLE };
 
@@ -167,41 +171,11 @@ export function pickJoined<T>(value: JoinedRecord<T> | undefined): T | null {
 }
 
 export function formatTimestamp(value: string | null) {
-  if (!value) {
-    return "Not set";
-  }
-
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return "Not set";
-  }
-
-  return date.toLocaleString("en-PH", {
-    year: "numeric",
-    month: "short",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  return formatTimestampBase(value, "Not set");
 }
 
 export function formatDateOnly(value: string | null) {
-  if (!value) {
-    return "Not set";
-  }
-
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return "Not set";
-  }
-
-  return date.toLocaleDateString("en-PH", {
-    year: "numeric",
-    month: "short",
-    day: "2-digit",
-  });
+  return formatDateOnlyBase(value, "Not set");
 }
 
 export function caseStatusTone(
