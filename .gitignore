@@ -50,8 +50,6 @@ tests/e2e/.auth/
 .agent/
 .opencode/
 mcp-tools/
-shared/
-plans/
 .playwright-mcp/
 qa-visual-dashboard-staff.png
 

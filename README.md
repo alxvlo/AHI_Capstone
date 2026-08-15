@@ -2,13 +2,13 @@
 
 Internal collaboration repository for the American Hospital Inc. PEME monitoring and result access system.
 
-This repo is optimized for team execution, planning, QA, and traceable delivery rather than public distribution. It contains the application code, Supabase migrations, test assets, and the project memory bank used to keep Jira, GitHub, and implementation aligned.
+This repo is optimized for team execution, planning, QA, and traceable delivery rather than public distribution. It contains the application code, Supabase migrations, test assets, and the project memory bank — which is the **single source of truth for work tracking**, not just for code. Plan, status, decisions, defects, and QA evidence are all version-controlled here; there is no external board.
 
 ## Project Summary
 
 - **Project:** Real-Time PEME Monitoring and Result Access System for American Hospital Inc.
 - **Primary goal:** Replace fragmented paper-heavy PEME tracking with role-based dashboards, secure portals, and real-time workflow visibility.
-- **Current phase:** Phase 4 (Backend Wiring and Storage, completing). See `memory-bank/current-sprint.md` for the authoritative state.
+- **Current phase:** Phase 5 (QA hardening, risk closure, and coverage stabilization). See `memory-bank/current-sprint.md` for the authoritative state.
 - **Team:** Keith Avellaneda, Deejay Clark Datu, Alexander Velo.
 
 ## What Is In This Repository
@@ -28,7 +28,7 @@ This repo is optimized for team execution, planning, QA, and traceable delivery 
 Start here when you need project context before changing code:
 
 1. `DEVELOPMENT-PLAN.md` - master plan with all phases, slices, and step-by-step execution details.
-2. `memory-bank/current-sprint.md` - what we're working on right now (current phase, Jira sprint order, next ticket).
+2. `memory-bank/current-sprint.md` - what we're working on right now (current phase, active queue, open decisions and risks). **Authoritative on project state.**
 3. `memory-bank/slice-progress.md` - completed slice tracking with verification results.
 4. `memory-bank/pid.md` - project scope, constraints, objectives, and success metrics.
 5. `memory-bank/design-doc.md` - architecture and system design decisions.
@@ -68,9 +68,6 @@ git clone <repository-url> Repo
 
 # 2. Firecrawl (Required for AI Web Scraping MCP)
 git clone https://github.com/mendableai/firecrawl.git
-
-# 3. Atlassian (Required for Jira Integration)
-git clone https://github.com/atlassian/mcp-server-atlassian.git atlassian-mcp
 ```
 
 ### 3. Credentials & Configuration
@@ -82,21 +79,6 @@ No strict authentication is needed for local development, but you should ensure 
 ```bash
 cd firecrawl
 cp .env.example .env
-```
-
-**B. Atlassian (Jira Integration)**
-The Atlassian MCP requires your Jira credentials to read and update tickets.
-1. Go to your [Atlassian Security settings](https://id.atlassian.com/manage-profile/security/api-tokens) and click **Create API token**. Save this token.
-2. Open **Docker Desktop**, navigate to the **MCP (Model Context Protocol)** extension or settings tab.
-3. Find the **atlassian** server in your list of MCPs (or add it from the catalog).
-4. Edit the configuration for the Atlassian server to include these environment variables:
-   - `ATLASSIAN_API_TOKEN`: The token you just created.
-   - `ATLASSIAN_EMAIL`: The email address associated with your Jira account.
-   - `ATLASSIAN_SITE`: Your Jira cloud URL (e.g., `https://alexvelo799.atlassian.net`).
-
-Alternatively, if you prefer the CLI, you can set it via:
-```bash
-docker mcp config set atlassian '{"ATLASSIAN_API_TOKEN": "your-token", "ATLASSIAN_EMAIL": "your-email", "ATLASSIAN_SITE": "https://your-domain.atlassian.net"}'
 ```
 
 ### 4. Activating MCPs (Agent Tooling)
@@ -227,29 +209,47 @@ Implemented or stabilized:
 - Dashboard guard middleware and role-aware redirects across all 8 roles.
 - Phase 1 staff dashboards (Reception, Triage with vitals, Department, Physician, Releasing) and lifecycle RPCs.
 - Patient portal progress tracker, agency/client DPA-gated portal, and result file storage (Slices 9, 10, 13).
-- Lifecycle integration tests, result verification, additional-tests workflow (SCRUM-22/23/25/26/31/52).
+- Lifecycle integration tests, result verification, additional-tests workflow.
+- Supabase Realtime refresh (Slice 14) — `lib/realtime/use-realtime-refresh.ts` and the shared `RealtimeBridge`.
+- Email notification pipeline — `lib/email/` and `features/dashboard/staff/email-notifications.ts`, with unit and integration coverage.
 - E2E coverage across patient, client, and admin portals with enforced coverage thresholds.
 
 Open / deferred:
 
-- `SCRUM-30` — Supabase Realtime (Slice 14). Marked Done in Jira but no code in repo; reopened 2026-04-28. TODO seams left in `saveResultItemsAction` and `verifyResultItemAction`.
-- `SCRUM-36` — Email notifications. Marked Done in Jira; no code in repo; scope to be confirmed.
-- `SCRUM-37` — PDF certificate generation. BLOCKED on AHI template/signature requirements.
-- `SCRUM-38` — Deployment authorization.
+- **PDF certificate generation** — blocked on AHI template and signature requirements.
+- **Deployment authorization** — deferred.
+- **Minor/guardian consent** for under-18 patients — intentionally deferred; see `memory-bank/current-sprint.md`.
+
+`memory-bank/current-sprint.md` is authoritative on what is in flight; this list is a summary.
 
 ## Team Workflow
 
-This repo follows a Jira + GitHub collaboration model.
+**This repository is the single source of truth — for code and for work tracking alike.**
+There is no external board to reconcile against. Planning, status, decisions, defects, and
+QA evidence all live in version-controlled Markdown next to the code they describe.
 
-- **Jira** is the source of truth for planning, assignments, sprint state, and acceptance criteria.
-- **GitHub** is the source of truth for code, review, and merge history.
-- Every branch, commit, and PR should reference the Jira key.
+| Question | File |
+|---|---|
+| What is the overall plan? | `DEVELOPMENT-PLAN.md` |
+| What are we doing right now? | `memory-bank/current-sprint.md` |
+| What is already done? | `memory-bank/slice-progress.md` |
+| Why was it built this way? | `memory-bank/decisions.md` |
+| What is broken? | `memory-bank/qa-runs/defect-log.md` |
 
-Examples:
+Conventions:
 
-- Branch: `SCRUM-31-e2e-case-lifecycle`
-- Commit: `SCRUM-31: Wire lifecycle bootstrap path`
-- PR title: `[SCRUM-31] Wire lifecycle bootstrap path`
+- Branch: `slice-15-e2e-case-lifecycle` for planned slices, `fix/d-003-visit-status-map`
+  or `chore/drop-unused-deps` otherwise.
+- Commit: [Conventional Commits](https://www.conventionalcommits.org/) —
+  `feat(staff): wire lifecycle bootstrap path`. Reference a slice or defect in the body,
+  not the subject.
+- PR title: the commit subject. PR body links the in-repo tracking docs and pastes the
+  real `npm run qa:local` output.
+
+Historical documents in `memory-bank/qa-runs/`, `memory-bank/archive/`, `docs/Chapter-4*.md`,
+and some test-file comments carry `SCRUM-NN` identifiers from the project's former Jira
+board. They are deliberately left as written — they are an accurate record of how the work
+was tracked at the time. Treat them as historical labels, not live references.
 
 See `memory-bank/guides/workflow-policy.md` for the full policy.
 
@@ -279,11 +279,11 @@ Generated or disposable items should stay out of commits:
 
 ## If You Are Picking Up Work Mid-Sprint
 
-1. Read `memory-bank/current-sprint.md`.
-2. Check the active Jira sprint and assigned ticket.
+1. Read `memory-bank/current-sprint.md` — the **Active Queue** section is what is next.
+2. Claim an item by moving it to *In Progress* in that file, with the date. That edit is the standup.
 3. Review the relevant feature spec under `memory-bank/requirements/`.
 4. Pull latest changes and run `npm run qa:local`.
-5. Work on a Jira-keyed branch.
+5. Branch per `memory-bank/guides/workflow-policy.md`.
 
 ## Ownership Snapshot
 

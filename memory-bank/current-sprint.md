@@ -1,5 +1,11 @@
 # Current Sprint
 
+> **This file is the project's live status.** As of 2026-08-15 the repo is the single
+> source of truth for work tracking — there is no external board. `SCRUM-NN` identifiers
+> below and elsewhere are historical labels from the project's former Jira board, kept
+> because they are an accurate record; they are not live references. See
+> `guides/workflow-policy.md`.
+
 **Last Updated:** 2026-05-20
 **Phase:** Phase 5 - QA hardening, risk closure, and coverage stabilization
 **Current Checkpoint:** `main` is aligned with `SCRUM-sprint-b-test-coverage` at `e81c48d`.
@@ -32,8 +38,9 @@ No Supabase linked commands, migrations, seed scripts, cleanup scripts, or Auth 
 
 1. **Sprint A Task 6** - Email audit actor propagation was skipped by policy and should remain deferred while Supabase/Auth/email-safety rules are active.
 2. **Sprint A Task 11** - Parental/guardian consent for under-18 patients is intentionally deferred for now.
-3. **SCRUM-38** - Deployment authorization remains deferred.
+3. **Deployment authorization** - remains deferred.
 4. **PDF certificate generation** - Still pending AHI template/signature requirements.
+5. **`ActionPanel` → native `<dialog>`** - `components/dashboard/shared/action-panel.tsx` hand-rolls a Tab focus trap, Escape handler, and backdrop button that `dialog.showModal()` provides natively (~60 lines). Deferred from the 2026-08-15 ponytail cleanup because the panel navigates to `closeHref` rather than closing in place; needs its own accessibility test pass.
 
 ---
 
@@ -56,7 +63,7 @@ No Supabase linked commands, migrations, seed scripts, cleanup scripts, or Auth 
 - **Terminal vs releasable visit states:** Rule confirmed for Sprint C: COMPLETED satisfies release readiness; CANCELLED/SKIPPED are terminal for queue cleanup but block clean release. `releaseCaseAction` now returns a descriptive per-status error. Deferred: whether cancelled-only cases should skip `FOR_DECISION` entirely, and whether an audited admin override should exist.
 - **Client DPA acknowledgement:** Current client dashboard uses `dpaAccepted=1` query state, not a persisted per-user/per-case acknowledgement.
 - **Auth email safety:** Avoid live signup, resend confirmation, password reset, invite, magic link, and `audit:auth:e2e` flows unless explicitly approved.
-- **Ignored plan files:** `docs/superpowers/plans/2026-05-12-sprint-*.md` are local ignored planning docs, not tracked repo truth.
+- **Plan files are now tracked.** Until 2026-08-15, `.gitignore` carried bare `shared/` and `plans/` patterns (intended for the `.agent/` tooling tree) that matched **any** directory of those names repo-wide. That silently ignored `docs/superpowers/plans/` and `components/dashboard/shared/` — the app components stayed in git only because they were added before the rule. Any new file in either directory was invisible to `git add`. The patterns were removed; `.agent/`, `.opencode/`, and `mcp-tools/` are still ignored by their own entries. Earlier notes describing plan files as "local ignored planning docs, not tracked repo truth" are obsolete: plans under `docs/superpowers/plans/` are now tracked and are repo truth.
 
 ---
 

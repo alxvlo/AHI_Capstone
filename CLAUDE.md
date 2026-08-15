@@ -142,14 +142,21 @@ REGISTERED → IN_PROGRESS → FOR_DECISION → FOR_RELEASING → RELEASED → A
 | `memory-bank/auth-implementation-decision.md` | Auth model and signup/signin flow decisions |
 | `memory-bank/decisions.md` | Locked architectural decisions log |
 | `memory-bank/index.md` | Full doc map |
+| `memory-bank/qa-runs/defect-log.md` | Defect triage table (`D-NNN` IDs, P0–P3) |
+| `memory-bank/guides/workflow-policy.md` | Branch/commit/PR conventions and the work-tracking flow |
 | `QA.md` | QA baseline and current coverage focus |
 
-**Current phase (as of last memory-bank update):** Phase 4 — Backend Wiring and Storage (completing). **Active work:** SCRUM-31 (Slice 15 E2E lifecycle validation, In Progress) and SCRUM-32 (defect triage, In Progress). Tech debt SCRUM-53–59 completed 2026-04-15. SCRUM-30 (Slice 14 Realtime) and SCRUM-36 (email) are closed in Jira but have no code in the repo — treat as unverified. `SCRUM-37` (PDF) and `SCRUM-38` (deployment) remain deferred.
+**This repo is the single source of truth for work tracking as well as code.** There is no external board. `memory-bank/current-sprint.md` is the live status; treat it, not this file, as authoritative on what is in flight.
+
+**Current phase (as of the last `current-sprint.md` update, 2026-05-20):** Phase 5 — QA hardening, risk closure, and coverage stabilization. Realtime (`lib/realtime/use-realtime-refresh.ts` + `RealtimeBridge`) and the email pipeline (`lib/email/`, `features/dashboard/staff/email-notifications.ts`) are both implemented and tested — earlier notes calling them "no code in repo" were stale. Deferred: PDF certificate generation (blocked on AHI template/signature requirements) and deployment authorization.
+
+Historical docs use `SCRUM-NN` identifiers from the project's former Jira board. They are left in place as an accurate record; treat them as historical labels, not live references.
 
 If a change affects workflow, auth, or system design, update the relevant memory-bank doc in the same task.
 
 ## Workflow Conventions
 
-- Branches, commits, and PR titles reference the Jira key (e.g. `SCRUM-31-…`, `SCRUM-31: …`, `[SCRUM-31] …`). See `memory-bank/guides/workflow-policy.md`.
+- Conventional Commits (`feat:`, `fix:`, `refactor:`, `chore:`, `docs:`, `test:`). Branches are `slice-NN-<desc>` for planned slices, `<type>/<desc>` otherwise. See `memory-bank/guides/workflow-policy.md`.
+- A slice is not done until `memory-bank/slice-progress.md` records it and `memory-bank/current-sprint.md` clears it from the active queue.
 - Run `npm run qa:local` before handing off non-trivial changes.
 - `.agent/`, `.opencode/`, and `mcp-tools/` are local collaboration/tooling, not app runtime — ignore unless the task is specifically about agent tooling.
