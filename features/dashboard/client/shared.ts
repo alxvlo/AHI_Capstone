@@ -93,20 +93,6 @@ export function resolveSearchParam(
   return fallback;
 }
 
-export function parsePositiveInt(value: string) {
-  if (!value) {
-    return null;
-  }
-
-  const parsed = Number.parseInt(value, 10);
-
-  if (!Number.isInteger(parsed) || parsed <= 0) {
-    return null;
-  }
-
-  return parsed;
-}
-
 export function isDpaAccepted(value: string) {
   return value === "1";
 }

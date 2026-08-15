@@ -1,4 +1,3 @@
-import { StatusBadge } from "@/components/dashboard/shared/status-badge";
 import {
   PHYSICIAN_ROLE,
   RECEPTION_ROLE,
@@ -268,12 +267,3 @@ export function buildReturnPath(params: Record<string, SearchParamValue>) {
   return searchValue ? `/dashboard/staff?${searchValue}` : "/dashboard/staff";
 }
 
-export function StateBadge({
-  code,
-  label,
-}: {
-  code: string | null;
-  label: string;
-}) {
-  return <StatusBadge label={label} tone={caseStatusTone(code)} />;
-}
