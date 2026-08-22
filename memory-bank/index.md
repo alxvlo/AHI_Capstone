@@ -33,6 +33,7 @@ this table is the map. Read the roles, not the filenames.
 - `tech-stack.md` — Technology choices and environment baseline.
 - `auth-implementation-decision.md` — Auth flow decisions and rationale.
 - `profiles.md` — Team member role mapping.
+- `agent-workflow.md` — How AI agents are used here; tooling decisions already considered and rejected.
 
 ## Sprint & Progress Tracking
 
