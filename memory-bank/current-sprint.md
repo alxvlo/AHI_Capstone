@@ -6,9 +6,9 @@
 > because they are an accurate record; they are not live references. See
 > `guides/workflow-policy.md`.
 
-**Last Updated:** 2026-08-16
+**Last Updated:** 2026-08-22
 **Phase:** Phase 5 - QA hardening, risk closure, and coverage stabilization
-**Current Checkpoint:** `main` is aligned with `SCRUM-sprint-b-test-coverage` at `e81c48d`.
+**Current Checkpoint:** `main` at `ec5d17e` — carries the ponytail cleanup (#64) and the `.claude/rules/` split with the team verification standard (#63).
 
 ---
 
@@ -28,18 +28,54 @@ No Supabase linked commands, migrations, seed scripts, cleanup scripts, or Auth 
 
 ---
 
+## Blocked on client input
+
+The **staff workflow revision** is specified and ready to plan, but cannot start until
+American Hospital Inc. answers the questionnaire in
+`docs/superpowers/specs/2026-08-16-staff-workflow-revision-design.md` §5.
+
+Fourteen questions (`Q-01`–`Q-14`), each with a default that will be used if AHI does not
+object — so the spec degrades to a buildable plan rather than a dead end.
+
+A plain-language version of §5 for the client is maintained in Google Docs, outside this repo.
+It goes to the capstone advisor for review first, and to AHI only after that. Record both dates
+here when they happen — sent to advisor, and sent to AHI.
+
+Two of the fourteen block work outright rather than shaping it:
+
+| Question | Blocks |
+|---|---|
+| **Q-07** — accepted reasons for skipping / re-queuing / cancelling a visit | The reason pick-list that replaces today's free-text notes |
+| **Q-09** — certificate template, signatory, wet vs. digital signature | PDF certificate generation, deferred since Phase 4 |
+
+Three more change existing behaviour if answered against the default: **Q-05** (billing gates
+the flow) would add a case-level blocker, **Q-03** (shared station logins) would mean the audit
+trail cannot attribute an action to a person, and **Q-14** (retention window) defines the
+automatic `ARCHIVED` rule, which currently has no policy behind it.
+
+**On receipt:** write the answers into §5, mark the spec APPROVED, then produce the per-slice
+implementation plan (shared shell and case detail first, then one role at a time:
+Department → Reception → Physician → Releasing → Triage).
+
+---
+
 ## Active Queue
 
 ### Recommended Next
 
-1. **After hardening, begin Sprint C compliance planning** - use the existing Sprint C local plan as a reference, but review every database and Auth/email-adjacent item before implementation.
+Chosen 2026-08-22, in this order. Both are independent of anything AHI answers.
+
+1. **Stale lint directive** - `lib/supabase/client.ts:7` carries an `eslint-disable-next-line no-var` that reports nothing, left over from `3eb078f`. It is the only warning in `qa:local`. One-line delete.
+2. **Client DPA acknowledgement persistence (P1)** - `dpaAccepted` is a URL query param (`app/dashboard/client/page.tsx`) that only gates `CaseResultView` rendering. Access is RLS-scoped so this is not a data leak, but nothing records that a representative consented and it is bypassable by typing `?dpaAccepted=1`. Under RA 10173 the consent is unprovable. Needs a persisted, audited acknowledgement.
+3. **Agent briefing command** - a terminal command (not a Claude-only slash command; teammates are on Codex and Copilot) that derives its output from this file, `git`, and `gh` and stores no state of its own. Constraints recorded in `agent-workflow.md`.
+4. **Sprint C compliance planning** - the previous recommendation, still valid. Review every database and Auth/email-adjacent item before implementation.
 
 ### Deferred / Pending
 
 1. **Sprint A Task 6** - Email audit actor propagation was skipped by policy and should remain deferred while Supabase/Auth/email-safety rules are active.
 2. **Sprint A Task 11** - Parental/guardian consent for under-18 patients is intentionally deferred for now.
 3. **Deployment authorization** - remains deferred.
-4. **PDF certificate generation** - Still pending AHI template/signature requirements.
+4. **PDF certificate generation** - Blocked on **Q-09** (template, signatory, signature type). Tracked in the questionnaire above; no longer an open-ended deferral.
 5. **`ActionPanel` → native `<dialog>`** - `components/dashboard/shared/action-panel.tsx` hand-rolls a Tab focus trap, Escape handler, and backdrop button that `dialog.showModal()` provides natively (~60 lines). Deferred from the 2026-08-15 ponytail cleanup because the panel navigates to `closeHref` rather than closing in place; needs its own accessibility test pass.
 
 ---
