@@ -1,7 +1,16 @@
-import type { StatusBadgeTone } from "@/components/dashboard/shared/status-badge";
+import { formatTimestamp, formatDateOnly } from "@/lib/format";
+import { pickJoined, type JoinedRecord } from "@/lib/supabase/joined";
+import { statusTone } from "@/lib/dashboard/status-tone";
+
+export { formatTimestamp, formatDateOnly };
+export { pickJoined, type JoinedRecord };
+export {
+  statusTone as caseStatusTone,
+  statusTone as visitStatusTone,
+  statusTone as fitnessStatusTone,
+};
 
 export type SearchParamValue = string | string[] | undefined;
-export type JoinedRecord<T> = T | T[] | null;
 
 export const PATIENT_TIMELINE_STEPS = [
   "REGISTERED",
@@ -165,18 +174,6 @@ export function resolveTimelineState(statusCode: string | null) {
   };
 }
 
-export function pickJoined<T>(value: JoinedRecord<T> | undefined): T | null {
-  if (!value) {
-    return null;
-  }
-
-  if (Array.isArray(value)) {
-    return value[0] ?? null;
-  }
-
-  return value;
-}
-
 export function resolveSearchParam(
   params: Record<string, SearchParamValue>,
   key: string,
@@ -193,110 +190,6 @@ export function resolveSearchParam(
   }
 
   return fallback;
-}
-
-export function caseStatusTone(code: string | null): StatusBadgeTone {
-  if (!code) {
-    return "neutral";
-  }
-
-  if (code === "RELEASED") {
-    return "positive";
-  }
-
-  if (
-    code === "REGISTERED" ||
-    code === "IN_PROGRESS" ||
-    code === "FOR_DECISION" ||
-    code === "FOR_RELEASING" ||
-    code === "PENDING_ADDITIONAL_TESTS"
-  ) {
-    return "warning";
-  }
-
-  if (code === "CANCELLED" || code === "ARCHIVED") {
-    return "danger";
-  }
-
-  return "neutral";
-}
-
-export function visitStatusTone(code: string | null): StatusBadgeTone {
-  if (!code) {
-    return "neutral";
-  }
-
-  if (code === "COMPLETED") {
-    return "positive";
-  }
-
-  if (code === "IN_PROGRESS") {
-    return "warning";
-  }
-
-  if (code === "SKIPPED" || code === "CANCELLED") {
-    return "danger";
-  }
-
-  return "neutral";
-}
-
-export function fitnessStatusTone(code: string | null): StatusBadgeTone {
-  if (!code) {
-    return "neutral";
-  }
-
-  if (code === "FIT") {
-    return "positive";
-  }
-
-  if (code === "FIT_WITH_RESTRICTIONS") {
-    return "warning";
-  }
-
-  if (code === "UNFIT") {
-    return "danger";
-  }
-
-  return "neutral";
-}
-
-export function formatTimestamp(value: string | null) {
-  if (!value) {
-    return "Not available";
-  }
-
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return "Not available";
-  }
-
-  return date.toLocaleString("en-PH", {
-    year: "numeric",
-    month: "short",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
-
-export function formatDateOnly(value: string | null) {
-  if (!value) {
-    return "Not available";
-  }
-
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return "Not available";
-  }
-
-  return date.toLocaleDateString("en-PH", {
-    year: "numeric",
-    month: "short",
-    day: "2-digit",
-  });
 }
 
 export function formatCaseSelectorLabel(caseRow: PatientCaseRow) {

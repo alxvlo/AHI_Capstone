@@ -1,7 +1,13 @@
 import type { StatusBadgeTone } from "@/components/dashboard/shared/status-badge";
+import { formatTimestamp, formatDateOnly } from "@/lib/format";
+import { pickJoined, type JoinedRecord } from "@/lib/supabase/joined";
+import { statusTone } from "@/lib/dashboard/status-tone";
+
+export { formatTimestamp, formatDateOnly };
+export { pickJoined, type JoinedRecord };
+export { statusTone as caseStatusTone };
 
 export type SearchParamValue = string | string[] | undefined;
-export type JoinedRecord<T> = T | T[] | null;
 
 export type ClientDashboardSearchState = {
   caseId: string;
@@ -63,18 +69,6 @@ export type ClientDashboardData = {
   };
 };
 
-export function pickJoined<T>(value: JoinedRecord<T> | undefined): T | null {
-  if (!value) {
-    return null;
-  }
-
-  if (Array.isArray(value)) {
-    return value[0] ?? null;
-  }
-
-  return value;
-}
-
 export function resolveSearchParam(
   params: Record<string, SearchParamValue>,
   key: string,
@@ -91,20 +85,6 @@ export function resolveSearchParam(
   }
 
   return fallback;
-}
-
-export function parsePositiveInt(value: string) {
-  if (!value) {
-    return null;
-  }
-
-  const parsed = Number.parseInt(value, 10);
-
-  if (!Number.isInteger(parsed) || parsed <= 0) {
-    return null;
-  }
-
-  return parsed;
 }
 
 export function isDpaAccepted(value: string) {
@@ -137,31 +117,6 @@ export function buildClientDashboardHref(searchState: ClientDashboardSearchState
   const searchValue = params.toString();
 
   return searchValue ? `/dashboard/client?${searchValue}` : "/dashboard/client";
-}
-
-export function caseStatusTone(code: string | null): StatusBadgeTone {
-  if (!code) {
-    return "neutral";
-  }
-
-  if (code === "RELEASED") {
-    return "positive";
-  }
-
-  if (
-    code === "REGISTERED" ||
-    code === "IN_PROGRESS" ||
-    code === "FOR_DECISION" ||
-    code === "FOR_RELEASING"
-  ) {
-    return "warning";
-  }
-
-  if (code === "CANCELLED" || code === "ARCHIVED") {
-    return "danger";
-  }
-
-  return "neutral";
 }
 
 export function normalizeAgencyFitnessStatus(fitnessStatus: string | null) {
@@ -204,40 +159,3 @@ export function normalizeAgencyFitnessStatus(fitnessStatus: string | null) {
   };
 }
 
-export function formatTimestamp(value: string | null) {
-  if (!value) {
-    return "Not available";
-  }
-
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return "Not available";
-  }
-
-  return date.toLocaleString("en-PH", {
-    year: "numeric",
-    month: "short",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
-
-export function formatDateOnly(value: string | null) {
-  if (!value) {
-    return "Not available";
-  }
-
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return "Not available";
-  }
-
-  return date.toLocaleDateString("en-PH", {
-    year: "numeric",
-    month: "short",
-    day: "2-digit",
-  });
-}

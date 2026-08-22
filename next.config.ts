@@ -4,11 +4,8 @@ const nextConfig: NextConfig = {
   experimental: {
     optimizePackageImports: [
       "lucide-react",
-      "@radix-ui/react-select",
-      "@radix-ui/react-toast",
       "@radix-ui/react-label",
       "@radix-ui/react-slot",
-      "@radix-ui/react-tooltip",
       "framer-motion",
       "sonner",
     ],

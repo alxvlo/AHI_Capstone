@@ -6,7 +6,12 @@ import {
   ADMIN_ROLE,
   resolveCurrentUserRoleContext,
 } from "@/lib/supabase/role-routing";
-import { normalizeDashboardReturnPath } from "@/lib/dashboard/return-path";
+import {
+  createActionRedirects,
+  isUuid,
+  normalizeText,
+  parseOptionalPositiveInt,
+} from "@/lib/dashboard/action-redirect";
 
 const ADMIN_DASHBOARD_PATH = "/dashboard/admin";
 type RoleContext = Awaited<ReturnType<typeof resolveCurrentUserRoleContext>>;
@@ -15,93 +20,24 @@ type AdminActionContext = {
   userId: string;
 };
 
-function normalizeText(value: FormDataEntryValue | null) {
-  if (typeof value !== "string") {
-    return "";
-  }
+const actionRedirects = createActionRedirects({
+  basePath: ADMIN_DASHBOARD_PATH,
+  fallbackPath: `${ADMIN_DASHBOARD_PATH}?tab=overview`,
+});
+const normalizeReturnPath = actionRedirects.normalizeReturnPath;
 
-  return value.trim();
+// Local wrapper function declarations (not const arrow/method references) so
+// TypeScript's control-flow analysis recognizes these calls as `never`-returning
+// at every call site and narrows types after `if (...) { redirectWithError(...); }`.
+function redirectWithNotice(returnPath: string, message: string): never {
+  return actionRedirects.redirectWithNotice(returnPath, message);
 }
-
-function parseOptionalPositiveInt(value: string) {
-  if (!value) {
-    return null;
-  }
-
-  const parsed = Number.parseInt(value, 10);
-
-  if (!Number.isInteger(parsed) || parsed <= 0) {
-    return null;
-  }
-
-  return parsed;
+function redirectWithError(returnPath: string, message: string): never {
+  return actionRedirects.redirectWithError(returnPath, message);
 }
 
 function parseBooleanFlag(formData: FormData, key: string) {
   return formData.get(key) === "on";
-}
-
-function isUuid(value: string) {
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-    value
-  );
-}
-
-function normalizeReturnPath(rawPath: string | null) {
-  return normalizeDashboardReturnPath(
-    rawPath,
-    ADMIN_DASHBOARD_PATH,
-    `${ADMIN_DASHBOARD_PATH}?tab=overview`
-  );
-}
-
-function truncateMessage(message: string, limit = 200) {
-  if (message.length <= limit) {
-    return message;
-  }
-
-  return `${message.slice(0, limit - 3)}...`;
-}
-
-function buildRedirectPath(
-  returnPath: string,
-  options: {
-    notice?: string;
-    error?: string;
-  }
-) {
-  const normalizedPath = normalizeReturnPath(returnPath);
-  const url = new URL(normalizedPath, "http://localhost");
-  url.searchParams.delete("notice");
-  url.searchParams.delete("error");
-
-  if (options.notice) {
-    url.searchParams.set("notice", truncateMessage(options.notice));
-  }
-
-  if (options.error) {
-    url.searchParams.set("error", truncateMessage(options.error));
-  }
-
-  const search = url.searchParams.toString();
-
-  return search ? `${url.pathname}?${search}` : url.pathname;
-}
-
-function redirectWithNotice(returnPath: string, message: string): never {
-  redirect(
-    buildRedirectPath(returnPath, {
-      notice: message,
-    })
-  );
-}
-
-function redirectWithError(returnPath: string, message: string): never {
-  redirect(
-    buildRedirectPath(returnPath, {
-      error: message,
-    })
-  );
 }
 
 async function resolveAdminContext(returnPath: string): Promise<AdminActionContext> {

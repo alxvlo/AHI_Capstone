@@ -1,16 +1,23 @@
-import { StatusBadge } from "@/components/dashboard/shared/status-badge";
 import {
   PHYSICIAN_ROLE,
   RECEPTION_ROLE,
   RELEASING_ROLE,
   TRIAGE_ROLE,
 } from "@/lib/supabase/roles";
+import {
+  formatDateOnly as formatDateOnlyBase,
+  formatTimestamp as formatTimestampBase,
+} from "@/lib/format";
+import { pickJoined, type JoinedRecord } from "@/lib/supabase/joined";
+import { statusTone } from "@/lib/dashboard/status-tone";
+import { parseOptionalPositiveInt } from "@/lib/dashboard/action-redirect";
 
 export { PHYSICIAN_ROLE, RECEPTION_ROLE, RELEASING_ROLE, TRIAGE_ROLE };
+export { pickJoined, type JoinedRecord };
+export { statusTone as caseStatusTone };
+export { parseOptionalPositiveInt };
 
 export type SearchParamValue = string | string[] | undefined;
-
-export type JoinedRecord<T> = T | T[] | null;
 
 export type StatusRecord = {
   statuscodeid: number;
@@ -129,20 +136,6 @@ export function resolveParam(
   return fallback;
 }
 
-export function parseOptionalPositiveInt(value: string) {
-  if (!value) {
-    return null;
-  }
-
-  const parsed = Number.parseInt(value, 10);
-
-  if (!Number.isInteger(parsed) || parsed <= 0) {
-    return null;
-  }
-
-  return parsed;
-}
-
 export function parseDepartmentClaim(rawClaim: unknown) {
   if (typeof rawClaim === "number" && Number.isInteger(rawClaim) && rawClaim > 0) {
     return rawClaim;
@@ -155,87 +148,12 @@ export function parseDepartmentClaim(rawClaim: unknown) {
   return null;
 }
 
-export function pickJoined<T>(value: JoinedRecord<T> | undefined): T | null {
-  if (!value) {
-    return null;
-  }
-
-  if (Array.isArray(value)) {
-    return value[0] ?? null;
-  }
-
-  return value;
-}
-
 export function formatTimestamp(value: string | null) {
-  if (!value) {
-    return "Not set";
-  }
-
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return "Not set";
-  }
-
-  return date.toLocaleString("en-PH", {
-    year: "numeric",
-    month: "short",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  return formatTimestampBase(value, "Not set");
 }
 
 export function formatDateOnly(value: string | null) {
-  if (!value) {
-    return "Not set";
-  }
-
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return "Not set";
-  }
-
-  return date.toLocaleDateString("en-PH", {
-    year: "numeric",
-    month: "short",
-    day: "2-digit",
-  });
-}
-
-export function caseStatusTone(
-  code: string | null
-): "neutral" | "positive" | "warning" | "danger" {
-  if (!code) {
-    return "neutral";
-  }
-
-  if (code === "RELEASED" || code === "COMPLETED" || code === "FIT") {
-    return "positive";
-  }
-
-  if (code === "FIT_WITH_RESTRICTIONS") {
-    return "warning";
-  }
-
-  if (
-    code === "PENDING" ||
-    code === "IN_PROGRESS" ||
-    code === "REGISTERED" ||
-    code === "PENDING_ADDITIONAL_TESTS" ||
-    code === "FOR_DECISION" ||
-    code === "FOR_RELEASING"
-  ) {
-    return "warning";
-  }
-
-  if (code === "SKIPPED" || code === "UNFIT" || code === "CANCELLED") {
-    return "danger";
-  }
-
-  return "neutral";
+  return formatDateOnlyBase(value, "Not set");
 }
 
 export function buildReturnPath(params: Record<string, SearchParamValue>) {
@@ -268,12 +186,3 @@ export function buildReturnPath(params: Record<string, SearchParamValue>) {
   return searchValue ? `/dashboard/staff?${searchValue}` : "/dashboard/staff";
 }
 
-export function StateBadge({
-  code,
-  label,
-}: {
-  code: string | null;
-  label: string;
-}) {
-  return <StatusBadge label={label} tone={caseStatusTone(code)} />;
-}

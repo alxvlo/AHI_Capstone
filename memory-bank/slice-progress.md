@@ -7,6 +7,119 @@ This file tracks completion status and verification results for each development
 
 ---
 
+## Ponytail Cleanup — Tech Debt Sweep (2026-08-15)
+
+**Status:** Done
+**Date Completed:** 2026-08-15
+
+Tech-debt sweep on branch `refactor/ponytail-cleanup` (commits `2906c98`..`8c3b8f8`, on top
+of `fd0e466` which retired Jira for repo-native work tracking and had already corrected
+`CLAUDE.md`'s stale email/Realtime claims — not repeated here).
+Findings: `docs/superpowers/plans/2026-08-15-ponytail-audit-findings.md`.
+Plan: `docs/superpowers/plans/2026-08-15-ponytail-cleanup.md`.
+Execution ledger: `.superpowers/sdd/2026-08-15-ponytail-cleanup/progress.md`.
+
+**Deleted (all verified zero call sites):**
+- `app/api/dev-screenshot-upload/route.ts`, `features/dashboard/admin/merge-actions.ts`,
+  `scripts/supabase/audit-{protected-routes,role-smoke}-priority.mjs`,
+  `components/dashboard/shared/loading-skeleton.tsx`.
+- Five unreachable `"use server"` exports (patient `fetchOwnCase` / `fetchOwnResults` /
+  `fetchResultFiles`, client `fetchReleasedCases` / `fetchCaseFitness`).
+- The `CASE_/VISIT_/FITNESS_STATUS` maps in `lib/content/dashboard-constants.ts`;
+  `StateBadge`; `parsePositiveInt`; the `DataTableContainer` / `EmptyState` /
+  `ErrorState` props no call site passed.
+- 4 dependencies with no import anywhere: `@radix-ui/react-toast`,
+  `@radix-ui/react-tooltip`, `@radix-ui/react-select`, `@vercel/speed-insights`
+  (59 packages removed from `node_modules`); `next.config.ts`'s
+  `optimizePackageImports` trimmed to match.
+
+**New shared modules (each with unit tests under `tests/lib/`):**
+- `lib/format.ts` — replaced 7 `formatTimestamp`, 3 `formatDateOnly`, 2 `formatBytes`.
+- `lib/supabase/joined.ts` — replaced 5 `pickJoined` / `pickActionJoined` copies.
+- `lib/dashboard/status-tone.ts` — replaced 3 drifted `caseStatusTone` if-chains plus
+  `visitStatusTone` / `fitnessStatusTone`.
+- `lib/dashboard/action-redirect.ts` — `createActionRedirects()` factory replacing the
+  redirect/notice helper cluster copy-pasted into three action modules, plus shared
+  `normalizeText` / `isUuid` / `parseOptionalPositiveInt`.
+
+**Implementation deviation, recorded so it isn't "cleaned up" and re-broken:** the plan
+called for destructuring `const { redirectWithNotice, redirectWithError } =
+createActionRedirects(...)` directly in each of `features/dashboard/{staff,admin,patient}/actions.ts`.
+That form breaks TypeScript's `never`-return control-flow narrowing — TS only propagates
+never-narrowing through a `function` declaration or a const with an explicit
+function-type annotation, never through a destructured const, even with `: never` on the
+factory's return-object members. Confirmed with isolated repros before touching real
+code. Fix: each of the three action files keeps the factory instance and adds two thin
+local `function` wrappers (`redirectWithNotice` / `redirectWithError`, 6 total) that
+`return actionRedirects.xxx(...)`. Reviewed line-by-line as pure delegation with
+identical argument order and byte-identical truncation/fallback behavior.
+
+**Behavior deltas (deliberate, agreed before execution — Ruling R6 in the ledger):**
+unifying the three drifted `caseStatusTone` copies into one lookup map necessarily picks
+one tone per code where the copies disagreed:
+- `ARCHIVED` now renders **danger** on the staff dashboard (was neutral there; patient
+  and client already showed danger).
+- `PENDING_ADDITIONAL_TESTS` now renders **warning** on the client portal (was neutral
+  there; staff and patient already showed warning).
+
+Everything else is byte-identical output (confirmed via a full per-code tone table
+during review). **Residual concern, not acted on:** `ARCHIVED` is a normal terminal state
+reached after `RELEASED` via retention archival, not only an abnormal one (soft cancel).
+Rendering it danger on the staff dashboard arguably misrepresents a completed, released
+case — a semantically better rule might keep `ARCHIVED` neutral and reserve danger for
+`CANCELLED`. One-line change in `lib/dashboard/status-tone.ts` plus one test line if the
+product owner wants it; not fixed here because the plan's stated recommendation
+(unify as documented) was the lower-surprise choice already accepted before the run.
+
+**Config:** `import.meta.dirname` replaces the `fileURLToPath` preamble in both vitest
+configs and `eslint.config.mjs`. `tests/integration/**` is now also excluded from the
+unit vitest run (alongside the pre-existing `tests/e2e/**` exclusion), so
+`npm run test:run` cannot reach a real Supabase project — this removes the 22 previously
+"skipped" integration tests from the unit run's count entirely rather than skipping them
+in place.
+
+**Also fixed (pre-task commit `fd0e466`, landed before Task 1):** `.gitignore` carried
+bare `shared/` and `plans/` patterns intended only for the `.agent/` tooling tree, which
+matched every directory of those names repo-wide and silently ignored
+`components/dashboard/shared/` and `docs/superpowers/plans/`. Removed; `.agent/`,
+`.opencode/`, and `mcp-tools/` keep their own explicit entries.
+
+**Deferred (Minor, flagged for the next whole-branch review, not fixed here):**
+- The 6 delegation wrappers above could be 3 explicitly-typed const aliases
+  (`const x: (a: string, b: string) => never = actionRedirects.x`), saving ~15 lines.
+  Correct as written; tidy only.
+- Because of those wrappers, the plan's own dedup grep
+  (`git grep -c "function redirectWithNotice\|function redirectWithError\|..."`) no
+  longer returns zero matches outside `lib/dashboard/action-redirect.ts` — each action
+  file shows 2 wrapper declarations. Expected and explained, not a regression.
+
+**Not done, deferred to its own ticket:** replacing the hand-rolled focus trap in
+`components/dashboard/shared/action-panel.tsx` with `<dialog>.showModal()` — it
+navigates to `closeHref` rather than closing in place, so the swap is a real behavior
+change needing its own accessibility test pass.
+
+**Verification:**
+- `npm run qa:local`: lint 0 errors / 1 pre-existing permitted warning (`Unused
+  eslint-disable directive`, `lib/supabase/client.ts:7`); typecheck clean; tests
+  **272 passed / 0 skipped, 51 files** (branch baseline before this slice was 245
+  passed / 22 skipped, 50 files — the 22 skips were real-Supabase integration tests,
+  now excluded from the unit run entirely rather than skipped in place).
+- `npm run build`: production build succeeds (22 routes, middleware compiles clean).
+- `git diff --stat 3cb0832 HEAD`: 44 files changed, 2705 insertions(+), 2811
+  deletions(-); of that, `docs/superpowers/plans/2026-08-15-ponytail-cleanup.md` and
+  `2026-08-15-ponytail-audit-findings.md` alone account for ~1,926 insertions (planning
+  docs, not app code), and `package-lock.json` accounts for ~1,236 of the deletions.
+- `package.json`: 4 dependencies removed, none added.
+- `CLAUDE.md` was not touched by this slice — its "Current phase" paragraph was already
+  corrected in `fd0e466` and was re-checked after this cleanup; still accurate.
+
+**Key files:** `lib/format.ts`, `lib/supabase/joined.ts`, `lib/dashboard/status-tone.ts`,
+`lib/dashboard/action-redirect.ts`, `tests/lib/format.test.ts`,
+`tests/lib/supabase-joined.test.ts`, `tests/lib/status-tone.test.ts`,
+`tests/lib/action-redirect.test.ts`.
+
+---
+
 ## Tech Debt — Query Performance Log Indexes (2026-05-23)
 
 **Status:** Done  
