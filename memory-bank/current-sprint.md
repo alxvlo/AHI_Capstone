@@ -8,23 +8,27 @@
 
 **Last Updated:** 2026-08-22
 **Phase:** Phase 5 - QA hardening, risk closure, and coverage stabilization
-**Current Checkpoint:** `main` at `ec5d17e` — carries the ponytail cleanup (#64) and the `.claude/rules/` split with the team verification standard (#63).
+**Current Checkpoint:** `main` at `d47e19b` — carries the agent-workflow decision record (#65) on top of the ponytail cleanup (#64) and the `.claude/rules/` split with the team verification standard (#63). Working tree clean.
 
 ---
 
 ## Current State
 
-`main` includes SCRUM-37 Test Catalog Phase 1, Sprint A Risk Closure, and Sprint B Test Coverage Closure. The prior status note that listed SCRUM-37 as the latest completed work is stale.
+`main` includes SCRUM-37 Test Catalog Phase 1, Sprint A Risk Closure, Sprint B Test Coverage
+Closure, the 2026-08-15 ponytail tech-debt sweep, the `.claude/rules/` split, and the
+`agent-workflow.md` decision record.
 
-Local verification on 2026-05-20:
+Local verification on 2026-08-22 (`npm run qa:local` at `d47e19b`):
 
 | Check | Result | Notes |
 |---|---|---|
-| `npm.cmd run lint` | PASS after config update | ESLint was scanning `.worktrees/**`; `eslint.config.mjs` now ignores it. |
-| `npm.cmd run typecheck` | PASS | `tsc --noEmit` completed cleanly. |
-| `npm.cmd run test:run` | PASS | 230 passed, 22 skipped. Skips are real-Supabase integration tests guarded by missing credentials. |
+| `npm run lint` | PASS with 1 warning | `lib/supabase/client.ts:7` — unused `eslint-disable` for `no-var`, left over from `3eb078f`. Queued as item 1 below. |
+| `npm run typecheck` | PASS | `tsc --noEmit` clean. |
+| `npm run test:run` | PASS | 272 passed / 0 skipped across 51 files, 23s. Integration tests under `tests/integration/**` are excluded from the unit run since `eba9b64`, which is why the old "22 skipped" line no longer appears. |
 
-No Supabase linked commands, migrations, seed scripts, cleanup scripts, or Auth email flows were run during this reconciliation.
+No Supabase linked commands, migrations, seed scripts, cleanup scripts, or Auth email flows were
+run during this reconciliation. `qa:supabase` and Playwright E2E have not been re-run since the
+2026-05-20 baseline — that gap is unchecked, not green.
 
 ---
 
@@ -67,8 +71,7 @@ Chosen 2026-08-22, in this order. Both are independent of anything AHI answers.
 
 1. **Stale lint directive** - `lib/supabase/client.ts:7` carries an `eslint-disable-next-line no-var` that reports nothing, left over from `3eb078f`. It is the only warning in `qa:local`. One-line delete.
 2. **Client DPA acknowledgement persistence (P1)** - `dpaAccepted` is a URL query param (`app/dashboard/client/page.tsx`) that only gates `CaseResultView` rendering. Access is RLS-scoped so this is not a data leak, but nothing records that a representative consented and it is bypassable by typing `?dpaAccepted=1`. Under RA 10173 the consent is unprovable. Needs a persisted, audited acknowledgement.
-3. **Agent briefing command** - a terminal command (not a Claude-only slash command; teammates are on Codex and Copilot) that derives its output from this file, `git`, and `gh` and stores no state of its own. Constraints recorded in `agent-workflow.md`.
-4. **Sprint C compliance planning** - the previous recommendation, still valid. Review every database and Auth/email-adjacent item before implementation.
+3. **Sprint C compliance planning** - the previous recommendation, still valid. Review every database and Auth/email-adjacent item before implementation.
 
 ### Deferred / Pending
 
@@ -82,6 +85,16 @@ Chosen 2026-08-22, in this order. Both are independent of anything AHI answers.
 
 ## Recently Completed
 
+- **Briefing command `/brief` (2026-08-22):** `.claude/commands/brief.md`. Derives a standup brief
+  from this file, `qa-runs/defect-log.md`, `agent-workflow.md` Open items, git, and `gh` — checkpoint
+  drift, blockers, the recommended queue with files and proof-of-done, open `D-NNN` defects, branch
+  and PR state, and which gates are unverified. Stores nothing and changes nothing. The
+  Codex/Copilot portability constraint recorded earlier the same day was withdrawn — the team is on
+  Claude Code only. Rationale in `memory-bank/agent-workflow.md`.
+- **`current-sprint.md` reconciliation (2026-08-22):** checkpoint `ec5d17e` → `d47e19b`, the
+  2026-05-20 verification table replaced with that day's real `qa:local` run (272 passed / 0
+  skipped / 51 files), and the Plan References line corrected — plans under
+  `docs/superpowers/plans/` are tracked, not ignored.
 - **Ponytail cleanup — tech-debt sweep (2026-08-15):** Branch `refactor/ponytail-cleanup`.
   Deleted dead code (4 files, 5 unreachable server actions, dead constant maps/props) and
   4 unused dependencies; consolidated duplicated helpers into `lib/format.ts`,
@@ -115,7 +128,7 @@ Chosen 2026-08-22, in this order. Both are independent of anything AHI answers.
 
 ## Plan References
 
-- **Sprint plans:** `docs/superpowers/plans/2026-05-12-sprint-a-risk-closure.md` through `2026-05-12-sprint-g-clinical-safety.md` are local ignored planning references.
+- **Sprint plans:** `docs/superpowers/plans/2026-05-12-sprint-a-risk-closure.md` through `2026-05-12-sprint-g-clinical-safety.md`. These are **tracked repo truth** since the 2026-08-15 `.gitignore` fix described under Open Decisions And Risks; the earlier "local ignored planning references" wording was wrong and is corrected here.
 - **Pre-Sprint C hardening plan:** `docs/superpowers/plans/2026-05-20-pre-sprint-terminal-release-hardening.md`
 - **Workflow policy draft:** `memory-bank/guides/peme-case-workflow-policy.md`
 - **QA logs:** `memory-bank/qa-runs/2026-05-13-sprint-a-risk-closure.md`, `memory-bank/qa-runs/2026-05-12-sprint-b-test-coverage.md`

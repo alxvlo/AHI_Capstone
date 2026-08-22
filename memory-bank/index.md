@@ -45,6 +45,7 @@ this table is the map. Read the roles, not the filenames.
 - `slice-progress.md` — Completed slice tracking with verification results.
 - `qa-runs/defect-log.md` — Defect triage table (`D-NNN` IDs, P0–P3 priorities).
 - `guides/workflow-policy.md` — Branch/commit/PR conventions and the work-tracking flow.
+- `/brief` (`.claude/commands/brief.md`) — prints a standup brief derived from the files above plus git; stores nothing. See `agent-workflow.md`.
 - `../DEVELOPMENT-PLAN.md` — Master development plan with all phases and slices (root of repo).
 
 ## Dashboard Specs

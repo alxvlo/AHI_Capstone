@@ -50,12 +50,16 @@ still holds for a *connector or cron job*, which remain rejected. What is wanted
 briefing that reads the repo's own state and prints it — no scheduler, no external service, no
 second source of truth.
 
-Two constraints follow from the rest of this document and bound the design:
+**Built 2026-08-22 as `.claude/commands/brief.md`.** One design constraint recorded earlier that
+day — that it must run for teammates on Codex and Copilot, and therefore could not be a Claude-only
+slash command — was **withdrawn the same day**: the team is on Claude Code only, so the
+cross-tool requirement was protecting a case that does not exist. If that changes, the command is
+a prompt file with no logic to port; move the gather steps into a script and keep the same shape.
 
-- It must work for teammates on **Codex and Copilot**, so it cannot be a Claude-only slash command.
-  A terminal command every tool can run is the only shape that satisfies this.
-- It must **derive** its output from `current-sprint.md`, git, and `gh`, never store status of its
-  own. A briefing that caches becomes the second board this project explicitly refused.
+The surviving constraint is the one that matters: it must **derive** its output from
+`current-sprint.md`, the defect log, git, and `gh`, and store nothing. A briefing that caches
+becomes the second board this project explicitly refused. It is a read — it fixes nothing and
+writes nothing.
 
 Still rejected in every form: a scheduled agent, a hosted dashboard, a connector, or anything that
 runs unattended.
@@ -66,6 +70,13 @@ eight roles plus DPA gating flags (`waiversigned`, `portalvisible`) where a misr
 failure, not a bug. Every agent-produced change is reviewed by a human before it lands.
 
 ## What is on disk
+
+`.claude/commands/brief.md` is the live briefing command (`/brief`, optional focus argument). It
+reads `current-sprint.md`, `qa-runs/defect-log.md`, this file's Open items, and git/`gh`, then
+prints: drift between the checkpoint commit and HEAD, blockers, the recommended queue with files
+and proof-of-done, open `D-NNN` defects, branch/PR state, and which gates are unverified. The drift
+check exists because the failure this workflow actually hits is a stale `current-sprint.md` that
+every agent has been told to trust.
 
 `memory-bank/deferred/issue-triage-command.md` and `memory-bank/deferred/issue-work-command.md`
 implement the review→ticket→implement loop against GitHub Issues. They are kept because the decision
@@ -80,10 +91,9 @@ instead — any workflow rule that matters to them belongs there, not only in `.
 
 ## Open items
 
-- **`current-sprint.md` is stale.** As of 2026-08-22 it reads *Last Updated: 2026-05-20* and pins
-  `main` to `e81c48d`, which is thirteen commits behind. It is the designated live-state document
-  and every agent is told to trust it, so a stale copy actively misleads. Only the humans who did
-  the June–August work can refresh it.
+- ~~**`current-sprint.md` is stale.**~~ Refreshed 2026-08-22: checkpoint moved to `d47e19b`, the
+  verification table replaced with that day's `qa:local` run, and the Plan References contradiction
+  about ignored plan files corrected. `/brief` now flags this class of drift automatically.
 - **Client DPA acknowledgement is not persisted.** `dpaAccepted` is a URL query parameter
   (`app/dashboard/client/page.tsx:39`) gating `CaseResultView` only. Access itself is RLS-scoped, so
   this is not a data leak — but nothing records that a representative consented, and the gate is
@@ -95,6 +105,6 @@ instead — any workflow rule that matters to them belongs there, not only in `.
 
 ## Verified state
 
-`npm run qa:local` on 2026-08-22: lint clean apart from the warning above, `tsc --noEmit` clean,
-245 tests passed / 22 skipped across 48 files. The skips are real-Supabase integration tests guarded
-by absent credentials.
+`npm run qa:local` at `d47e19b` on 2026-08-22: lint clean apart from the warning above,
+`tsc --noEmit` clean, 272 passed / 0 skipped across 51 files. Integration tests live outside the
+unit run since `eba9b64`. `qa:supabase` and Playwright E2E were not run.
