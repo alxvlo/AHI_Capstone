@@ -55,8 +55,8 @@ plans/
 .playwright-mcp/
 qa-visual-dashboard-staff.png
 
-# Claude Code project-local settings (machine-specific)
-.claude/settings.json
+# Claude Code personal settings (machine-specific; .claude/settings.json IS team-shared)
+.claude/settings.local.json
 
 # Git worktrees
 .worktrees/
