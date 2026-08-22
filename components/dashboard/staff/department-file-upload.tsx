@@ -9,6 +9,7 @@ import {
   uploadResultFileAction,
   deleteResultFileAction,
 } from "@/features/dashboard/staff/actions";
+import { formatBytes, formatTimestamp as formatTimestampBase } from "@/lib/format";
 
 type UploadedFileRecord = {
   fileid: string;
@@ -29,31 +30,8 @@ type DepartmentFileUploadProps = {
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
 const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "application/pdf"]);
 
-function formatBytes(bytes: number) {
-  if (bytes < 1024) {
-    return `${bytes} B`;
-  }
-  if (bytes < 1024 * 1024) {
-    return `${(bytes / 1024).toFixed(1)} KB`;
-  }
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
-
 function formatTimestamp(value: string | null) {
-  if (!value) {
-    return "Unknown";
-  }
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return "Unknown";
-  }
-  return date.toLocaleString("en-PH", {
-    year: "numeric",
-    month: "short",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  return formatTimestampBase(value, "Unknown");
 }
 
 function mimeLabel(mime: string) {

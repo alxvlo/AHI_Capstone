@@ -1,9 +1,4 @@
-import path from "node:path";
-import { fileURLToPath } from "node:url";
 import { defineConfig } from "vitest/config";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 /**
  * Separate vitest config for integration tests that hit a real Supabase project.
@@ -21,7 +16,7 @@ const __dirname = path.dirname(__filename);
 export default defineConfig({
   resolve: {
     alias: {
-      "@": __dirname,
+      "@": import.meta.dirname,
     },
   },
   test: {

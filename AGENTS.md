@@ -148,7 +148,7 @@ npm run test:run -- tests/lib/phone.test.ts -t "extracts Philippine mobile digit
 - Use a safe seeded environment for Supabase audit scripts; never point destructive checks at production by default.
 - Never commit secrets, `.env.local`, or generated artifacts.
 - If a task affects workflow, auth, or system design, check whether a `memory-bank/` doc should be updated too.
-- Branches, commits, and PR titles should reference the Jira key when one exists.
+- Work tracking lives in this repo, not an external board. Use Conventional Commits (`feat:`, `fix:`, `refactor:`, `chore:`, `docs:`, `test:`); branch as `slice-NN-<desc>` for planned slices and `<type>/<desc>` otherwise. See `memory-bank/guides/workflow-policy.md`.
 
 ## Quick Checklist
 - Read `README.md` and `QA.md` if you need repo context.

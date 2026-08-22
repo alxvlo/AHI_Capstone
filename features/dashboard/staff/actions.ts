@@ -20,7 +20,6 @@ import {
   buildGovernmentIdForStorage,
   validateGovernmentIdFormat,
 } from "@/lib/government-id";
-import { normalizeDashboardReturnPath } from "@/lib/dashboard/return-path";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { validateTestValue, isAbnormal } from "@/lib/test-catalog/validate";
 import {
@@ -34,90 +33,38 @@ import {
   notifyPatientOnRelease,
   notifyReleasingStaffOnDecision,
 } from "@/features/dashboard/staff/email-notifications";
+import { pickJoined, type JoinedRecord } from "@/lib/supabase/joined";
+import {
+  createActionRedirects,
+  isUuid,
+  normalizeText,
+  parseOptionalPositiveInt,
+} from "@/lib/dashboard/action-redirect";
 
 const STAFF_DASHBOARD_PATH = "/dashboard/staff";
 const SUPPORTED_GOVERNMENT_ID_TYPES = new Set<string>(GOVERNMENT_ID_TYPES);
+
+const actionRedirects = createActionRedirects({
+  basePath: STAFF_DASHBOARD_PATH,
+  limit: 180,
+});
+const normalizeReturnPath = actionRedirects.normalizeReturnPath;
+
+// Local wrapper function declarations (not const arrow/method references) so
+// TypeScript's control-flow analysis recognizes these calls as `never`-returning
+// at every call site and narrows types after `if (...) { redirectWithError(...); }`.
+function redirectWithNotice(returnPath: string, message: string): never {
+  return actionRedirects.redirectWithNotice(returnPath, message);
+}
+function redirectWithError(returnPath: string, message: string): never {
+  return actionRedirects.redirectWithError(returnPath, message);
+}
 
 type ActionContext = {
   supabase: CurrentUserRoleContext["supabase"];
   userId: string;
   role: string | null;
 };
-
-function normalizeReturnPath(rawPath: string | null) {
-  return normalizeDashboardReturnPath(rawPath, STAFF_DASHBOARD_PATH);
-}
-
-function truncateMessage(message: string, limit = 180) {
-  if (message.length <= limit) {
-    return message;
-  }
-
-  return `${message.slice(0, limit - 3)}...`;
-}
-
-function buildRedirectPath(
-  returnPath: string,
-  options: {
-    notice?: string;
-    error?: string;
-  }
-) {
-  const normalized = normalizeReturnPath(returnPath);
-  const url = new URL(normalized, "http://localhost");
-  url.searchParams.delete("notice");
-  url.searchParams.delete("error");
-
-  if (options.notice) {
-    url.searchParams.set("notice", truncateMessage(options.notice));
-  }
-
-  if (options.error) {
-    url.searchParams.set("error", truncateMessage(options.error));
-  }
-
-  const searchString = url.searchParams.toString();
-
-  return searchString ? `${url.pathname}?${searchString}` : url.pathname;
-}
-
-function redirectWithNotice(returnPath: string, message: string): never {
-  redirect(
-    buildRedirectPath(returnPath, {
-      notice: message,
-    })
-  );
-}
-
-function redirectWithError(returnPath: string, message: string): never {
-  redirect(
-    buildRedirectPath(returnPath, {
-      error: message,
-    })
-  );
-}
-
-function normalizeText(value: FormDataEntryValue | null) {
-  if (typeof value !== "string") {
-    return "";
-  }
-
-  return value.trim();
-}
-
-function parseOptionalPositiveInt(value: string) {
-  if (!value) {
-    return null;
-  }
-
-  const parsed = Number.parseInt(value, 10);
-
-  if (!Number.isInteger(parsed) || parsed <= 0) {
-    return null;
-  }
-
-  return parsed;
-}
 
 function parseDepartmentClaim(rawClaim: unknown) {
   if (typeof rawClaim === "number" && Number.isInteger(rawClaim) && rawClaim > 0) {
@@ -143,12 +90,6 @@ const RECEPTION_ALLOWED_CASE_CANCEL_CODES = new Set([
   "PENDING_ADDITIONAL_TESTS",
   "FOR_DECISION",
 ]);
-
-function isUuid(value: string) {
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-    value
-  );
-}
 
 function isLikelyEmail(value: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
@@ -325,26 +266,12 @@ async function getStatusId(
 // Helpers for release-case visit validation
 // ---------------------------------------------------------------------------
 
-type JoinedActionRecord<T> = T | T[] | null | undefined;
-
-function pickActionJoined<T>(value: JoinedActionRecord<T>): T | null {
-  if (!value) {
-    return null;
-  }
-
-  if (Array.isArray(value)) {
-    return value[0] ?? null;
-  }
-
-  return value;
-}
-
 type UnresolvedReleaseVisitRow = {
   visitid: number;
-  department?: JoinedActionRecord<{
+  department?: JoinedRecord<{
     name: string | null;
   }>;
-  visitStatus?: JoinedActionRecord<{
+  visitStatus?: JoinedRecord<{
     code: string | null;
     label: string | null;
   }>;
@@ -354,7 +281,7 @@ function buildUnresolvedVisitReleaseMessage(rows: UnresolvedReleaseVisitRow[]) {
   const statusCounts = new Map<string, number>();
 
   for (const row of rows) {
-    const status = pickActionJoined(row.visitStatus);
+    const status = pickJoined(row.visitStatus);
     const key = (status?.code ?? status?.label ?? "UNKNOWN").toUpperCase();
     statusCounts.set(key, (statusCounts.get(key) ?? 0) + 1);
   }

@@ -1,21 +1,18 @@
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
 
 type ErrorStateProps = {
   title?: string;
   message: string;
-  onRetry?: () => void;
   className?: string;
 };
 
 /**
- * Error state display with retry action. Used when data fetching fails
- * or an unexpected error occurs in a dashboard module.
+ * Error state display. Used when data fetching fails or an unexpected
+ * error occurs in a dashboard module.
  */
 export function ErrorState({
   title = "Something went wrong",
   message,
-  onRetry,
   className,
 }: ErrorStateProps) {
   return (
@@ -45,16 +42,6 @@ export function ErrorState({
       </div>
       <h3 className="text-base font-semibold text-rose-900">{title}</h3>
       <p className="mt-1 max-w-sm text-sm text-rose-700/80">{message}</p>
-      {onRetry ? (
-        <Button
-          variant="outline"
-          size="sm"
-          className="mt-4 border-rose-300 text-rose-700 hover:bg-rose-100"
-          onClick={onRetry}
-        >
-          Try again
-        </Button>
-      ) : null}
     </div>
   );
 }

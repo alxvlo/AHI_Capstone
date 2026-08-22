@@ -1,4 +1,11 @@
 import type { StatusBadgeTone } from "@/components/dashboard/shared/status-badge";
+import { formatTimestamp } from "@/lib/format";
+import { pickJoined, type JoinedRecord } from "@/lib/supabase/joined";
+import { parseOptionalPositiveInt } from "@/lib/dashboard/action-redirect";
+
+export { formatTimestamp };
+export { pickJoined, type JoinedRecord };
+export { parseOptionalPositiveInt };
 
 export type SearchParamValue = string | string[] | undefined;
 export type AdminTab = "overview" | "users" | "reference" | "audit" | "catalog";
@@ -134,52 +141,6 @@ export function resolveAdminTab(params: Record<string, SearchParamValue>): Admin
   }
 
   return "overview";
-}
-
-export function parseOptionalPositiveInt(value: string) {
-  if (!value) {
-    return null;
-  }
-
-  const parsed = Number.parseInt(value, 10);
-
-  if (!Number.isInteger(parsed) || parsed <= 0) {
-    return null;
-  }
-
-  return parsed;
-}
-
-export function pickJoined<T>(value: T | T[] | null | undefined): T | null {
-  if (!value) {
-    return null;
-  }
-
-  if (Array.isArray(value)) {
-    return value[0] ?? null;
-  }
-
-  return value;
-}
-
-export function formatTimestamp(value: string | null) {
-  if (!value) {
-    return "Not available";
-  }
-
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return "Not available";
-  }
-
-  return date.toLocaleString("en-PH", {
-    year: "numeric",
-    month: "short",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
 }
 
 export function buildAdminReturnPath(

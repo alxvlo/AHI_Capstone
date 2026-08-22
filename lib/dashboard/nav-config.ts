@@ -16,7 +16,7 @@ const STAFF_SHARED: NavItem[] = [
   { label: "Dashboard", href: "/dashboard/staff", description: "Role home" },
 ];
 
-export const NAV_CONFIG: Record<string, NavItem[]> = {
+const NAV_CONFIG: Record<string, NavItem[]> = {
   "Reception/Billing": [
     ...STAFF_SHARED,
     { label: "Register Case", href: "/dashboard/staff?view=register", description: "New patient and case registration" },

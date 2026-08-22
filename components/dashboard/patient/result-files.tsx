@@ -4,22 +4,13 @@ import {
   isCaseReleased,
   type PatientResultFileRow,
 } from "@/features/dashboard/patient/shared";
+import { formatBytes } from "@/lib/format";
 
 type ResultFilesProps = {
   statusCode: string | null;
   files: PatientResultFileRow[];
   filesError?: string | null;
 };
-
-function formatBytes(bytes: number) {
-  if (bytes < 1024) {
-    return `${bytes} B`;
-  }
-  if (bytes < 1024 * 1024) {
-    return `${(bytes / 1024).toFixed(1)} KB`;
-  }
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
 
 function mimeLabel(mime: string) {
   if (mime === "application/pdf") {
