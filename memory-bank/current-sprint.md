@@ -35,9 +35,11 @@ American Hospital Inc. answers the questionnaire in
 `docs/superpowers/specs/2026-08-16-staff-workflow-revision-design.md` §5.
 
 Fourteen questions (`Q-01`–`Q-14`), each with a default that will be used if AHI does not
-object — so the spec degrades to a buildable plan rather than a dead end. A plain-language
-version for the client was prepared 2026-08-22; it goes to the capstone advisor for review
-before it goes to AHI. Record the send date here when that happens.
+object — so the spec degrades to a buildable plan rather than a dead end.
+
+A plain-language version of §5 for the client is maintained in Google Docs, outside this repo.
+It goes to the capstone advisor for review first, and to AHI only after that. Record both dates
+here when they happen — sent to advisor, and sent to AHI.
 
 Two of the fourteen block work outright rather than shaping it:
 
