@@ -6,7 +6,7 @@
 > because they are an accurate record; they are not live references. See
 > `guides/workflow-policy.md`.
 
-**Last Updated:** 2026-08-22
+**Last Updated:** 2026-08-27 (T1 deep-diff follow-up)
 **Phase:** Phase 5 - QA hardening, risk closure, and coverage stabilization
 **Current Checkpoint:** `main` at `d47e19b` — carries the agent-workflow decision record (#65) on top of the ponytail cleanup (#64) and the `.claude/rules/` split with the team verification standard (#63). Working tree clean.
 
@@ -67,11 +67,132 @@ Department → Reception → Physician → Releasing → Triage).
 
 ### Recommended Next
 
-Chosen 2026-08-22, in this order. Both are independent of anything AHI answers.
+Reordered 2026-08-26 after the post-kickoff action plan (`docs/2026-08-26-kickoff-action-plan.md`).
+Item 1 supersedes the 2026-08-22 ordering; items 2-4 are unchanged and still independent of
+anything AHI answers.
 
-1. **Stale lint directive** - `lib/supabase/client.ts:7` carries an `eslint-disable-next-line no-var` that reports nothing, left over from `3eb078f`. It is the only warning in `qa:local`. One-line delete.
-2. **Client DPA acknowledgement persistence (P1)** - `dpaAccepted` is a URL query param (`app/dashboard/client/page.tsx`) that only gates `CaseResultView` rendering. Access is RLS-scoped so this is not a data leak, but nothing records that a representative consented and it is bypassable by typing `?dpaAccepted=1`. Under RA 10173 the consent is unprovable. Needs a persisted, audited acknowledgement.
-3. **Sprint C compliance planning** - the previous recommendation, still valid. Review every database and Auth/email-adjacent item before implementation.
+1. **Sydney to Singapore rebuild (Task T1) - DATABASE DONE 2026-08-27, Vercel cutover
+   outstanding.** New project `dmmtugtwguqvveonwrfp`, region `ap-southeast-1`, Postgres 17.
+   Sydney `elpaaezwwxqwyfyefsnr` is untouched and still live - do not pause or delete it until
+   the team has used the new one.
+
+   **What was actually run, and what it proved:**
+
+   | Check | Result |
+   |---|---|
+   | 48 migrations applied from an empty DB, in order | PASS - clean `db reset --linked`, no errors |
+   | Row counts vs. the pre-migration Sydney census | PASS - 11/11 (role 8, department 10, status_code 16, package 5, package_department 21, test_catalog 58, package_test 83, 18 tables, 18 RLS-enabled, 64 policies, 48 migrations) |
+   | Schema drift, Sydney vs Singapore | PASS - all 18 tables, every column, every type matches |
+   | `npm run audit:write-policies` | PASS - 9/9 |
+   | `npm run audit:write:workflow` | PASS - built and tore down 8 cases end to end |
+   | `npm run qa:local` | PASS - 272 tests, typecheck clean, 1 pre-existing lint warning (item 2) |
+
+   The drift check compares tables and columns via the PostgREST schema. It does **not** compare
+   constraint bodies, index definitions, RLS policy expressions or function source - a real
+   `supabase db diff` would, and has not been run (see the Sydney access note below).
+
+   **Four defects found and fixed, all pre-existing:**
+
+   - **Reference data was unreachable by `db push`.** `role`, `department`, `status_code` and
+     `package` lived only in `seed.sql`, which `db push` never runs. `20260513_seed_test_catalog.sql`
+     resolves departments by code and died on a NOT NULL violation against an empty `department`.
+     Moved into migrations: `20260312000001_seed_reference_data.sql` and
+     `20260330_seed_package_department.sql`. `seed.sql` is now a pointer only.
+   - **Three pairs of migrations shared a version prefix** - `20260517`, `20260518`, `20260520`.
+     `supabase_migrations.schema_migrations.version` is a primary key, so the second of each pair
+     failed on a duplicate key. This repo's migration set had therefore never been pushed as a set.
+     Renamed the later file of each pair to `<version>000001_*`, preserving order.
+   - **Whole-table seed guards were order-dependent.** `where not exists (select 1 from t)` skipped
+     all five packages whenever `20260329` (which seeds three of them by name) landed first.
+     Rewritten as per-row guards.
+   - **`package_test` was 4 rows short.** `20260514` covers only the three baseline packages by its
+     own header; the QA Mini and Demo Lab Only mappings existed only in the dashboard. Captured as
+     `20260514000001_seed_qa_demo_package_tests.sql`.
+
+   **Correction to the 2026-08-26 entry:** it claimed `package` was never seeded by anything in the
+   repo. That was wrong - `20260329_create_package_dept_mapping.sql` seeds three of the five. The
+   two missing were QA/demo packages added through the dashboard in May.
+
+   **Baseline provenance:** `20260312000000_core_schema_baseline.sql` came from
+   `database/schema.txt` (committed 2026-03-21), reordered by foreign-key dependency. The drift
+   check above confirms it was not stale at the table/column level.
+
+   **Data:** clinic reference data and probe accounts only, per the 2026-08-26 decision. New project
+   holds 8 probe accounts, 1 probe company, 0 cases, 0 real patients. Not carried over: 18 patients,
+   21 cases, 62 visits, 34 result items, 633 audit rows. Sydney still has them.
+
+   **2026-08-27 follow-up: Sydney access resolved, deep `db diff` run, one P0 defect found.**
+
+   The team's Supabase access token was initially scoped to the Singapore project only (a
+   project-scoped PAT, not an account-wide one as first assumed). Vai re-scoped it to include
+   Sydney, which unblocked a real `supabase db diff --linked` against Sydney's live database -
+   the deeper check the table/column comparison above could not do, since that only reads the
+   PostgREST schema and cannot see constraint bodies, index definitions, RLS policy expressions,
+   or function source.
+
+   **Result: one confirmed P0 defect, one false alarm, one low-severity gap.**
+
+   - **D-003 (P0, OPEN) - `bootstrap_peme_case` is missing its role gate on Singapore.** Verified
+     by extracting and diffing the function body applied by the current migration set against the
+     one live on Sydney. `20260517_security_advisories_remediation.sql` added a role check
+     (Reception/Billing or System Administrator only) and a `search_path` pin; one day later
+     `20260518_bootstrap_rpc_authuid.sql`'s `create or replace function` - written to stop
+     audit-log actor spoofing - silently dropped both. Sydney's live function still has the May 17
+     protections, meaning someone patched it directly on the dashboard after 2026-05-18 without
+     ever capturing that as a migration. **Any authenticated user can currently call this RPC on
+     Singapore and create PEME cases**, regardless of role. Full detail and fix approach in
+     `qa-runs/defect-log.md`. Vai's call (2026-08-27): defer the fix, don't touch the database
+     again today. This is now the single highest-priority item once picked back up - higher than
+     the Vercel cutover below, since it's a live authorization gap on the project the team is
+     about to start using.
+   - **`create_patient_profile` - false alarm.** The diff flagged it as different; byte-for-byte
+     comparison after stripping comments and whitespace showed identical logic on both sides. The
+     diff tool (`migra`) was reacting to cosmetic text differences in the stored function source.
+     No action needed.
+   - **Grant scope - low severity.** Sydney grants `anon`/`authenticated` DELETE/INSERT/UPDATE on
+     `package_department`, `package_test`, `test_catalog`, `triage_assessment`, `result_file` more
+     broadly than Singapore's migrations do. Checked: all five have RLS write policies scoped to
+     specific roles (not `USING (true)`), so an anonymous write would still be rejected. Worth
+     tightening for defense-in-depth; not an active hole.
+   - The `pg_net`/`hypopg`/`index_advisor` extension lines in the diff are Supabase platform
+     defaults that differ between an older (Sydney) and newer (Singapore) project, unrelated to
+     app schema. Confirmed `pg_net` is not referenced anywhere in app code. Ignored.
+
+   **The diff file itself (`..._post_migration_check.sql`) was deleted, not committed.** `db diff`
+   produces a migration that would transform Singapore into an exact copy of Sydney - which
+   includes reverting `20260531_audit_log_immutable.sql`'s deny-policies (Sydney predates that
+   migration in its live state) alongside fixing D-003. Applying it wholesale would trade one
+   regression for another. D-003's fix, when written, will be a clean, deliberate migration that
+   keeps every existing protection and adds only the missing role gate.
+
+   **Docker Desktop's registry DNS issue from earlier today appears to have resolved itself** - a
+   `supabase/postgres` image pulled successfully (via the `public.ecr.aws` mirror) during the
+   `db diff` shadow-database step. Not independently re-tested with a full local `supabase start`
+   or `db reset`, so "every member gets their own local database" is likely but not yet confirmed
+   working end-to-end.
+
+   **`.env.local` now points at Singapore** (`NEXT_PUBLIC_SUPABASE_URL`, both keys). The prior
+   Sydney values are preserved at `.env.sydney.local` (gitignored, not committed) so the team can
+   switch back locally without regenerating anything, for the two-week fallback window.
+
+   **Still outstanding:**
+
+   - **D-003** - see above. Highest priority once picked back up.
+   - **Vercel cutover** - environment variables still point at Sydney, and the function region needs
+     setting to `sin1` (Settings - Functions - Function Regions). Until this is done the deployed app
+     still reads Sydney.
+   - **`npm run probe:deptstaff:noclaim:bootstrap` is broken** - it references
+     `scripts/supabase/bootstrap-deptstaff-missing-claim-probe.sql`, which is not in the repo. Only
+     8 of the 9 probe accounts exist. Pre-existing, unrelated to the migration.
+   - **`scripts/supabase/seed-reference-data.mjs` duplicates reference-data logic** that now also
+     lives in `20260312000001_seed_reference_data.sql`. Both are guarded and harmless today, but it's
+     a second place these rows can drift apart. Noted in `seed.sql`'s own header; not fixed, since
+     that's a code change beyond this task's scope.
+   - Realtime `router.refresh()` / `REPLICA IDENTITY FULL` replayed unchanged. Still T2.
+
+2. **Stale lint directive** - `lib/supabase/client.ts:7` carries an `eslint-disable-next-line no-var` that reports nothing, left over from `3eb078f`. It is the only warning in `qa:local`. One-line delete.
+3. **Client DPA acknowledgement persistence (P1)** - `dpaAccepted` is a URL query param (`app/dashboard/client/page.tsx`) that only gates `CaseResultView` rendering. Access is RLS-scoped so this is not a data leak, but nothing records that a representative consented and it is bypassable by typing `?dpaAccepted=1`. Under RA 10173 the consent is unprovable. Needs a persisted, audited acknowledgement.
+4. **Sprint C compliance planning** - the previous recommendation, still valid. Review every database and Auth/email-adjacent item before implementation.
 
 ### Deferred / Pending
 
