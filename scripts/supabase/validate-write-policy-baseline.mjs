@@ -100,6 +100,7 @@ async function runWritePolicyValidation() {
   const patientClient = patientAuth.client;
   const receptionClient = receptionAuth.client;
   const patientUserId = patientAuth.signInResult.data.user.id;
+  const receptionUserId = receptionAuth.signInResult.data.user.id;
 
   const adminInsertCompany = await adminClient
     .from("company")
@@ -218,6 +219,171 @@ async function runWritePolicyValidation() {
     pass: !patientInsertAuditLogOwn.error,
     error: toErrorObject(patientInsertAuditLogOwn.error),
   };
+
+  // D-003 regression: bootstrap_peme_case must reject non-privileged callers
+  // with the exact role-gate error — not merely "any error", since a call
+  // missing p_packageid also errors (NOT NULL on peme_case.packageid) for a
+  // reason that has nothing to do with the role gate — and must never let a
+  // caller spoof the audit-log actor via p_created_by.
+  const probePatientLookup = await adminClient
+    .from("patient")
+    .select("patientid")
+    .eq("governmentid", "PROBE-PATIENT-20260320")
+    .single();
+
+  result.checks.d003ProbePatientLookup = {
+    pass: !probePatientLookup.error && Boolean(probePatientLookup.data?.patientid),
+    error: toErrorObject(probePatientLookup.error),
+  };
+
+  const probePackageLookup = await adminClient
+    .from("package")
+    .select("packageid")
+    .eq("packagename", "Basic PEME (Local)")
+    .single();
+
+  result.checks.d003ProbePackageLookup = {
+    pass: !probePackageLookup.error && Boolean(probePackageLookup.data?.packageid),
+    error: toErrorObject(probePackageLookup.error),
+  };
+
+  const probePatientId = probePatientLookup.data?.patientid ?? null;
+  const probePackageId = probePackageLookup.data?.packageid ?? null;
+
+  if (probePatientId && probePackageId) {
+    const patientBootstrapAttempt = await patientClient.rpc("bootstrap_peme_case", {
+      p_patientid: probePatientId,
+      p_packageid: probePackageId,
+    });
+
+    result.checks.d003BootstrapDeniedForPatient = {
+      pass:
+        patientBootstrapAttempt.error?.code === "42501" &&
+        patientBootstrapAttempt.error?.message ===
+          "Insufficient privileges to create PEME cases.",
+      error: toErrorObject(patientBootstrapAttempt.error),
+    };
+
+    // Before the fix, D-003 means this call succeeds — clean up the real
+    // case it creates on Singapore regardless of pass/fail, so a red run
+    // doesn't leave orphaned probe data behind.
+    const patientCaseId = patientBootstrapAttempt.data?.caseid ?? null;
+
+    if (patientCaseId) {
+      await adminClient.from("department_visit").delete().eq("caseid", patientCaseId);
+      await adminClient.from("peme_case").delete().eq("caseid", patientCaseId);
+    }
+
+    const receptionBootstrapAttempt = await receptionClient.rpc("bootstrap_peme_case", {
+      p_patientid: probePatientId,
+      p_packageid: probePackageId,
+      p_created_by: patientUserId, // attempted spoof; must be ignored
+    });
+
+    const receptionBootstrapSucceeded =
+      !receptionBootstrapAttempt.error && Boolean(receptionBootstrapAttempt.data?.caseid);
+
+    result.checks.d003BootstrapSucceedsForReception = {
+      pass: receptionBootstrapSucceeded,
+      error: toErrorObject(receptionBootstrapAttempt.error),
+      data: receptionBootstrapAttempt.data ?? null,
+    };
+
+    const receptionCaseId = receptionBootstrapAttempt.data?.caseid ?? null;
+
+    if (receptionCaseId) {
+      const auditRowCheck = await adminClient
+        .from("audit_log")
+        .select("userid")
+        .eq("entityname", "peme_case")
+        .eq("entityid", receptionCaseId)
+        .eq("actiontype", "PEME_CASE_CREATED")
+        .order("timestamp", { ascending: false })
+        .limit(1)
+        .single();
+
+      result.checks.d003AuditActorNotSpoofed = {
+        pass: !auditRowCheck.error && auditRowCheck.data?.userid === receptionUserId,
+        error: toErrorObject(auditRowCheck.error),
+        data: auditRowCheck.data ?? null,
+      };
+
+      // Basic PEME (Local) has active package_department mappings, so the
+      // successful call also created department_visit rows. Those must be
+      // deleted before the case — no ON DELETE CASCADE on that foreign key.
+      const cleanupReceptionVisits = await adminClient
+        .from("department_visit")
+        .delete()
+        .eq("caseid", receptionCaseId);
+
+      const cleanupReceptionCase = await adminClient
+        .from("peme_case")
+        .delete()
+        .eq("caseid", receptionCaseId);
+
+      result.checks.d003CleanupProbeCase = {
+        pass: !cleanupReceptionVisits.error && !cleanupReceptionCase.error,
+        error:
+          toErrorObject(cleanupReceptionVisits.error) ??
+          toErrorObject(cleanupReceptionCase.error),
+      };
+    } else {
+      result.checks.d003AuditActorNotSpoofed = {
+        pass: false,
+        error: {
+          code: "precondition_failed",
+          message: "reception bootstrap call did not return a caseid",
+        },
+      };
+    }
+
+    // Acceptance criterion 3: System Administrator must also still succeed.
+    const adminBootstrapAttempt = await adminClient.rpc("bootstrap_peme_case", {
+      p_patientid: probePatientId,
+      p_packageid: probePackageId,
+    });
+
+    const adminBootstrapSucceeded =
+      !adminBootstrapAttempt.error && Boolean(adminBootstrapAttempt.data?.caseid);
+
+    result.checks.d003BootstrapSucceedsForAdmin = {
+      pass: adminBootstrapSucceeded,
+      error: toErrorObject(adminBootstrapAttempt.error),
+      data: adminBootstrapAttempt.data ?? null,
+    };
+
+    const adminCaseId = adminBootstrapAttempt.data?.caseid ?? null;
+
+    if (adminCaseId) {
+      const cleanupAdminVisits = await adminClient
+        .from("department_visit")
+        .delete()
+        .eq("caseid", adminCaseId);
+
+      const cleanupAdminCase = await adminClient
+        .from("peme_case")
+        .delete()
+        .eq("caseid", adminCaseId);
+
+      result.checks.d003CleanupAdminProbeCase = {
+        pass: !cleanupAdminVisits.error && !cleanupAdminCase.error,
+        error: toErrorObject(cleanupAdminVisits.error) ?? toErrorObject(cleanupAdminCase.error),
+      };
+    }
+  } else {
+    result.checks.d003BootstrapDeniedForPatient = {
+      pass: false,
+      error: { code: "precondition_failed", message: "probe patient or package lookup failed" },
+    };
+    result.checks.d003BootstrapSucceedsForReception = {
+      pass: false,
+      error: { code: "precondition_failed", message: "probe patient or package lookup failed" },
+    };
+    result.checks.d003BootstrapSucceedsForAdmin = {
+      pass: false,
+      error: { code: "precondition_failed", message: "probe patient or package lookup failed" },
+    };
+  }
 
   result.passCount = Object.values(result.checks).filter((check) => check.pass).length;
   result.failCount = Object.values(result.checks).filter((check) => !check.pass).length;
