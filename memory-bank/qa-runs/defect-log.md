@@ -84,3 +84,4 @@ risk here.
 |---|---|---|
 | D-001 | `computeCaseCompletionBatch` unit tests confirm correct status-ID filtering (wrong status ID → 0% completion, correct ID → expected %) | `tests/lib/case-progress.test.ts` lines covering `wrongStatusId` test case |
 | D-001 | Integration test step 3 confirms `FOR_DECISION` auto-transition after all visits complete (would stay stuck if visit status lookup was broken) | `tests/integration/case-lifecycle.test.ts` step 3 |
+| D-003 | `d003BootstrapDeniedForPatient` asserts SQLSTATE 42501 + exact message for a Patient-role caller; `d003AuditActorNotSpoofed` asserts audit actor is the caller, not `p_created_by`; `d003BootstrapSucceedsForReception`/`ForAdmin` are the regression guards | `scripts/supabase/validate-write-policy-baseline.mjs` (`d003*` checks, run via `npm run audit:write-policies`) |

@@ -132,19 +132,19 @@ anything AHI answers.
 
    **Result: one confirmed P0 defect, one false alarm, one low-severity gap.**
 
-   - **D-003 (P0, OPEN) - `bootstrap_peme_case` is missing its role gate on Singapore.** Verified
-     by extracting and diffing the function body applied by the current migration set against the
-     one live on Sydney. `20260517_security_advisories_remediation.sql` added a role check
-     (Reception/Billing or System Administrator only) and a `search_path` pin; one day later
-     `20260518_bootstrap_rpc_authuid.sql`'s `create or replace function` - written to stop
-     audit-log actor spoofing - silently dropped both. Sydney's live function still has the May 17
-     protections, meaning someone patched it directly on the dashboard after 2026-05-18 without
-     ever capturing that as a migration. **Any authenticated user can currently call this RPC on
-     Singapore and create PEME cases**, regardless of role. Full detail and fix approach in
-     `qa-runs/defect-log.md`. Vai's call (2026-08-27): defer the fix, don't touch the database
-     again today. This is now the single highest-priority item once picked back up - higher than
-     the Vercel cutover below, since it's a live authorization gap on the project the team is
-     about to start using.
+   - **D-003 (P0, FIXED 2026-08-28 — see "Still outstanding" below) - `bootstrap_peme_case` was
+     missing its role gate on Singapore.** Verified by extracting and diffing the function body
+     applied by the current migration set against the one live on Sydney. `20260517_security_
+     advisories_remediation.sql` added a role check (Reception/Billing or System Administrator
+     only) and a `search_path` pin; one day later `20260518_bootstrap_rpc_authuid.sql`'s `create
+     or replace function` - written to stop audit-log actor spoofing - silently dropped both.
+     Sydney's live function still has the May 17 protections, meaning someone patched it directly
+     on the dashboard after 2026-05-18 without ever capturing that as a migration. **Any
+     authenticated user could call this RPC on Singapore and create PEME cases**, regardless of
+     role, until the fix below. Full detail and fix approach in `qa-runs/defect-log.md`. Vai's
+     call (2026-08-27): defer the fix, don't touch the database again that day. This was the
+     single highest-priority item once picked back up - higher than the Vercel cutover below,
+     since it was a live authorization gap on the project the team was about to start using.
    - **`create_patient_profile` - false alarm.** The diff flagged it as different; byte-for-byte
      comparison after stripping comments and whitespace showed identical logic on both sides. The
      diff tool (`migra`) was reacting to cosmetic text differences in the stored function source.
