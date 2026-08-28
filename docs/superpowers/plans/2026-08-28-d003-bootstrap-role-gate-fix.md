@@ -13,7 +13,7 @@
 ## Global Constraints
 
 - Production Supabase projects are out of scope. This plan touches **only** the Singapore project (`dmmtugtwguqvveonwrfp`) — a seeded dev/staging project. Sydney (`elpaaezwwxqwyfyefsnr`) must not be touched. (`.claude/rules/supabase-access.md`)
-- No destructive operation without explaining blast radius first. The only delete in this plan is a single probe-created `peme_case` row, removed by the admin probe client in the same task that creates it. (`.claude/rules/supabase-access.md`)
+- No destructive operation without explaining blast radius first. Every delete in this plan targets only probe-created rows (a `peme_case` row and its `department_visit` rows, identified by the `caseid` the same check just created), removed by the admin probe client in the same task that creates them. (`.claude/rules/supabase-access.md`)
 - Never trigger Supabase Auth email flows (signup, confirm, reset, invite, magic link). This plan uses only existing, already-confirmed probe accounts signing in with password. (`.claude/rules/supabase-access.md`)
 - Migrations are append-only history — never edit a previously applied migration file; add a new one. (Established repo convention, confirmed via `memory-bank/current-sprint.md`'s account of the May 17/18 migration pair.)
 - A defect fix isn't done until a test reproduces the reported symptom, is seen failing, and the fix turns it green, named after the defect ID. (`.claude/rules/verification.md`)
@@ -61,8 +61,10 @@ This task has no commit — it produces no file changes, only a confirmed precon
 - Modify: `scripts/supabase/validate-write-policy-baseline.mjs`
 
 **Interfaces:**
-- Consumes: `adminClient`, `patientClient`, `receptionClient` (existing signed-in Supabase clients), `patientUserId` (existing, line 102), `now` (existing timestamp), `result.checks` (existing object this script accumulates checks into).
-- Produces: nothing consumed by later tasks in code — Task 3 only needs this check to exist and to currently report `pass: false`.
+- Consumes: `adminClient`, `patientClient`, `receptionClient` (existing signed-in Supabase clients), `patientUserId` (existing, line 102), `result.checks` (existing object this script accumulates checks into).
+- Produces: nothing consumed by later tasks in code — Task 3 only needs this check to exist and to currently report `d003BootstrapDeniedForPatient.pass: false` with a non-`42501` reason (see Step 3).
+
+> **Revision (2026-08-28, before any commit landed):** the first version of this task's check called `bootstrap_peme_case` without `p_packageid`, assuming the RPC's own `default null` made that safe. It doesn't — `peme_case.packageid` is `bigint not null` at the table level (`supabase/migrations/20260312000000_core_schema_baseline.sql:122`), so the call fails with a `23502` NOT NULL violation regardless of role. The original check also asserted only `Boolean(error)` for the denial case, so it silently passed for the wrong reason instead of catching this. Both are fixed below: a real seeded package is looked up and passed, and the denial check asserts the exact `42501` / message pair from the acceptance criteria instead of "any error".
 
 - [ ] **Step 1: Add a `receptionUserId` constant next to the existing `patientUserId` one**
 
@@ -97,7 +99,10 @@ Find the existing block that ends with `patientInsertAuditLogOwn` (currently lin
 Immediately after that block (and before the existing `result.passCount = ...` line), insert:
 ```js
   // D-003 regression: bootstrap_peme_case must reject non-privileged callers
-  // and must never let a caller spoof the audit-log actor via p_created_by.
+  // with the exact role-gate error — not merely "any error", since a call
+  // missing p_packageid also errors (NOT NULL on peme_case.packageid) for a
+  // reason that has nothing to do with the role gate — and must never let a
+  // caller spoof the audit-log actor via p_created_by.
   const probePatientLookup = await adminClient
     .from("patient")
     .select("patientid")
@@ -109,20 +114,47 @@ Immediately after that block (and before the existing `result.passCount = ...` l
     error: toErrorObject(probePatientLookup.error),
   };
 
-  const probePatientId = probePatientLookup.data?.patientid ?? null;
+  const probePackageLookup = await adminClient
+    .from("package")
+    .select("packageid")
+    .eq("packagename", "Basic PEME (Local)")
+    .single();
 
-  if (probePatientId) {
+  result.checks.d003ProbePackageLookup = {
+    pass: !probePackageLookup.error && Boolean(probePackageLookup.data?.packageid),
+    error: toErrorObject(probePackageLookup.error),
+  };
+
+  const probePatientId = probePatientLookup.data?.patientid ?? null;
+  const probePackageId = probePackageLookup.data?.packageid ?? null;
+
+  if (probePatientId && probePackageId) {
     const patientBootstrapAttempt = await patientClient.rpc("bootstrap_peme_case", {
       p_patientid: probePatientId,
+      p_packageid: probePackageId,
     });
 
     result.checks.d003BootstrapDeniedForPatient = {
-      pass: Boolean(patientBootstrapAttempt.error),
+      pass:
+        patientBootstrapAttempt.error?.code === "42501" &&
+        patientBootstrapAttempt.error?.message ===
+          "Insufficient privileges to create PEME cases.",
       error: toErrorObject(patientBootstrapAttempt.error),
     };
 
+    // Before the fix, D-003 means this call succeeds — clean up the real
+    // case it creates on Singapore regardless of pass/fail, so a red run
+    // doesn't leave orphaned probe data behind.
+    const patientCaseId = patientBootstrapAttempt.data?.caseid ?? null;
+
+    if (patientCaseId) {
+      await adminClient.from("department_visit").delete().eq("caseid", patientCaseId);
+      await adminClient.from("peme_case").delete().eq("caseid", patientCaseId);
+    }
+
     const receptionBootstrapAttempt = await receptionClient.rpc("bootstrap_peme_case", {
       p_patientid: probePatientId,
+      p_packageid: probePackageId,
       p_created_by: patientUserId, // attempted spoof; must be ignored
     });
 
@@ -135,14 +167,14 @@ Immediately after that block (and before the existing `result.passCount = ...` l
       data: receptionBootstrapAttempt.data ?? null,
     };
 
-    const probeCaseId = receptionBootstrapAttempt.data?.caseid ?? null;
+    const receptionCaseId = receptionBootstrapAttempt.data?.caseid ?? null;
 
-    if (probeCaseId) {
+    if (receptionCaseId) {
       const auditRowCheck = await adminClient
         .from("audit_log")
         .select("userid")
         .eq("entityname", "peme_case")
-        .eq("entityid", probeCaseId)
+        .eq("entityid", receptionCaseId)
         .eq("actiontype", "PEME_CASE_CREATED")
         .order("timestamp", { ascending: false })
         .limit(1)
@@ -154,14 +186,24 @@ Immediately after that block (and before the existing `result.passCount = ...` l
         data: auditRowCheck.data ?? null,
       };
 
-      const cleanupCase = await adminClient
+      // Basic PEME (Local) has active package_department mappings, so the
+      // successful call also created department_visit rows. Those must be
+      // deleted before the case — no ON DELETE CASCADE on that foreign key.
+      const cleanupReceptionVisits = await adminClient
+        .from("department_visit")
+        .delete()
+        .eq("caseid", receptionCaseId);
+
+      const cleanupReceptionCase = await adminClient
         .from("peme_case")
         .delete()
-        .eq("caseid", probeCaseId);
+        .eq("caseid", receptionCaseId);
 
       result.checks.d003CleanupProbeCase = {
-        pass: !cleanupCase.error,
-        error: toErrorObject(cleanupCase.error),
+        pass: !cleanupReceptionVisits.error && !cleanupReceptionCase.error,
+        error:
+          toErrorObject(cleanupReceptionVisits.error) ??
+          toErrorObject(cleanupReceptionCase.error),
       };
     } else {
       result.checks.d003AuditActorNotSpoofed = {
@@ -176,6 +218,7 @@ Immediately after that block (and before the existing `result.passCount = ...` l
     // Acceptance criterion 3: System Administrator must also still succeed.
     const adminBootstrapAttempt = await adminClient.rpc("bootstrap_peme_case", {
       p_patientid: probePatientId,
+      p_packageid: probePackageId,
     });
 
     const adminBootstrapSucceeded =
@@ -187,31 +230,36 @@ Immediately after that block (and before the existing `result.passCount = ...` l
       data: adminBootstrapAttempt.data ?? null,
     };
 
-    const adminProbeCaseId = adminBootstrapAttempt.data?.caseid ?? null;
+    const adminCaseId = adminBootstrapAttempt.data?.caseid ?? null;
 
-    if (adminProbeCaseId) {
+    if (adminCaseId) {
+      const cleanupAdminVisits = await adminClient
+        .from("department_visit")
+        .delete()
+        .eq("caseid", adminCaseId);
+
       const cleanupAdminCase = await adminClient
         .from("peme_case")
         .delete()
-        .eq("caseid", adminProbeCaseId);
+        .eq("caseid", adminCaseId);
 
       result.checks.d003CleanupAdminProbeCase = {
-        pass: !cleanupAdminCase.error,
-        error: toErrorObject(cleanupAdminCase.error),
+        pass: !cleanupAdminVisits.error && !cleanupAdminCase.error,
+        error: toErrorObject(cleanupAdminVisits.error) ?? toErrorObject(cleanupAdminCase.error),
       };
     }
   } else {
     result.checks.d003BootstrapDeniedForPatient = {
       pass: false,
-      error: { code: "precondition_failed", message: "probe patient lookup failed" },
+      error: { code: "precondition_failed", message: "probe patient or package lookup failed" },
     };
     result.checks.d003BootstrapSucceedsForReception = {
       pass: false,
-      error: { code: "precondition_failed", message: "probe patient lookup failed" },
+      error: { code: "precondition_failed", message: "probe patient or package lookup failed" },
     };
     result.checks.d003BootstrapSucceedsForAdmin = {
       pass: false,
-      error: { code: "precondition_failed", message: "probe patient lookup failed" },
+      error: { code: "precondition_failed", message: "probe patient or package lookup failed" },
     };
   }
 ```
@@ -222,9 +270,9 @@ Run:
 ```bash
 npm run audit:write-policies
 ```
-Expected (today, before the fix): the JSON output's `checks.d003BootstrapDeniedForPatient` shows `"pass": false` with `"error": null` — meaning the patient probe's call **succeeded** when it should have been rejected. This is the exact symptom D-003 describes. The command overall exits non-zero.
+Expected (today, before the fix): the JSON output's `checks.d003BootstrapDeniedForPatient` shows `"pass": false` with `"error": null` — meaning the patient probe's call **succeeded** and returned a `caseid` when it should have been rejected with a `42501`. This is the exact symptom D-003 describes. The command overall exits non-zero.
 
-If instead `d003ProbePatientLookup` or `signInPatient`/`signInReception` fails, stop — that is a setup problem (probe accounts or data), not proof of D-003, and must be resolved before continuing.
+If instead `d003ProbePatientLookup`, `d003ProbePackageLookup`, or `signInPatient`/`signInReception` fails, stop — that is a setup problem (probe accounts, seeded package, or seeded patient data), not proof of D-003, and must be resolved before continuing. Likewise, if the error is present but its `code` is `23502` (NOT NULL violation) rather than absent entirely, stop — that means the package lookup or the RPC call is malformed, not that the role gate is working.
 
 Do not commit yet. This intentional red state carries into Task 3, where the fix and the passing result land together.
 
