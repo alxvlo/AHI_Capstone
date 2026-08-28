@@ -31,6 +31,43 @@
   anti-spoofing fix) but has not been written or applied — timing is Vai's call, made 2026-08-27.
   Not present as a live risk on Sydney, which still carries the original (undocumented) dashboard patch.
 
+### D-003 Acceptance Criteria (written 2026-08-28, before the fix migration)
+
+Scope: Singapore (`dmmtugtwguqvveonwrfp`) only. Sydney is not touched by this fix — its role gate
+exists live via an undocumented dashboard patch and is tracked separately.
+
+Must be true after the fix:
+
+1. A caller whose `user_account` role is **not** `Reception/Billing` or `System Administrator` gets
+   an error from `bootstrap_peme_case` — no `peme_case` row, no `department_visit` rows, no
+   `audit_log` row are created. Expected error: SQLSTATE `42501`, message `Insufficient privileges
+   to create PEME cases.` (the exact exception the May 17 migration raised — `20260517_security_advisories_remediation.sql:76-78`).
+2. A caller with role `Reception/Billing` can still call it successfully and a case is created.
+   Regression guard — the fix must not accidentally block the legitimate caller.
+3. A caller with role `System Administrator` can still call it successfully and a case is created.
+4. On a successful call, `audit_log.userid` equals the caller's own `auth.uid()` — **even when a
+   different UUID is passed as `p_created_by`.** This is the May 18 anti-spoofing protection
+   (`20260518_bootstrap_rpc_authuid.sql:34-39`) and must not regress while the role gate is restored.
+5. The function's `search_path` is pinned to `public, auth` (checkable via `pg_proc.proconfig`),
+   closing the same class of vulnerability the May 17 migration addressed for this function.
+6. Existing passing checks continue to pass unmodified: `npm run audit:write:workflow`'s end-to-end
+   case-creation flow, and `npm run audit:write-policies`.
+
+Must NOT happen:
+
+- An anonymous (unauthenticated) call must still fail — this was already true before and after the
+  bug and is not the target of this fix, but the fix must not loosen it.
+- The fix must not reintroduce trust in caller-supplied `p_created_by` (criterion 4 is the direct
+  check for this).
+- Sydney's `supabase_migrations` history must not receive this migration.
+
+Boundary case: role names are matched as exact strings against `role.rolename` via
+`rls_user_has_role(text[])` — a role with different casing or a typo would silently fail closed
+(caller rejected) rather than fail open. Checked: `Reception/Billing` and `System Administrator`
+are the exact strings used consistently elsewhere in the schema (e.g.
+`20260326_role_scoped_rls_write_baseline.sql`), matching what the May 17 migration used — no typo
+risk here.
+
 ---
 
 ## Deferred / Won't Fix
