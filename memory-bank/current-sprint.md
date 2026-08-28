@@ -177,7 +177,8 @@ anything AHI answers.
 
    **Still outstanding:**
 
-   - **D-003** - see above. Highest priority once picked back up.
+   - **D-003 - FIXED 2026-08-28.** See `memory-bank/qa-runs/defect-log.md` for the migration filename
+     and verification evidence.
    - **Vercel cutover** - environment variables still point at Sydney, and the function region needs
      setting to `sin1` (Settings - Functions - Function Regions). Until this is done the deployed app
      still reads Sydney.
