@@ -24,6 +24,7 @@
     "qa:supabase": "npm run audit:roles:all && npm run audit:write:all && npm run audit:auth:logs && npm run audit:auth:e2e",
     "seed:reference": "node --env-file=.env.local scripts/supabase/seed-reference-data.mjs",
     "demo:teardown": "node --env-file=.env.local scripts/supabase/teardown-demo-data.mjs",
+    "demo:seed": "node --env-file=.env.local scripts/supabase/seed-demo-data.mjs",
     "probe:bootstrap": "node --env-file=.env.local scripts/supabase/bootstrap-role-probe-users.mjs",
     "probe:deptstaff:noclaim:bootstrap": "npx supabase db query --linked --file scripts/supabase/bootstrap-deptstaff-missing-claim-probe.sql",
     "audit:roles:redirect": "node scripts/supabase/run-role-redirect-audit-local.mjs scripts/supabase/audit-role-dashboard-redirects.mjs",
