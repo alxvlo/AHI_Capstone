@@ -10,8 +10,12 @@
 --
 -- Widening a varchar length limit is a catalog-only change in PostgreSQL: no table
 -- rewrite, no index rebuild, no data modified. Verified before applying that no
--- view, rule, trigger, index, function or RLS policy depends on this column --
--- see memory-bank/qa-runs/2026-08-31-d004-dependency-preflight.md.
+-- view, rule, trigger, index or function depends on this column -- see
+-- memory-bank/qa-runs/2026-08-31-d004-dependency-preflight.md. RLS policies were
+-- NOT explicitly queried (no pg_policy check was run). Postgres itself refuses an
+-- ALTER COLUMN ... TYPE if a view or a policy expression depends on the column, and
+-- this ALTER succeeded -- so the absence of failure is weak supporting evidence, but
+-- it is not the same as having queried pg_policy directly.
 
 begin;
 

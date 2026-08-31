@@ -2,6 +2,14 @@
 
 **Date:** 2026-08-31
 **Project:** Singapore (`dmmtugtwguqvveonwrfp`). Sydney not queried.
+
+This file is the full D-004 live-database evidence record across three phases: the dependency
+pre-flight (read-only, this section), reproduction of the defect (live writes + cleanup, see
+below), and post-fix confirmation (live writes + cleanup, see below). Only the pre-flight section
+immediately below is read-only.
+
+## Dependency pre-flight (read-only)
+
 **Type:** read-only. Three `select` statements, no DDL, no DML.
 
 | Query | Result |
@@ -12,6 +20,42 @@
 | `information_schema` reported width | 20 |
 
 **Verdict:** GO — safe to widen
+
+### Queries actually run
+
+```sql
+-- Query 1: views/rules/triggers depending on the column
+select v.viewname, v.definition
+from pg_views v
+where v.definition ilike '%fitnessstatus%';
+-- (plus the equivalent checks against pg_rules and information_schema.triggers)
+
+-- Query 2: indexes including the column
+select indexname, indexdef
+from pg_indexes
+where tablename = 'peme_decision'
+  and indexdef ilike '%fitnessstatus%';
+
+-- Query 3: functions whose source mentions the column
+-- (spec originally specified a pg_get_functiondef(...)-based query; that hit a
+-- Supabase CLI bug, so this simpler equivalent-or-broader query was run instead —
+-- independently verified as equivalent-or-broader coverage by the controller and a
+-- task reviewer earlier in this branch's history)
+select proname, prosrc
+from pg_proc
+where prosrc ilike '%fitnessstatus%';
+
+-- Width check: current column width before widening
+select character_maximum_length
+from information_schema.columns
+where table_schema = 'public'
+  and table_name = 'peme_decision'
+  and column_name = 'fitnessstatus';
+```
+
+Note: no `pg_policy` (RLS policy) query was run in this pre-flight. See the migration file's
+comment in `supabase/migrations/20260831_widen_peme_decision_fitnessstatus.sql` for what that
+means for the safety claim.
 
 ## D-004 reproduced before the fix (2026-08-31)
 
