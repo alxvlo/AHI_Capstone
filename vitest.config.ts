@@ -23,6 +23,7 @@ export default defineConfig({
       "**/node_modules/**",
       "tests/e2e/**",
       "tests/integration/**",
+      ".claude/worktrees/**",
     ],
     reporters: process.env.CI ? ["default"] : ["dot"],
     environmentOptions: {
