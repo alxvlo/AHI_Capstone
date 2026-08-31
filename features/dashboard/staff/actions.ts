@@ -15,6 +15,7 @@ import {
   TRIAGE_ROLE,
 } from "@/lib/supabase/roles";
 import { normalizePhilippineMobileForStorage } from "@/lib/phone";
+import { isFitnessDecisionCode } from "@/lib/dashboard/fitness-decision";
 import {
   GOVERNMENT_ID_TYPES,
   buildGovernmentIdForStorage,
@@ -77,12 +78,6 @@ function parseDepartmentClaim(rawClaim: unknown) {
 
   return null;
 }
-
-const FITNESS_DECISION_CODES = new Set([
-  "FIT",
-  "UNFIT",
-  "FIT_WITH_RESTRICTIONS",
-]);
 
 const RECEPTION_ALLOWED_CASE_CANCEL_CODES = new Set([
   "REGISTERED",
@@ -1544,7 +1539,7 @@ export async function submitPhysicianDecisionAction(formData: FormData) {
     redirectWithError(returnPath, "Invalid case selected for physician decision.");
   }
 
-  if (!FITNESS_DECISION_CODES.has(fitnessStatus)) {
+  if (!isFitnessDecisionCode(fitnessStatus)) {
     redirectWithError(returnPath, "Please select a valid fitness decision.");
   }
 
