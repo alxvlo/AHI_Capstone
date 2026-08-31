@@ -8,7 +8,7 @@
 
 **Last Updated:** 2026-08-31 (D-004 fix + Phase 3 branch consolidation)
 **Phase:** Phase 5 - QA hardening, risk closure, and coverage stabilization
-**Current Checkpoint:** `main` at `042648c` — carries the Phase 3 groundwork merge and the D-004 fitness status column width fix. Working tree clean.
+**Current Checkpoint:** `main` at `3ac6fca` — carries the Phase 3 groundwork merge and the D-004 fitness status column width fix. Working tree clean.
 
 ---
 
