@@ -80,3 +80,17 @@ migration through `20260828` already applied remotely). `information_schema.colu
   now against `character varying(30)` (the limit moved, it did not disappear).
 - `d004CleanupDecisionProbeCase` — passes; no probe rows left behind.
 - All `d003*` checks still pass — the D-003 role gate and `auth.uid()` anti-spoofing did not regress.
+
+## Demo dataset seeded successfully on Singapore (2026-08-31)
+
+Singapore already held a complete but stale demo dataset from an earlier run — 14 `DEMO-` cases,
+with `DEMO-0012` recording the pre-fix `UNFIT` workaround instead of the intended
+`FIT_WITH_RESTRICTIONS`. Torn down and reseeded fresh, after explicit approval:
+
+- `npm run demo:teardown` — 14 cases, 22 visits, 4 decisions, 14 patients deleted, 0 errors. All
+  matched by exact `DEMO-%` / `DEMO-ID-%` prefix; verified 0 `DEMO-%` cases remained before reseeding.
+- `npm run demo:seed` — 14 patients, 14 cases, 22 visits, 4 decisions inserted, no errors, no crash.
+  This is itself a live confirmation D-004 is fully resolved — the same seeder previously crashed
+  on `DEMO-0012`'s decision insert before the column was widened.
+- Verified: `DEMO-0012` now holds `fitnessstatus = 'FIT_WITH_RESTRICTIONS'`, matching
+  `scripts/supabase/demo-data/dataset.mjs` on this branch (post-D-004 revert).
