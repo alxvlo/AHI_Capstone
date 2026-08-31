@@ -26,6 +26,9 @@ jobs:
       - name: Run QA baseline
         run: npm run qa:ci
 
+      - name: Verify production build
+        run: npm run build
+
       - name: Upload coverage report
         if: always()
         uses: actions/upload-artifact@v4
