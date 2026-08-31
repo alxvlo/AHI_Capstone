@@ -22,6 +22,7 @@ import {
   resolveParam,
 } from "@/features/dashboard/staff/shared";
 import { computeCaseCompletionBatch } from "@/lib/dashboard/case-progress";
+import { FITNESS_DECISION_CODES } from "@/lib/dashboard/fitness-decision";
 
 type PhysicianModuleProps = {
   returnPath: string;
@@ -455,11 +456,11 @@ export async function PhysicianModule({
                       <option value="" disabled>
                         Select a decision
                       </option>
-                      <option value="FIT">FIT</option>
-                      <option value="UNFIT">UNFIT</option>
-                      <option value="FIT_WITH_RESTRICTIONS">
-                        FIT_WITH_RESTRICTIONS
-                      </option>
+                      {FITNESS_DECISION_CODES.map((code) => (
+                        <option key={code} value={code}>
+                          {code}
+                        </option>
+                      ))}
                     </select>
                   </div>
 

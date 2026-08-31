@@ -370,6 +370,113 @@ async function runWritePolicyValidation() {
         error: toErrorObject(cleanupAdminVisits.error) ?? toErrorObject(cleanupAdminCase.error),
       };
     }
+
+    // ---------------------------------------------------------------------
+    // D-004 — peme_decision.fitnessstatus must hold every code the physician
+    // decision form offers. FIT_WITH_RESTRICTIONS is 22 characters; before the
+    // fix the column was varchar(20) and this insert failed with SQLSTATE 22001
+    // "value too long for type character varying(20)".
+    // ---------------------------------------------------------------------
+    const d004Case = await receptionClient.rpc("bootstrap_peme_case", {
+      p_patientid: probePatientId,
+      p_packageid: probePackageId,
+    });
+
+    const d004CaseId = d004Case.data?.caseid ?? null;
+
+    if (d004CaseId) {
+      const adminUserId = adminAuth.signInResult.data.user?.id ?? null;
+
+      const longCodeInsert = await adminClient
+        .from("peme_decision")
+        .insert({
+          caseid: d004CaseId,
+          physicianuserid: adminUserId,
+          fitnessstatus: "FIT_WITH_RESTRICTIONS",
+          remarks: "D-004 probe — documented restrictions apply.",
+        })
+        .select("decisionid, fitnessstatus")
+        .maybeSingle();
+
+      // Must round-trip untruncated: 22 characters in, 22 characters out.
+      result.checks.d004DecisionAcceptsFitWithRestrictions = {
+        pass:
+          !longCodeInsert.error &&
+          longCodeInsert.data?.fitnessstatus === "FIT_WITH_RESTRICTIONS",
+        error: toErrorObject(longCodeInsert.error),
+        data: longCodeInsert.data ?? null,
+      };
+
+      // Regression guard: the short codes must still work after the widening.
+      await adminClient.from("peme_decision").delete().eq("caseid", d004CaseId);
+
+      const shortCodeInsert = await adminClient
+        .from("peme_decision")
+        .insert({
+          caseid: d004CaseId,
+          physicianuserid: adminUserId,
+          fitnessstatus: "FIT",
+          remarks: null,
+        })
+        .select("decisionid, fitnessstatus")
+        .maybeSingle();
+
+      result.checks.d004DecisionAcceptsFit = {
+        pass: !shortCodeInsert.error && shortCodeInsert.data?.fitnessstatus === "FIT",
+        error: toErrorObject(shortCodeInsert.error),
+      };
+
+      // Boundary: widened, not unbounded. 31 characters must still be rejected.
+      await adminClient.from("peme_decision").delete().eq("caseid", d004CaseId);
+
+      const overlongInsert = await adminClient
+        .from("peme_decision")
+        .insert({
+          caseid: d004CaseId,
+          physicianuserid: adminUserId,
+          fitnessstatus: "X".repeat(31),
+          remarks: null,
+        })
+        .select("decisionid")
+        .maybeSingle();
+
+      result.checks.d004DecisionRejectsOverlongCode = {
+        pass: overlongInsert.error?.code === "22001",
+        error: toErrorObject(overlongInsert.error),
+      };
+
+      const cleanupD004Decision = await adminClient
+        .from("peme_decision")
+        .delete()
+        .eq("caseid", d004CaseId);
+      const cleanupD004Visits = await adminClient
+        .from("department_visit")
+        .delete()
+        .eq("caseid", d004CaseId);
+      const cleanupD004Case = await adminClient
+        .from("peme_case")
+        .delete()
+        .eq("caseid", d004CaseId);
+
+      result.checks.d004CleanupDecisionProbeCase = {
+        pass:
+          !cleanupD004Decision.error &&
+          !cleanupD004Visits.error &&
+          !cleanupD004Case.error,
+        error:
+          toErrorObject(cleanupD004Decision.error) ??
+          toErrorObject(cleanupD004Visits.error) ??
+          toErrorObject(cleanupD004Case.error),
+      };
+    } else {
+      result.checks.d004DecisionAcceptsFitWithRestrictions = {
+        pass: false,
+        error: {
+          code: "precondition_failed",
+          message: "could not bootstrap a probe case for the D-004 check",
+        },
+      };
+    }
   } else {
     result.checks.d003BootstrapDeniedForPatient = {
       pass: false,
