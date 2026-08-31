@@ -6,9 +6,9 @@
 > because they are an accurate record; they are not live references. See
 > `guides/workflow-policy.md`.
 
-**Last Updated:** 2026-08-27 (T1 deep-diff follow-up)
+**Last Updated:** 2026-08-31 (D-004 fix + Phase 3 branch consolidation)
 **Phase:** Phase 5 - QA hardening, risk closure, and coverage stabilization
-**Current Checkpoint:** `main` at `d47e19b` — carries the agent-workflow decision record (#65) on top of the ponytail cleanup (#64) and the `.claude/rules/` split with the team verification standard (#63). Working tree clean.
+**Current Checkpoint:** `main` at `042648c` — carries the Phase 3 groundwork merge and the D-004 fitness status column width fix. Working tree clean.
 
 ---
 
@@ -207,6 +207,12 @@ anything AHI answers.
 
 ## Recently Completed
 
+- **D-004 — fitness status column width (2026-08-31):** `peme_decision.fitnessstatus` widened from
+  `varchar(20)` to `varchar(30)` so `FIT_WITH_RESTRICTIONS` is savable. Fitness decision codes now
+  live in `lib/dashboard/fitness-decision.ts` with an offline guard test
+  (`tests/lib/fitness-decision.test.ts`) that fails if the option list ever outgrows the column
+  again. Spec: `docs/superpowers/specs/2026-08-31-d004-fitness-status-column-width-design.md`.
+  Sydney remains at `varchar(20)` — known, recorded drift.
 - **Briefing command `/brief` (2026-08-22):** `.claude/commands/brief.md`. Derives a standup brief
   from this file, `qa-runs/defect-log.md`, `agent-workflow.md` Open items, git, and `gh` — checkpoint
   drift, blockers, the recommended queue with files and proof-of-done, open `D-NNN` defects, branch

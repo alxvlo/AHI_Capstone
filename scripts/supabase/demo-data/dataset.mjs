@@ -29,7 +29,7 @@ const CASE_BLUEPRINTS = [
   { status: "FOR_DECISION",  category: "SEA_BASED",   isrush: false, visits: [["LAB", "COMPLETED"], ["XRAY", "COMPLETED"]],   decision: null },
   { status: "FOR_DECISION",  category: "LAND_BASED",  isrush: false, visits: [["LAB", "COMPLETED"], ["DENTAL", "COMPLETED"]], decision: null },
   { status: "FOR_RELEASING", category: "SEA_BASED",   isrush: false, visits: [["LAB", "COMPLETED"], ["XRAY", "COMPLETED"]],   decision: { fitnessstatus: "FIT" } },
-  { status: "FOR_RELEASING", category: "LAND_BASED",  isrush: false, visits: [["LAB", "COMPLETED"], ["ECG", "COMPLETED"]],    decision: { fitnessstatus: "UNFIT" } },
+  { status: "FOR_RELEASING", category: "LAND_BASED",  isrush: false, visits: [["LAB", "COMPLETED"], ["ECG", "COMPLETED"]],    decision: { fitnessstatus: "FIT_WITH_RESTRICTIONS" } },
   { status: "RELEASED",      category: "SEA_BASED",   isrush: false, visits: [["LAB", "COMPLETED"], ["XRAY", "COMPLETED"]],   decision: { fitnessstatus: "FIT" } },
   { status: "RELEASED",      category: "LAND_BASED",  isrush: false, visits: [["LAB", "COMPLETED"], ["DENTAL", "COMPLETED"]], decision: { fitnessstatus: "FIT" } },
 ];
