@@ -58,5 +58,6 @@ qa-visual-dashboard-staff.png
 
 # Git worktrees
 .worktrees/
+.claude/worktrees/
 .vercel
 .env*.local
