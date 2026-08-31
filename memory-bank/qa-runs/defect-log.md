@@ -12,6 +12,7 @@
 | D-001 | **P1** | `components/dashboard/staff/physician-module.tsx` | ~line with `caseStatusIdByCode.get("COMPLETED")` | Visit completion percentage in physician decision queue was always rendering `undefined`/`—` because the code looked up the "COMPLETED" visit status ID from the **case** status map instead of the **visit** status map. `caseStatusIdByCode` has domain codes like REGISTERED, IN_PROGRESS, FOR_DECISION etc. — it has no "COMPLETED" key. The visit status map (`visitStatusIdByCode`) does. | Wrong map passed to `.get()`. Both Maps existed in props; a copy-paste error picked the case map. | **FIXED** | 2026-04-28 — added `visitStatusIdByCode` to `PhysicianModuleProps`, threaded prop through `app/dashboard/staff/page.tsx`, updated the `.get()` call. |
 | D-002 | P3 | `tests/integration/case-lifecycle.test.ts` | 830 | Unused `error` variable from Supabase client destructuring triggered `@typescript-eslint/no-unused-vars` lint warning | Result object destructured but only used for its side-effect (testing RLS block). `error` was never read. | **FIXED** | 2026-04-28 — removed destructuring; bare `await` call with clarifying comment. |
 | D-003 | **P0** | `supabase/migrations/20260518_bootstrap_rpc_authuid.sql` | function body | `bootstrap_peme_case` RPC has no role check on the rebuilt Singapore project. `20260517_security_advisories_remediation.sql` added `if not public.rls_user_has_role(array['Reception/Billing','System Administrator'])` and `set search_path = public, auth` (its own comment: "anon could call it"). One day later `20260518_bootstrap_rpc_authuid.sql` did a bare `create or replace function` to stop audit-log actor spoofing (forces `auth.uid()` instead of trusting caller-supplied `p_created_by`) and, as a side effect, silently dropped both the role gate and the search_path pin. Confirmed 2026-08-27 by diffing the function body applied by the current migration set against the one live on Sydney (`elpaaezwwxqwyfyefsnr`) — Sydney's live function still has both May 17 protections, meaning someone patched it directly on the dashboard after 2026-05-18 and that patch was never captured as a migration. Any authenticated user, not just Reception/Billing or System Administrator, can currently call this RPC on the Singapore project (`dmmtugtwguqvveonwrfp`) and create PEME cases. | `20260518_bootstrap_rpc_authuid.sql`'s `create or replace function` did not carry forward the role gate or `set search_path` added the day before by `20260517_security_advisories_remediation.sql`. | **FIXED** | 2026-08-28 — `20260828_restore_bootstrap_role_gate.sql` restores the role gate and search_path pin on top of the May 18 anti-spoofing fix. Verified via the `d003*` checks in `npm run audit:write-policies` (previously failing on `d003BootstrapDeniedForPatient`, now passing) and a manual `pg_proc.proconfig` check confirming the search_path pin. Singapore only — Sydney's undocumented dashboard patch is untouched and still a separate cleanup item. |
+| D-004 | **P1** | `components/dashboard/staff/physician-module.tsx` | 459-461 | The Physician decision form offers **"FIT_WITH_RESTRICTIONS"** (22 characters) as a selectable fitness outcome, but `peme_decision.fitnessstatus` is `character varying(20)` (`memory-bank/database/schema.txt:103`). Any physician who selects it and submits gets redirected back with `Decision save failed: value too long for type character varying(20)` (the raw Postgres error, surfaced verbatim via `redirectWithError` at `features/dashboard/staff/actions.ts:1650-1655`) — no `peme_decision` row is written, and the case stays stuck at `FOR_DECISION` with no way to record that legitimate clinical outcome through the UI. `FIT` (3 chars) and `UNFIT` (5 chars), the only other two values in `FITNESS_DECISION_CODES` (`features/dashboard/staff/actions.ts:81-85`), are unaffected. | The write path (`features/dashboard/staff/actions.ts:1617`, `fitnessstatus: fitnessStatus`) passes the form value straight into the insert/update payload with no length validation or truncation against the column's actual width. The form's option list (`physician-module.tsx:459-461`) and the column definition were never checked against each other. | **NOT FIXED** | — |
 
 ---
 
@@ -30,6 +31,23 @@
   project; see table above and the Acceptance Criteria section below for what was verified. Not
   present as a live risk on Sydney, which still carries the original (undocumented) dashboard patch —
   that drift remains a separate, lower-priority cleanup item.
+- **D-004 (P1, NOT FIXED)** — Physician decisions of "Fit with Restrictions" cannot be saved on
+  Singapore (or any project with this schema — the column width predates the Singapore rebuild).
+  Discovered 2026-08-30 as a side effect of Phase 3 demo-data seeding: the seeder inserted
+  `fitnessstatus: "FIT_WITH_RESTRICTIONS"` into `peme_decision` on live Singapore via the same
+  `@supabase/supabase-js` client and the same table/column the app itself writes to, and got the
+  identical Postgres error (`value too long for type character varying(20)`) the app's own error
+  handling would surface to a real physician. The UI click-path itself was not separately exercised —
+  reproduction is via an identical insert against the identical live column, not a browser session as
+  the Physician role — but the code trace (`physician-module.tsx:459-461` → `actions.ts:1617`) shows
+  no transformation between the form value and the insert payload, so the failure mode would be the
+  same. No fix attempted; this entry is a log only, per team request. Possible fix directions for
+  whoever picks this up — not prescribed here, since the right choice is a team call: widen
+  `peme_decision.fitnessstatus` to accommodate the existing option list (matches `status_code.code`'s
+  own width, `varchar(30)`, used for the analogous `DECISION` domain codes seeded in
+  `20260312000001_seed_reference_data.sql`), or shorten the option's stored value (e.g. a `FIT_RESTR`
+  code with the current string only as a UI label). Regardless of direction, `.claude/rules/verification.md`
+  applies: a regression test must reproduce this exact symptom failing before any fix, named `D-004`.
 
 ### D-003 Acceptance Criteria (written 2026-08-28, before the fix migration)
 

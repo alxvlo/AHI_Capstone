@@ -2,6 +2,9 @@
   "name": "ahi-capstone-main",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=22 <23"
+  },
   "scripts": {
     "dev": "node ./node_modules/next/dist/bin/next dev",
     "build": "node ./node_modules/next/dist/bin/next build",
@@ -20,6 +23,8 @@
     "qa:ci": "npm run lint && npm run typecheck && npm run test:coverage",
     "qa:supabase": "npm run audit:roles:all && npm run audit:write:all && npm run audit:auth:logs && npm run audit:auth:e2e",
     "seed:reference": "node --env-file=.env.local scripts/supabase/seed-reference-data.mjs",
+    "demo:teardown": "node --env-file=.env.local scripts/supabase/teardown-demo-data.mjs",
+    "demo:seed": "node --env-file=.env.local scripts/supabase/seed-demo-data.mjs",
     "probe:bootstrap": "node --env-file=.env.local scripts/supabase/bootstrap-role-probe-users.mjs",
     "probe:deptstaff:noclaim:bootstrap": "npx supabase db query --linked --file scripts/supabase/bootstrap-deptstaff-missing-claim-probe.sql",
     "audit:roles:redirect": "node scripts/supabase/run-role-redirect-audit-local.mjs scripts/supabase/audit-role-dashboard-redirects.mjs",
@@ -46,7 +51,7 @@
     "clsx": "^2.1.1",
     "framer-motion": "^12.36.0",
     "lucide-react": "^0.577.0",
-    "next": "^15.2.2",
+    "next": "15.5.24",
     "nodemailer": "^8.0.7",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
