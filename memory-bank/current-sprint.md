@@ -6,9 +6,45 @@
 > because they are an accurate record; they are not live references. See
 > `guides/workflow-policy.md`.
 
-**Last Updated:** 2026-08-31 (D-004 fix + Phase 3 branch consolidation)
+**Last Updated:** 2026-09-03 (onsite architecture findings, defence date, scope sizing)
 **Phase:** Phase 5 - QA hardening, risk closure, and coverage stabilization
-**Current Checkpoint:** Feature branch `worktree-d004-fitness-status-column-width` — carries the Phase 3 groundwork merge and the D-004 fitness status column width fix. Not yet merged to `main` (local `main` is at a different, earlier commit). This line will be corrected to name the merge commit once merged. Working tree clean.
+**Current Checkpoint:** `main` at `2733e52` — the Phase 3 Singapore cutover groundwork (#67) and
+the D-004 fitness-status column width fix (#68) are both merged, superseding the 2026-08-31 note
+that they sat unmerged on a feature branch. The 2026-09-02 onsite architecture findings sit on top.
+**Phase:** Phase 5 - QA hardening, risk closure, and coverage stabilization
+
+**DEFENCE: Saturday, 21 November 2026. System and manuscript due 14 November — ten weeks out.**
+
+**Course phase: IT141DL — Capstone 2, final defence.** Confirmed 2026-09-03. Panel verdicts are
+live (Accepted / Accepted with Minor or Major Revisions / **Redefense**), and the full final
+deliverable set applies:
+
+| Deliverable | Note |
+|---|---|
+| Completed system + manuscript, **delivered a week before defence** | 14 November |
+| **Client acceptance letter from AHI**, in the appendix | Team reports this is readily obtainable (2026-09-03), so no longer treated as critical-path risk. Still entangled with the fee/IP question — clear that with the CPAR Coordinator before signing anything. |
+| 3 book-bound manuscripts, blue cover, signed approval pages | Panelist + adviser signatures; SSE Library, University Library, National Library |
+| 3 MicroSD cards in holders attached inside the back cover | Manuscript, **Installation Guide**, source code, **System Installer**, client acceptance letter |
+| Publication | Conference, journal, or IST colloquium with proceedings; adviser is last co-author; fees are the students' |
+| Defence logistics | Two computers minimum, formal attire, English, **at least one hour reserved for Q&A** |
+
+The on-premise Docker topology (§4 of the design spec) is what makes "System Installer" and
+"Installation Guide" straightforward to produce; a hosted deployment would not have.
+
+**Scope is sized against a panel judging it "too small."** Adviser guidance: a capstone
+must make an operational difference and handle two datasets, and the live danger at defence is a
+panel judging the scope thin. The two entity domains — clinical, and commercial/administrative —
+are satisfied within the system. The operational-difference claim rests on eliminating the manual
+re-typing at Releasing (automated certificates and a generated agency Excel), **not** on clinic
+adoption, which will not have happened by the defence; the manuscript presents rollout as a
+deployment roadmap rather than carrying a non-adoption passage.
+
+**KPIs are measured by running full PEME cycles with clinic personnel**, timed end to end against a
+prepared dataset. **The baseline is the team's own prior measurement** in Chapters 1–3 and is not
+re-measured; the "after" runs should mirror the instrument that produced it, so both halves of the
+comparison come from the same method. This keeps the KPIs as real non-functional
+requirements rather than design targets. Nothing in the UA&P guidelines requires a live production
+environment. Manuscript presentation is directed by the program head.
 
 ---
 
@@ -32,7 +68,58 @@ run during this reconciliation. `qa:supabase` and Playwright E2E have not been r
 
 ---
 
+## 2026-09-02 — Onsite visit: architecture findings
+
+The team visited AHI and saw the clinic's real system for the first time. It changes the
+deployment architecture and amends five statements in `pid.md`. Full write-up, evidence and
+acceptance criteria: `docs/superpowers/specs/2026-09-02-clinic-architecture-adaptation-design.md`.
+
+The short version. The clinic runs **Microsoft Access against SQL Server on a wired in-house
+LAN**, unmaintained since roughly 2000. **Only Reception and Releasing enter data; every other
+department only prints.** There is no role-based access control — every account observed was an
+administrator. Packages are structured **per agency**, which `package` (a flat global list) cannot
+currently express. Agencies receive a hand-maintained Excel file; patients receive paper. The
+patient transaction number **resets every month**, which staff raised as a problem themselves.
+
+Decisions taken (see `decisions.md`, 2026-09-02): deploy on-premise; permanent patient number plus
+password with no SMTP; capstone scope stays the PEME workflow, with full Access replacement as
+roadmap rather than scope.
+
+**Onsite cadence** (2026-09-03): **every Wednesday** is fixed. Monday or Thursday next week is
+likely; Saturdays are possible but not this one. **Ms. Susie must be informed of each planned
+arrival in advance** — she offered to endorse the team and to lend her room. The clinic offered
+working space, so development happens largely inside the building. Visits are frequent, but they
+still need planning: each one should go in with a list of what to observe and what to collect.
+
+**Open, to close on site.** Information: department processes and what they print; SQL Server
+version and edition; server specs and **workstation browser versions** — the one hardware risk
+that could sink the timeline; the billing module; the non-PEME share of the Access workload.
+Artefacts to collect: the Access program files; a schema script and reference-table export from
+the current database; **a real copy of the agency Excel sheet**; the reception slip; and the
+certificate template (`Q-09`).
+
+**`Q-11` needs a real Excel sheet to settle.** Ian has described it both as the *completed* list of
+employee PEMEs and — in the transcript — as carrying "'yung mga pending" alongside fit/unfit. Those
+imply different portal designs. One actual file resolves it.
+
+**IP — resolved 2026-09-03.** The program head confirmed the split: the manuscript and the code
+instance frozen at completion belong to the university; the running program stays with the students
+and may be arranged with the client at their discretion. The fee arrangement the executive asked
+for, and the post-capstone continuation, are both clear to proceed. See `decisions.md`.
+
+**Task board:** the tickets-per-function requirement belongs to IT132DL, already completed, so the
+2026-08-22 GitHub Issues deferral stands and is not a live gap. In IT141DL adviser repository
+access is optional — but still worth confirming, since the guidelines put the onus on students to
+initiate contact.
+
+---
+
 ## Blocked on client input
+
+> **Much less blocked as of 2026-09-03.** The team now works inside the clinic weekly, so these
+> questions can be asked in person rather than waiting on a returned document. Seven of the
+> fourteen were already advanced by the 2026-09-02 visit without the questionnaire being sent —
+> see §9 of the architecture spec. Treat the list below as an onsite agenda, not a mailed form.
 
 The **staff workflow revision** is specified and ready to plan, but cannot start until
 American Hospital Inc. answers the questionnaire in
@@ -40,6 +127,17 @@ American Hospital Inc. answers the questionnaire in
 
 Fourteen questions (`Q-01`–`Q-14`), each with a default that will be used if AHI does not
 object — so the spec degrades to a buildable plan rather than a dead end.
+
+**The 2026-09-02 visit advanced seven of the fourteen without the questionnaire being sent.**
+`Q-01` (patient identification) and `Q-06` (tests per package) are answered outright; `Q-03`,
+`Q-05`, `Q-09`, `Q-12` and `Q-13` are partially answered. Per-question detail is in §9 of the
+2026-09-02 design spec.
+
+**`Q-11`'s default is contradicted and must change.** The default is "agencies see released cases
+only." In practice agencies already receive an Excel file listing *pending* items alongside
+fit/unfit — so they see in-progress status today. Shipping released-only would be a **downgrade**
+from the service the clinic currently provides. This needs an explicit decision weighed against
+the DPA gating in `pid.md`, and it is not a default that can be safely assumed.
 
 A plain-language version of §5 for the client is maintained in Google Docs, outside this repo.
 It goes to the capstone advisor for review first, and to AHI only after that. Record both dates
@@ -66,6 +164,23 @@ Department → Reception → Physician → Releasing → Triage).
 ## Active Queue
 
 ### Recommended Next
+
+> **Superseded in priority by the 2026-09-03 architecture decisions.** The queue below predates the
+> onsite visit and is still valid work, but it is no longer the top of the list. The defence is
+> 21 November 2026 with a 14 November freeze, and three new items outrank everything here:
+>
+> 1. **Permanent patient number + auth change** (email → patient number). Depends on nothing and
+>    nobody — start first. Acceptance criteria in §7 of the architecture spec.
+> 2. **On-premise deployment** — trimmed self-hosted Supabase, all 48 migrations from empty,
+>    tunnel, LAN verification. The largest unknown in the remaining ten weeks; early failure is
+>    recoverable, late failure is not.
+> 3. **Onsite artefact collection** — the Access program files, a schema script and reference-table
+>    export, a real agency Excel sheet, the reception slip, the certificate template. These gate
+>    the Excel export, the reception slip, `Q-09` and `Q-11`.
+>
+> Note that item 1 below (the Vercel cutover) is affected: with deployment moving on-premise, the
+> Singapore project becomes staging rather than production. Re-read that item against
+> `decisions.md` 2026-09-02 before acting on it.
 
 Reordered 2026-08-26 after the post-kickoff action plan (`docs/2026-08-26-kickoff-action-plan.md`).
 Item 1 supersedes the 2026-08-22 ordering; items 2-4 are unchanged and still independent of
@@ -261,3 +376,5 @@ anything AHI answers.
 - **Workflow policy draft:** `memory-bank/guides/peme-case-workflow-policy.md`
 - **QA logs:** `memory-bank/qa-runs/2026-05-13-sprint-a-risk-closure.md`, `memory-bank/qa-runs/2026-05-12-sprint-b-test-coverage.md`
 - **Design specs:** `memory-bank/requirements/dashboard-role-feature-functional-spec.md`, `memory-bank/requirements/dashboard-frontend-layout-navigation-spec.md`
+- **Clinic architecture adaptation (2026-09-02, revised 2026-09-03):** `docs/superpowers/specs/2026-09-02-clinic-architecture-adaptation-design.md` — the onsite findings, the on-premise topology, identity, capstone scope for the 21 November defence, acceptance criteria, the onsite artefact list, and the `Q-01`–`Q-14` status update. **Read this before resuming work.**
+- **Staff workflow revision (2026-08-16):** `docs/superpowers/specs/2026-08-16-staff-workflow-revision-design.md` — still awaiting the §5 questionnaire; seven of its fourteen questions were advanced by the 2026-09-02 visit.

@@ -23,11 +23,15 @@ this table is the map. Read the roles, not the filenames.
 
 ## Reading Order For New Sessions
 
-1. `pid.md` — project scope
+0. **`../docs/superpowers/specs/2026-09-02-clinic-architecture-adaptation-design.md` — read this
+   first.** The 2026-09-02 onsite visit to AHI changed the deployment architecture, the identity
+   model, and the capstone scope, and amended six statements in `pid.md`. Without it, several
+   documents below read as though the clinic runs something it does not.
+1. `pid.md` — project scope (carries `[AMENDED 2026-09-02]` blocks; read them)
 2. `design-doc.md` — architecture
 3. `auth-implementation-decision.md` — auth model
 4. `current-sprint.md` — what's happening now and the active queue
-5. `decisions.md` — locked architectural decisions (return-path, RPC bootstrap, file limits, rate limiting, session timeout)
+5. `decisions.md` — locked architectural decisions (on-premise topology, identity, capstone scope, IP; plus return-path, RPC bootstrap, file limits, rate limiting, session timeout)
 6. `../DEVELOPMENT-PLAN.md` — full plan with next steps
 
 ## Core Files
