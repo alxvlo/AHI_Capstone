@@ -29,10 +29,12 @@ New Patient, Create PEME Case, or Active Case Tracker is visible without scrolli
 ## Step 2: full-page regions and measured scroll depth (1440×900)
 
 **Method.** For each heading, `getBoundingClientRect().top + window.scrollY` was read via
-`browser_evaluate` — this is the exact `scrollY` value at which the heading's top edge reaches the
-top edge of the 900px-tall viewport (i.e., the scroll depth needed to bring the heading into view at
-the very top of the visible area). `window.scrollTo(0, <value>)` was then used to reach that exact
-position before each screenshot. These are measured values, not estimates.
+`browser_evaluate`. This gives the heading's absolute document position — the `scrollY` value that
+places the heading's top edge at the viewport's own y=0. `window.scrollTo(0, <value>)` was then used
+to reach that exact position before each screenshot. These offsets are measured values, not
+estimates, and are correct as scroll-distance measurements. **What the four screenshots below show is
+scroll distance and the content immediately after each heading, not the named heading itself** — see
+the sticky-nav caveat directly under the table.
 
 | Region | Heading text | Measured scroll offset (px) | Screenshot |
 |---|---|---|---|
@@ -41,16 +43,71 @@ position before each screenshot. These are measured values, not estimates.
 | Create PEME Case | "Create PEME Case" | 1910 | `01-reception-1440x900-create-case.png` |
 | Active Case Tracker (All Cases) | "Active Case Tracker (All Cases)" | 2592 | `01-reception-1440x900-tracker.png` |
 
+**Sticky-nav caveat.** The site header (`components/layout/navbar.tsx:38-44`) is a `position: sticky`
+bar pinned at `top-0` with `z-50`, `h-16` (64px tall), rendered on every scroll position, not just at
+the top of the page. At each offset in the table above, `scrollY` was set so the heading's *document*
+top lands at viewport y=0 — but the sticky nav then paints over that same y=0–64px band, so the
+heading itself sits directly behind the nav and is not visible in the corresponding screenshot; each
+image instead shows the content that immediately follows the heading. A reader who needs the heading
+itself in frame should subtract roughly 64px from the table's offsets (e.g., ~448px, ~1251px,
+~1846px, ~2528px) rather than use the values as given. The offsets as measured remain the correct,
+reproducible scroll-distance figures (512 was spot-checked directly against the unscrolled Step 1
+capture) — only the screenshots' framing, not the numbers, is affected. See also the "Sticky
+navigation bar" observation below, which records this as its own piece of journey-01 UX evidence.
+
 So from the page's resting scroll position (0), a Reception user must scroll roughly 1315px to reach
 the walk-in registration form, 1910px to reach case creation, and 2592px to reach the case tracker
 table — this is the measured form of the advisor's 1:53 and 2:41 complaints.
 
-**Layout note (relevant to the offsets above).** L1 (`docs/superpowers/journeys/evidence/01-reception-L1.md:58-60`)
-describes region (d) as a "two-column grid" with the Patient Lookup card on the left and the Create
-PEME Case card on the right. At the rendered 1440×900 viewport this is **not** what appears: all
-four regions occupy the same full content-column width (roughly x=380–1343 in the screenshots) and
-stack strictly vertically, in the order Patient Lookup → Register New Patient (Walk-In) → Create
-PEME Case → Active Case Tracker. See the "Contradicts L1?" section below.
+**Sticky navigation bar (new observation).** The 64px sticky header
+(`components/layout/navbar.tsx:38-44`) is present at every scroll position on this page, not only at
+the top. At the 1280×720 viewport that Step 3 uses as "the realistic floor for a clinic workstation,"
+64px of a 720px-tall viewport is permanently unavailable to page content — about 9% of vertical space
+lost to the header at all times, on top of the scroll depths measured above.
+
+**Layout note (relevant to the offsets above) — root cause confirmed.** L1
+(`docs/superpowers/journeys/evidence/01-reception-L1.md:58-60`) describes region (d) as a "two-column
+grid" with the Patient Lookup card on the left and the Create PEME Case card on the right. At the
+rendered 1440×900 viewport this is **not** what appears: all four regions occupy the same full
+content-column width (roughly x=380–1343 in the screenshots) and stack strictly vertically, in the
+order Patient Lookup → Register New Patient (Walk-In) → Create PEME Case → Active Case Tracker. This
+is not a responsive collapse and not intentional design — it is a CSS authoring bug, confirmed three
+ways during review of this evidence:
+
+1. **Source.** `components/dashboard/staff/reception-module.tsx:239` reads
+   `className="grid gap-6 xl:grid-cols-[1.1fr,1fr]"`. Tailwind's arbitrary-value syntax requires an
+   underscore in place of a space inside the brackets; a comma is not a valid track separator for the
+   `grid-template-columns` property itself (it is only valid *inside* a `minmax(0,1fr)`-style function
+   argument list, which this is not).
+2. **Compiled CSS.** `.next/static/css/app/layout.css:2388-2392` emits this literally:
+   `.xl\:grid-cols-\[1\.1fr\,1fr\] { @media (width >= 80rem) { grid-template-columns: 1.1fr,1fr; } }`.
+   80rem = 1280px, so at 1440px this media query does match — the `xl` breakpoint is not the problem.
+   The declaration value itself, `1.1fr,1fr`, is invalid for `grid-template-columns`; browsers drop an
+   invalid declaration entirely rather than partially applying it, so no explicit column tracks are
+   ever defined and the grid falls back to its single implicit column.
+3. **Computed-value check.** Isolated live testing (performed during review of this file, not
+   re-run in this pass) found the comma form computes to a single track (`"1424px"`), while changing
+   only the separator to an underscore (`1.1fr_1fr`) computes to two tracks
+   (`"745.898px 678.102px"`) — directly confirming the comma, not the breakpoint, is the defect.
+
+Because the media query does match at every width from 1280px up (`width >= 80rem`), and the
+declaration itself is invalid, **the two-column layout has never rendered as two columns at any
+viewport width since this line was written** — this is not a narrow-viewport-only issue and not
+something that would resolve at a wider screen.
+
+Every other arbitrary-value grid found elsewhere in this repo uses the correct underscore form and
+renders correctly: `components/dashboard/shell/dashboard-shell.tsx:33`
+(`lg:grid-cols-[260px_minmax(0,1fr)]`), `components/dashboard/admin/reference-panel.tsx:437`
+(`md:grid-cols-[1fr_auto_auto]`), `app/about/page.tsx:103` (`lg:grid-cols-[1.1fr_0.9fr]`),
+`app/about/page.tsx:179` (`lg:grid-cols-[1fr_1fr]`), and `app/contact/page.tsx:98`
+(`lg:grid-cols-[0.95fr_1.05fr]`). (A comma *inside* a `minmax(0,1fr)` argument list is legitimate
+Tailwind/CSS syntax; the defect here is specifically a comma used as the top-level track separator.)
+
+**Cross-journey flag.** The same malformed pattern — a comma used as a top-level grid-track
+separator inside a Tailwind arbitrary value — also appears at
+`app/dashboard/patient/page.tsx:108` (`sm:grid-cols-[minmax(0,1fr),auto,auto]`). This file belongs to
+the patient dashboard (journey 06), out of this task's scope to fix or further evidence, but is
+recorded here so it is not lost.
 
 ## Step 3: above-the-fold at 1280×720
 
@@ -150,28 +207,41 @@ the four regions appear in the rendered page in exactly the order L1 claims from
 (`docs/superpowers/journeys/evidence/01-reception-L1.md:53-64`): Patient Lookup, then Register New
 Patient (Walk-In), then Create PEME Case, then Active Case Tracker (All Cases).
 
-**Layout: contradicts.** L1 describes region (d) as "a two-column grid: 'Patient Lookup' card ... on
-the left, 'Create PEME Case' card on the right"
-(`docs/superpowers/journeys/evidence/01-reception-L1.md:58-60`). At the rendered 1440×900 viewport
-this is not what a user sees: Patient Lookup, Register New Patient (Walk-In), and Create PEME Case
-all render at the same full content width and stack strictly vertically — Create PEME Case is not
-beside Patient Lookup, it is roughly 1400px further down the page (offset 1910 vs. 512). Whether the
-underlying markup is in fact a CSS grid that collapses to a single column at this width, or something
-else, is outside this task's scope (that is a source-level question for L1/Task 2, not this
-rendered-evidence task) — but as *rendered*, the two-column characterization does not hold at
-1440×900, and the practical effect is that reaching Create PEME Case costs real scroll distance
-rather than a glance to the right.
+**Layout: contradicts, and the cause is a confirmed CSS bug, not responsive design.** L1 describes
+region (d) as "a two-column grid: 'Patient Lookup' card ... on the left, 'Create PEME Case' card on
+the right" (`docs/superpowers/journeys/evidence/01-reception-L1.md:58-60`). At the rendered 1440×900
+viewport this is not what a user sees: Patient Lookup, Register New Patient (Walk-In), and Create
+PEME Case all render at the same full content width and stack strictly vertically — Create PEME Case
+is not beside Patient Lookup, it is roughly 1400px further down the page (offset 1910 vs. 512). This
+is not a viewport-width collapse: `components/dashboard/staff/reception-module.tsx:239` sets
+`xl:grid-cols-[1.1fr,1fr]`, using a comma where Tailwind's arbitrary-value syntax requires an
+underscore; the compiled rule at `.next/static/css/app/layout.css:2388-2392` shows the media query
+(`width >= 80rem`, i.e. ≥1280px) correctly matching at 1440px, but the declaration
+`grid-template-columns: 1.1fr,1fr` itself is invalid CSS and is dropped by the browser, leaving no
+explicit column tracks. See the full root-cause writeup, the computed-value evidence, and the list of
+correctly-written comparison grids elsewhere in this repo under Step 2 above. The two-column layout
+has therefore never rendered as two columns at any viewport width since that line was written — it is
+a silent, unnoticed defect, not intentional single-column behavior at this size.
 
 ## Summary of what was and was not verified
 
 - Verified (measured/observed directly): above-the-fold contents at both viewports; all four region
-  scroll offsets at 1440×900; reachability of each region at 1280×720; that the search is a full
-  navigation (URL + transient "Loading ..." tab title); three separate search timings; that the four
-  metric tiles do not change on a Patient Lookup search; the empty-state message text; that the
-  walk-in registration form is reachable without scrolling from the empty-search state; the rendered
-  top-to-bottom region order.
+  scroll offsets at 1440×900 (correct as scroll-distance measurements — see the sticky-nav caveat in
+  Step 2 for what the corresponding screenshots do and do not show); reachability of each region at
+  1280×720; that the search is a full navigation (URL + transient "Loading ..." tab title); three
+  separate search timings; that the four metric tiles do not change on a Patient Lookup search; the
+  empty-state message text; that the walk-in registration form is reachable without scrolling from
+  the empty-search state; the rendered top-to-bottom region order; the sticky nav's presence and
+  dimensions (`components/layout/navbar.tsx:38-44`); the two-column-grid CSS defect's source line and
+  compiled-CSS output (independently re-read from disk in this pass).
 - `[UNVERIFIED]`: whether the app paints its own in-page loading indicator (spinner/skeleton) during
   the ~11–14s search wait — the available tooling could not capture an intermediate frame (see Step
-  4).
+  4). The grid defect's computed-value check (`"1424px"` vs. `"745.898px 678.102px"`) was performed
+  during review of this file, not re-run independently in this pass — flagged here for transparency,
+  though the source and compiled-CSS citations that explain *why* those values would occur were
+  independently re-verified.
 - Pixel-offset fallback: **not used.** All offsets in this file are measured pixel values from
   `getBoundingClientRect()` + `window.scrollY`, not region-order-only observations.
+- Screenshots do **not** show the named heading in frame at each offset — they are correctly
+  positioned by scroll distance but the heading itself sits behind the 64px sticky nav at those exact
+  offsets (see Step 2's sticky-nav caveat). This does not affect any numeric measurement in this file.
