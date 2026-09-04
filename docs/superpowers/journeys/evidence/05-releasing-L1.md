@@ -230,9 +230,10 @@ it ever received a `PENDING` or `IN_PROGRESS` row: those are not terminal, they 
 unfinished, and calling them "terminal" misdescribes an actively-worked or not-yet-started visit
 as a dead end.
 
-**But can `PENDING`/`IN_PROGRESS` rows actually reach this message in the app's normal flow? No —
-and the reason is a real invariant enforced elsewhere, not a coincidence.** `releaseCaseAction`
-only reaches the visit check after confirming `caseRow.casestatuscodeid === forReleasingStatusId`
+**Does an invariant keep `PENDING`/`IN_PROGRESS` rows out of this message? Only at the instant a
+case transitions into `FOR_RELEASING` — not for however long it sits there afterward, and there is
+a fully in-app path that breaks it.** `releaseCaseAction` only reaches the visit check after
+confirming `caseRow.casestatuscodeid === forReleasingStatusId`
 (`features/dashboard/staff/actions.ts:1735-1740`). A case can only *reach* `FOR_RELEASING`
 through `submitPhysicianDecisionAction`'s transition
 (`features/dashboard/staff/actions.ts:1659-1667`), which itself requires the case to currently be
@@ -241,38 +242,62 @@ reaches `FOR_DECISION` when `syncCaseWorkflowStatusAfterVisitUpdate` finds **eve
 `department_visit` row for the case already terminal
 (`allVisitsTerminal = terminalVisits === totalVisits`,
 `features/dashboard/staff/actions.ts:172-174`, terminal defined by the same
-`rls_terminal_visit_status_ids()` RPC, `:142-149`). So by the time a case is sitting at
-`FOR_RELEASING` and `releaseCaseAction` runs, every one of its visits is already `COMPLETED`,
-`CANCELLED`, or `SKIPPED` — the only rows that can land in `unresolvedVisits` (non-`COMPLETED`)
-are `SKIPPED` or `CANCELLED`, both of which genuinely **are** terminal by the codebase's own
-definition. Within the reachable state space of this app's own UI/action code, the message's
-"terminal but not COMPLETED" claim holds. (The one caveat: this invariant depends on no other
-write path inserting a fresh `PENDING` visit onto a `FOR_RELEASING`/`FOR_DECISION` case outside
-this cycle, and on no direct database write bypassing these actions — both out of scope for a
-static code read; see the RLS point in Q11 that `peme_case_update_role_scoped`'s `WITH CHECK`
-clause does not itself re-verify the new status value, so an out-of-band write is not
-RLS-impossible, just not exercised by any code in this repo.)
+`rls_terminal_visit_status_ids()` RPC, `:142-149`). So **at the moment of transition**, every one
+of the case's visits is `COMPLETED`, `CANCELLED`, or `SKIPPED` — no `PENDING`/`IN_PROGRESS` row
+can be present right then.
 
-**So: is the gate itself correct, or only the message wrong?** Neither is simply "wrong," but the
-**gate is inconsistent with the rest of the workflow's own definition of "done,"** and that
-inconsistency is real and confirms Journey 03's finding from this side:
+**That guarantee does not extend to the time the case spends sitting at `FOR_RELEASING`, and there
+is a demonstrated, ordinary in-app path that reintroduces a `PENDING` row after the transition:**
 
-- The `FOR_DECISION` auto-transition (Q6 above) treats `SKIPPED` and `CANCELLED` as good enough to
-  let the case move forward for a physician decision — i.e. "terminal" is treated as "resolved
-  enough."
-- `releaseCaseAction`'s gate is stricter: it demands literal `COMPLETED`, so a case that legitimately
-  reached `FOR_RELEASING` with a `SKIPPED` or `CANCELLED` visit is now blocked by a rule the
-  earlier stage of the same pipeline did not apply.
-- **For `SKIPPED`, there is a real recovery path:** Department Staff (or Admin) has a dedicated
-  "Re-Queue" button that appears only when `visitStatusCode === "SKIPPED"`
-  (`components/dashboard/staff/department-module.tsx:378-387`), which calls
-  `updateDepartmentVisitStatusAction` with `nextStatusCode: "PENDING"`
-  (`features/dashboard/staff/actions.ts:964-1018`, allowed transitions at `:974-980`). That action
-  does not check case status at all, and the department queue query that surfaces the button also
-  has no case-status filter (`components/dashboard/staff/department-module.tsx:91-98` — filtered
-  only by `departmentid`), so the visit remains reachable and requeueable even after the case has
-  moved to `FOR_RELEASING`. Once requeued to `PENDING` → `IN_PROGRESS` → `COMPLETED`, the case can
-  then be released.
+1. `syncCaseWorkflowStatusAfterVisitUpdate` only acts on cases whose status is in
+   `mutableStatuses = {inProgressStatusId, pendingAdditionalStatusId, forDecisionStatusId}`
+   (`features/dashboard/staff/actions.ts:132-136`) and returns immediately otherwise
+   (`:138-140`). **`FOR_RELEASING` is not in that set** — once a case is `FOR_RELEASING`, this
+   function can no longer move it anywhere, no matter what happens to its visits.
+2. `updateDepartmentVisitStatusAction` performs **no case-status check anywhere in its body**
+   (`features/dashboard/staff/actions.ts:964-1023` — the full function, confirmed by direct read:
+   it validates `visitId`, the target `nextStatusCode` against a fixed allow-list `:974-980`, and
+   role, then writes `department_visit` directly; nothing in that range reads or checks
+   `peme_case.casestatuscodeid`).
+3. The Department Staff queue that surfaces the "Re-Queue" control has no case-status filter
+   either — `.eq("departmentid", userDepartmentClaim)` is its only condition
+   (`components/dashboard/staff/department-module.tsx:91-98`) — so a `SKIPPED` visit belonging to
+   a case that has already moved to `FOR_RELEASING` stays listed, with its "Re-Queue" button still
+   rendered (`visitStatusCode === "SKIPPED"`, `components/dashboard/staff/department-module.tsx:378-387`).
+
+Chained: a case reaches `FOR_RELEASING` carrying a legitimately terminal `SKIPPED` visit (per the
+invariant above). Department Staff clicks **Re-Queue** — an ordinary, documented action, not an
+edge case — and the visit becomes `PENDING`
+(`features/dashboard/staff/actions.ts:964-1023`, step 2). Nothing moves the case off
+`FOR_RELEASING` (step 1). The case now sits at `FOR_RELEASING` carrying a `PENDING` visit, with no
+code path correcting that — a real state inconsistency: `FOR_RELEASING` nominally means "every
+visit is done," and the case can now hold one that is actively not done, indefinitely, until
+someone acts on it. The next release attempt runs the fresh query at
+`features/dashboard/staff/actions.ts:1774-1780` (`.neq("visitstatuscodeid",
+completedVisitStatusId)`), which returns that `PENDING` row, and
+`buildUnresolvedVisitReleaseMessage` labels it "terminal but not COMPLETED" — which the table
+above shows is **false** for `PENDING`. This is not a theoretical caveat about out-of-band writes;
+it is a demonstrated defect reachable entirely through this app's own UI and server actions.
+
+**So: is the gate itself correct, or only the message wrong? Both are implicated, in different
+ways, and neither is simply "wrong" on its own:**
+
+- **The message can be literally false**, not merely over-general: the Re-Queue chain above shows
+  an ordinary in-app sequence that hands it a genuinely non-terminal `PENDING` row and it still
+  prints "terminal."
+- **The gate is also inconsistent with the rest of the workflow's own definition of "done,"**
+  independent of the Re-Queue chain — this confirms Journey 03's finding from this side. The
+  `FOR_DECISION` auto-transition treats `SKIPPED` and `CANCELLED` as good enough to let the case
+  move forward for a physician decision (i.e. "terminal" is treated there as "resolved enough"),
+  while `releaseCaseAction`'s gate is stricter and demands literal `COMPLETED`, so a case that
+  legitimately reached `FOR_RELEASING` with a `SKIPPED` or `CANCELLED` visit is blocked by a rule
+  the earlier stage of the same pipeline did not apply.
+- **For `SKIPPED`, there is a real recovery path** — the same "Re-Queue" control from the chain
+  above (`components/dashboard/staff/department-module.tsx:378-387`,
+  `features/dashboard/staff/actions.ts:964-1023`). Used *before* the case reaches `FOR_RELEASING`,
+  it is a legitimate fix; used *after*, it is the mechanism that produces the state inconsistency
+  just described. The code does not distinguish the two cases at all — nothing gates the button on
+  case status either way.
 - **For `CANCELLED`, there is no equivalent UI path.** The same department-queue row list only
   renders action buttons for `PENDING`, `IN_PROGRESS`, and `SKIPPED` visit statuses
   (`components/dashboard/staff/department-module.tsx:328-387`) — there is no branch for
@@ -320,8 +345,16 @@ that function. The RLS function backs this up: the `'Patient'` branch of
 `rls_case_visible_to_current_user` checks only `c.patientid = v_patient_id`
 (`supabase/migrations/20260525_physician_pending_additional_visibility.sql:34-40`, unchanged
 from the `20260324` baseline at the same lines) — no `portalvisible` or `waiversigned` condition
-appears in that branch, at any migration. **So toggling `portalvisible` off has no effect on what
-the patient portal shows or lets them download.**
+appears in that branch, at any migration. The same holds one layer further down, at the storage
+layer that actually serves the file bytes: `result_files_download_scoped`, the Storage RLS SELECT
+policy on `storage.objects` for the `result-files` bucket, grants `Patient` (alongside `Physician`
+and `Releasing Staff`) download access on nothing but `rls_case_visible_to_current_user(rf.caseid)`
+(`supabase/migrations/20260414_result_file_storage.sql:174-198`, not superseded by
+`20260518000001_performance_advisor_remediation.sql` — no hits for this policy name or
+`storage.objects` in that file) — again no `portalvisible` condition anywhere in it. **So toggling
+`portalvisible` off has no effect on what the patient portal shows, and none on whether a patient
+can actually download a result file's bytes from Storage either — the gate is absent at both the
+metadata-query layer and the file-storage layer.**
 
 **Consequence — what an agency (Client Representative) can see in each state.** Everything
 changes. The client-portal query requires **both**
