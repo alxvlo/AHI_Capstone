@@ -72,7 +72,7 @@ demo runs in.
 | # | Unit | Depends on | Status | Owner |
 |---|---|---|---|---|
 | **S0** | Quick wins (see below) | — | Not started | *unassigned* |
-| **01** | Reception / intake | — | Not started | *unassigned* |
+| **01** | Reception / intake | — | Reviewed | *unassigned* |
 | **02** | Triage | — | Not started | *unassigned* |
 | **03** | Department stations | — | Not started | *unassigned* |
 | **04** | Physician decision | — | Not started | *unassigned* |
