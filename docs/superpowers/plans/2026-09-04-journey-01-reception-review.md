@@ -58,6 +58,28 @@ Copied verbatim from the programme overview's "Verification approach" section an
 - **Probe credentials** come from `.env.local` (`AHI_PROBE_PASSWORD`). Never write a credential
   value into any committed file, report, or screenshot.
 
+### Re-basing citations after an evidence file is edited
+
+Learned the hard way on journey 01 (C1 in the post-review fix wave, 2026-09-04): commit `f60b1be`
+inserted a 12-line addendum into `01-reception-L1.md` after the review document already cited it,
+shifting every line below the insertion point down by 12. The citation verifier still reported `0
+bad` for both files, because it checks that a cited line **exists** — it does not, and cannot, check
+that the line still says what the citing sentence claims. Seven citations quietly pointed at the
+wrong paragraph (two of them at content from an entirely different question) with the verifier
+green the whole time.
+
+**Rule for all ten journey reviews:** any edit to an evidence file — inserting, deleting, or
+reordering lines — that happens *after* a consuming document (the review, or another evidence file)
+has already cited a line in it requires re-basing every citation into that file before the task is
+considered done. This includes citations from evidence files into other evidence files (L2 citing
+L1, L3 citing L1), not only citations from the review document itself. Re-basing means: open the
+edited file, read the new content at the shifted line numbers, and confirm it still supports the
+citing sentence's specific claim — not applying the line-count delta by arithmetic alone, since an
+insertion partway through a section can leave some downstream citations correct by coincidence and
+others wrong. When an evidence file will receive more than one edit in the same pass, do all the
+edits first, then re-base once against the final line numbers — re-basing after each individual edit
+just repeats the same work.
+
 ---
 
 ## File Structure
@@ -725,6 +747,9 @@ Use all eight, in order, with these exact headings:
 - Section 8 must reference the relevant open decisions already registered in the programme
   overview — OD-1 (waiver) and OD-4 (reception layout) both belong to this journey. Do not
   re-litigate them; point at them and add anything new this review surfaced.
+- **Length tracks evidence density, not a target word count.** A section may legitimately be one
+  paragraph if that is all the evidence supports; padding a thin section to match another journey's
+  length is a defect, not thoroughness. Journeys 02–10 will vary in length for the same reason.
 
 - [ ] **Step 1: Write sections 1 through 4**
 

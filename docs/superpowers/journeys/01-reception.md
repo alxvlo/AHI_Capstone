@@ -4,7 +4,7 @@
 **Role:** Reception/Billing
 **Route:** `/dashboard/staff` (Reception renders `ReceptionModule` when the signed-in role is
 `Reception/Billing`)
-**Evidence:** `docs/superpowers/journeys/evidence/01-reception-L1.md` (code, 120 citations),
+**Evidence:** `docs/superpowers/journeys/evidence/01-reception-L1.md` (code, 123 citations),
 `docs/superpowers/journeys/evidence/01-reception-L2.md` (rendered UI, screenshots, measured scroll
 depths), `docs/superpowers/journeys/evidence/01-reception-L3.md` (measured interaction cost).
 Screenshots referenced below live in `docs/superpowers/journeys/evidence/screenshots/`.
@@ -30,8 +30,8 @@ month funnel through this one screen, every downstream department depends on the
 visits existing correctly, and a duplicate or misrecorded patient is expensive to unwind once results
 start attaching to the wrong record. Reception is also the first thing any demo or site visit sees —
 eight of the advisor's timestamped comments (1:32 through 3:44) land here, more than on any other
-single journey (`advisor-review-responses-2026-09-04.md:147-154`,
-`docs/superpowers/specs/2026-09-04-ux-programme-overview.md:147-154`).
+single journey, per the routing table
+(`docs/superpowers/specs/2026-09-04-ux-programme-overview.md:147-154`).
 
 ## 2. Flow as built today
 
@@ -63,14 +63,14 @@ no two columns at all: Patient Lookup, the nested Register New Patient form, and
 render at the same full content width and stack strictly vertically
 (`docs/superpowers/journeys/evidence/01-reception-L2.md:68-104`, screenshots
 `01-reception-1440x900-lookup.png`, `01-reception-1440x900-create-case.png`). This is not a
-narrower-viewport collapse — L2 traced it to a specific defect and confirmed it three ways: the
+narrower-viewport collapse — L2 traced it to a specific defect and confirmed it two ways: the
 source at `components/dashboard/staff/reception-module.tsx:239` reads
 `className="grid gap-6 xl:grid-cols-[1.1fr,1fr]"`, using a comma where Tailwind's arbitrary-value
-syntax requires an underscore; the compiled rule at `.next/static/css/app/layout.css:2388` emits
-`grid-template-columns: 1.1fr,1fr` literally, which is not a valid value for that property, so the
-browser drops the whole declaration and the grid falls back to its implicit single column; and an
-isolated computed-value check found the comma form resolves to one track while the underscore form
-resolves to two. Because the `xl` breakpoint (`width >= 80rem`, 1280px) matches at every width the
+syntax requires an underscore — not a valid `grid-template-columns` track separator; and an isolated
+computed-value check found the comma form resolves to one track while the underscore form resolves
+to two, confirming the browser drops the invalid declaration rather than partially applying it
+(compiled build output was not re-cited by line number here, since generated CSS line numbers shift
+with every utility-class change and are not stable evidence). Because the `xl` breakpoint (`width >= 80rem`, 1280px) matches at every width the
 page was tested at, the two-column layout has never rendered as two columns at any viewport since
 this line was written — it is a CSS authoring bug, not a responsive design choice
 (`docs/superpowers/journeys/evidence/01-reception-L2.md:74-104`). Every other arbitrary-value grid in
@@ -82,7 +82,10 @@ The practical consequence, measured directly: at rest, a Reception user must scr
 reach the walk-in registration form, 1910px to reach case creation, and 2592px to reach the case
 tracker (`docs/superpowers/journeys/evidence/01-reception-L2.md:39-60`, screenshots
 `01-reception-1440x900-register.png`, `01-reception-1440x900-create-case.png`,
-`01-reception-1440x900-tracker.png`). At 1280×720 — "the realistic floor for a clinic workstation"
+`01-reception-1440x900-tracker.png`). The scroll-distance figures are correct as measured, but the
+named heading in each of those three screenshots sits behind the 64px sticky nav and is not itself
+visible in frame — each image instead shows the content immediately following the heading
+(`docs/superpowers/journeys/evidence/01-reception-L2.md:46-56`). At 1280×720 — "the realistic floor for a clinic workstation"
 per the review brief — only the Patient Lookup heading, its search box, and the first two rows of its
 result table are visible without scrolling; everything else requires a scroll
 (`docs/superpowers/journeys/evidence/01-reception-L2.md:112-130`, screenshot
@@ -114,9 +117,10 @@ index and `emailaddress`'s plain B-tree both only serve equality/prefix lookups,
 Playwright bracketed 11.2–14.0 seconds end to end
 (`docs/superpowers/journeys/evidence/01-reception-L2.md:143-156`); that bracket includes MCP
 tool-dispatch overhead the session had no way to subtract, so **it is not quoted here as the
-application's real response time** — only the architecture that would make any search slow (five
-sequential, un-parallelized queries per page load, one of them an unindexed-for-this-operator
-`ilike` scan) is asserted as measured fact. Submitting a search does not change any of the four
+application's real response time** — only the architecture that would make any search slow (six
+sequential, un-parallelized database round trips per page load, per §2 above and L1 Q1, one of them
+an unindexed-for-this-operator `ilike` scan) is asserted as measured fact. Submitting a search does
+not change any of the four
 metric tiles — they read identically before and after a narrowing search
 (`docs/superpowers/journeys/evidence/01-reception-L2.md:173-186`), because the tiles are computed from
 a different, independently-filtered query (see below).
@@ -140,7 +144,7 @@ field interactions plus 1 submit for a walk-in registration, one full page load
 
 **Creating the case.** `createReceptionCaseAction` requires `patientId`, `packageId`, and the waiver
 checkbox; company, category, remarks, and rush are optional
-(`docs/superpowers/journeys/evidence/01-reception-L1.md:156-167`, citing
+(`docs/superpowers/journeys/evidence/01-reception-L1.md:168-179`, citing
 `features/dashboard/staff/actions.ts:439-455`,
 `components/dashboard/staff/reception-module.tsx:469`). On submit it calls the RPC
 `bootstrap_peme_case`, and the comment directly above the call states the intent: "Use atomic RPC —
@@ -149,14 +153,14 @@ creates case + department visits in a single transaction." The RPC body confirms
 inserts one `department_visit` row per active `package_department` mapping for the chosen package via
 a plain `insert into … select …` in the same function body, and writes a `PEME_CASE_CREATED` audit
 row — all inside one invocation with no intermediate commit
-(`docs/superpowers/journeys/evidence/01-reception-L1.md:168-184`, citing
+(`docs/superpowers/journeys/evidence/01-reception-L1.md:180-189`, citing
 `supabase/migrations/20260828_restore_bootstrap_role_gate.sql:36-127`). L3's live walkthrough measured
 this directly: creating one case produced exactly 5 `department_visit` rows in the same insert path,
 verified by database query after the fact, matching the "5 department visits" success notice text
 verbatim (`docs/superpowers/journeys/evidence/01-reception-L3.md:107-155`). The Create PEME Case
 patient `<select>` is fed by the same admin-client query as the Patient Lookup table — same 12-row
 cap, same alphabetical-by-`fullname` ordering, not recency
-(`docs/superpowers/journeys/evidence/01-reception-L1.md:71-78`, citing
+(`docs/superpowers/journeys/evidence/01-reception-L1.md:20-21`, citing
 `components/dashboard/staff/reception-module.tsx:98-118`) — so a patient just registered in this same
 session does not appear in it until searched for again; L3 confirmed this is not an artifact of the
 measurement but a real, unavoidable step for a brand-new walk-in
@@ -164,7 +168,7 @@ measurement but a real, unavoidable step for a brand-new walk-in
 
 **"Initialize Visits."** A form wired to `bootstrapCaseVisitsAction` exists inside the case-detail
 panel, but it renders only in the branch that fires when the currently open case has zero
-`department_visit` rows (`docs/superpowers/journeys/evidence/01-reception-L1.md:186-225`, citing
+`department_visit` rows (`docs/superpowers/journeys/evidence/01-reception-L1.md:204-243`, citing
 `components/dashboard/staff/reception-module.tsx:726-742`,
 `features/dashboard/staff/actions.ts:621-755`). Under normal operation that branch does not fire,
 because `bootstrap_peme_case` already created the visits at case-creation time; L3's run confirms
@@ -191,7 +195,7 @@ full `peme_case` table. Waiver Pending is structurally always zero, because the 
 is the one tile that is a real, independent database count — `count: "exact", head: true` against the
 full `patient` table for `updatedat >= today` — but `updatedat` is also touched by signup
 reconciliation, so a returning patient updating their own profile inflates today's count
-(`docs/superpowers/journeys/evidence/01-reception-L1.md:227-252`, citing
+(`docs/superpowers/journeys/evidence/01-reception-L1.md:245-290`, citing
 `components/dashboard/staff/reception-module.tsx:120-237`). L2 confirmed by direct observation that
 the tiles do not react to a Patient Lookup search, which is expected given none of the tiles' filters
 match the `patientLookup` parameter that search sets
@@ -199,35 +203,37 @@ match the `patientLookup` parameter that search sets
 
 ## 3. What Sir Ng said
 
-Quoted verbatim from `advisor-review-responses-2026-09-04.md`. All eight comments routed to journey
+Quoted verbatim from `advisor-review-responses-2026-09-04.md` — an untracked working document at
+the repo root, referenced throughout this section by name only (not by line number, since it is not
+committed to this branch). All eight comments routed to journey
 01 in the programme overview (`docs/superpowers/specs/2026-09-04-ux-programme-overview.md:147-154`)
 appear here.
 
 **1:32** — "Curious that reception is the one registering the patient. It is normal, yes. But could
-this be better?" (`advisor-review-responses-2026-09-04.md:109`)
+this be better?" (`advisor-review-responses-2026-09-04.md`)
 
 **1:36** — "What are these statistics? What should I be able to do with this? What's the relevance?"
-(`advisor-review-responses-2026-09-04.md:130`)
+(`advisor-review-responses-2026-09-04.md`)
 
 **1:44** — "Why is patient lookup here, below the stats? Is looking up a patient the most critical
-thing?" (`advisor-review-responses-2026-09-04.md:162`)
+thing?" (`advisor-review-responses-2026-09-04.md`)
 
 **1:53** — "The registration form, the patient lookup, and the dashboard stats are all on one page.
 Most important up front, least important at the bottom. Plus you have no guarantee there are no
-duplicates." (`advisor-review-responses-2026-09-04.md:175`)
+duplicates." (`advisor-review-responses-2026-09-04.md`)
 
 **2:35** — "Performance is quite low on a search lookup. I suspect the page is pulling in statistics
-and lookup results and taxing the database." (`advisor-review-responses-2026-09-04.md:207`)
+and lookup results and taxing the database." (`advisor-review-responses-2026-09-04.md`)
 
 **2:41** — "Create PEME Case is scrolled down even further. Why is lookup happening and yet I select
 the patient again? Isn't it better to look up, select, and have it auto-load the package? Or the
-company provides the employee list and packages?" (`advisor-review-responses-2026-09-04.md:241`)
+company provides the employee list and packages?" (`advisor-review-responses-2026-09-04.md`)
 
 **3:10** — "Isn't there a digital copy of the waiver? A checkbox is a weak check. An upload gives
-material proof." (`advisor-review-responses-2026-09-04.md:266`)
+material proof." (`advisor-review-responses-2026-09-04.md`)
 
 **3:44** — "I think I missed where the package is actually selected."
-(`advisor-review-responses-2026-09-04.md:292`)
+(`advisor-review-responses-2026-09-04.md`)
 
 Every one of these was independently reachable from this journey's own evidence — the layout order
 (1:44, 1:53), the scroll depth to the create-case package field (3:44), the re-selection of the same
@@ -252,7 +258,7 @@ at any viewport, since the line was written
 This is the mechanical cause of the "search again" step the advisor questions at 2:41 and Lex's §3.1
 names — it is not a leftover of an old design, it is what the current code still does. A patient
 registered moments earlier is invisible in that dropdown until searched for by name or ID
-(`docs/superpowers/journeys/evidence/01-reception-L1.md:71-78`,
+(`docs/superpowers/journeys/evidence/01-reception-L1.md:20-21`,
 `docs/superpowers/journeys/evidence/01-reception-L3.md:77-86`).
 
 **Government ID format inconsistency weakens the duplicate guard the advisor asked about at 1:53.**
@@ -280,7 +286,7 @@ dropdown" are real, measured, and necessary. "Open modal" and "initialize visits
 the happy path: `bootstrap_peme_case` creates the case and all of its department visits atomically,
 and the case-detail panel (a genuine modal) was never needed in the measured run because the
 "Initialize Visits" control inside it only appears when visits are missing, which they were not
-(`docs/superpowers/journeys/evidence/01-reception-L1.md:186-225`,
+(`docs/superpowers/journeys/evidence/01-reception-L1.md:204-243`,
 `docs/superpowers/journeys/evidence/01-reception-L3.md:157-194`). Measured reality: 14 interactions
 across 3 full page loads, all on one route, and the modal was never opened.
 
@@ -295,14 +301,25 @@ and `advisor-answers-simple-2026-09-04.md` that overlaps this journey's evidence
 query chain, the unindexed leading-wildcard search, the atomic RPC, and the page-scoped/always-zero
 metric tiles — was independently reached first from the code and matches the advisor documents
 exactly; neither advisor document discusses `bootstrapCaseVisitsAction` reachability at all
-(`docs/superpowers/journeys/evidence/01-reception-L1.md:362-373`).
+(`docs/superpowers/journeys/evidence/01-reception-L1.md:400-415`).
 
 ## 5. Blocked on input
 
-The Sept 2 AHI site-visit write-up does not exist yet — the programme overview records this as a
-missing input, not something this review can substitute for
-(`docs/superpowers/specs/2026-09-04-ux-programme-overview.md:206-215`). This review does not invent
-what that write-up would have said. Specifically blocked on it for this journey:
+Two distinct inputs are missing, with different owners, and this journey is blocked on both — this
+review does not invent what either would have said.
+
+**The Sept 2 AHI site-visit write-up** does not exist yet — the programme overview records this as a
+missing input owned by the team, not something this review can substitute for
+(`docs/superpowers/specs/2026-09-04-ux-programme-overview.md:206-215`). Journey 01 is one of the
+journeys it blocks (`docs/superpowers/specs/2026-09-04-ux-programme-overview.md:208`), but the
+specific AHI questionnaire items it would plausibly answer — Q-01, Q-02, Q-03, Q-12, Q-13
+(`docs/superpowers/specs/2026-09-04-ux-programme-overview.md:208`) — are about station identification,
+department ordering, login model, peak volume, and hardware, not reception-specific content; none of
+them is called out individually here.
+
+**The AHI questionnaire answers (Q-01–Q-14)** are a separate missing input, owned by AHI via the
+advisor, not yet sent (`docs/superpowers/specs/2026-09-04-ux-programme-overview.md:209`). Three of
+its items bear directly on this journey:
 
 - **Q-04** (which registration fields are truly required vs. can be filled later) — bears directly on
   any redesign of the walk-in registration form.
@@ -310,6 +327,10 @@ what that write-up would have said. Specifically blocked on it for this journey:
   belongs on the case card.
 - **Q-10** (who may flag rush, and can it be changed after creation) — Reception sets it at creation
   today; whether that's the right point is unconfirmed.
+
+Two further open questions, blocked on neither of the above and not tracked in either "Inputs needed"
+row:
+
 - **Whether agencies send employee lists to AHI in advance, and in what form** — the precondition for
   the advisor's 2:41 suggestion (company supplies employees + default package) and for any
   batch-import feature. Not asked or answered in either advisor document or anywhere in this

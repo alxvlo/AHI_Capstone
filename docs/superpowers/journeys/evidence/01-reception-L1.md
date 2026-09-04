@@ -186,7 +186,13 @@ package — this is a plain `insert into ... select ...` in the same function bo
 call (`supabase/migrations/20260828_restore_bootstrap_role_gate.sql:103-118`), and (4) inserts a
 `PEME_CASE_CREATED` audit_log row (`supabase/migrations/20260828_restore_bootstrap_role_gate.sql:120-127`).
 Because all four steps execute inside one `plpgsql` function invocation with no intermediate
-commits, department visits are created in the same transaction as the case.
+commits, department visits are created in the same transaction as the case. Step (3)'s insert is
+itself wrapped in `if p_packageid is not null then`
+(`supabase/migrations/20260828_restore_bootstrap_role_gate.sql:103`) — a guard that is unreachable
+in practice from this UI, since `createReceptionCaseAction` already rejects a missing `packageId`
+and redirects before the RPC is ever called (`features/dashboard/staff/actions.ts:443-445`).
+Journeys 02-05 will reason about this same RPC and should treat the guard the same way: real in the
+function body, dead from any caller that goes through this action.
 
 On success, the server action reads `casenumber` and `visit_count` off the RPC's JSON return and
 redirects with a notice: `` `Case ${caseNumber} was created with ${visitCount} department visits.` ``
@@ -261,7 +267,27 @@ cases matching the page's current filter/search state, not the full `peme_case` 
   count over the full `patient` table for the current day, not scoped to the case filters or the
   40-row cap.
 
-**Evidence:** `components/dashboard/staff/reception-module.tsx:120-237`.
+**Addendum, added 2026-09-04 during the post-review fix wave (not part of the original Task 2
+pass).** The count query's filter, `updatedat >= today`, is not scoped to rows Reception itself
+touched today. Three RPCs unrelated to `createReceptionPatientAction` also set `updatedat = now()`
+on a `patient` row as a side effect of the patient self-signup/account-linking flow, not a Reception
+registration: `stage_patient_signup`'s upsert sets it on the `on conflict (emailaddress) do update`
+branch (`supabase/migrations/20260316_pending_patient_signup.sql:112`); `create_patient_profile`'s
+"reuse existing patient" branch sets it when a signing-up user is matched to an existing patient row
+by government ID (`supabase/migrations/20260529_create_patient_profile_dedup_fix.sql:120`); and
+`merge_patient_records`'s soft-delete-source branch sets it on the row being merged away
+(`supabase/migrations/20260527_merge_patient_records_rpc.sql:50`). None of these three is reachable
+from the Reception UI — they run as part of the patient's own signup/linking path — but they write
+to the same `patient.updatedat` column this tile's `.gte()` filter reads. So a returning patient
+completing their own account signup today, and being reconciled onto an existing `patient` row by
+any of these three RPCs, bumps `updatedat` into today's range without Reception having registered
+anyone new — inflating the "Patients Registered Today" count for a day on which Reception may have
+done nothing.
+
+**Evidence:** `components/dashboard/staff/reception-module.tsx:120-237`,
+`supabase/migrations/20260316_pending_patient_signup.sql:112`,
+`supabase/migrations/20260527_merge_patient_records_rpc.sql:50`,
+`supabase/migrations/20260529_create_patient_profile_dedup_fix.sql:120`.
 
 ## 9. What are the RLS constraints on Reception's reads and writes? Which role gate protects `bootstrap_peme_case`?
 
@@ -371,15 +397,19 @@ No other contradictions were found between §3.1 and the code for the remaining 
 code (`features/dashboard/staff/actions.ts:447-452, 490-501`,
 `docs/superpowers/specs/2026-08-16-staff-workflow-revision-design.md:52, 55`).
 
-2. **Advisor responses (`advisor-review-responses-2026-09-04.md`, `advisor-answers-simple-2026-09-04.md`)
+2. **Advisor responses (`advisor-review-responses-2026-09-04.md`, `advisor-answers-simple-2026-09-04.md`
+   — untracked working documents at the repo root, referenced here by name only, not by line number)
    — checked after answering all ten questions above, per the brief.** None found. Every claim in
    these two documents that overlaps this evidence file's scope was independently reached in this
-   file first and matches: the five/nine sequential (not parallel) queries on page load (Q1 here vs.
-   `advisor-review-responses-2026-09-04.md:209-222`), the leading-wildcard `ilike` across three
-   unindexed-for-that-operator columns (Q3 here vs. `advisor-review-responses-2026-09-04.md:224-227`),
+   file first and matches, once the count is reconciled: Q1 here counts six sequential (not
+   parallel) unconditional database round trips on page load, one more than the advisor document's
+   count of five (`advisor-review-responses-2026-09-04.md`) — the advisor's count excludes the
+   `status_code` query, which lives in `app/dashboard/staff/page.tsx`, not
+   `reception-module.tsx` — the leading-wildcard `ilike` across three
+   unindexed-for-that-operator columns (Q3 here vs. `advisor-review-responses-2026-09-04.md`),
    the atomic RPC creating case + visits in one transaction (Q6 here vs.
-   `advisor-review-responses-2026-09-04.md:303-305`), and the three page-scoped, filter-and-40-row-capped
+   `advisor-review-responses-2026-09-04.md`), and the three page-scoped, filter-and-40-row-capped
    metric tiles plus the structurally-always-zero "Waiver Pending" tile (Q8 here vs.
-   `advisor-review-responses-2026-09-04.md:137-149` and `advisor-answers-simple-2026-09-04.md:66-69`).
+   `advisor-review-responses-2026-09-04.md` and `advisor-answers-simple-2026-09-04.md`).
    Neither advisor document discusses `bootstrapCaseVisitsAction` / "Initialize Visits" reachability
    at all — the Q7 finding above is not addressed, confirmed, or contradicted by either document.

@@ -71,24 +71,25 @@ grid" with the Patient Lookup card on the left and the Create PEME Case card on 
 rendered 1440×900 viewport this is **not** what appears: all four regions occupy the same full
 content-column width (roughly x=380–1343 in the screenshots) and stack strictly vertically, in the
 order Patient Lookup → Register New Patient (Walk-In) → Create PEME Case → Active Case Tracker. This
-is not a responsive collapse and not intentional design — it is a CSS authoring bug, confirmed three
-ways during review of this evidence:
+is not a responsive collapse and not intentional design — it is a CSS authoring bug, confirmed two
+ways during review of this evidence (a third, compiled-CSS check was also performed but is not cited
+by file:line below — generated build output under `.next/` is not stable evidence, since its line
+numbers shift whenever any utility class in the app changes, even locally):
 
 1. **Source.** `components/dashboard/staff/reception-module.tsx:239` reads
    `className="grid gap-6 xl:grid-cols-[1.1fr,1fr]"`. Tailwind's arbitrary-value syntax requires an
    underscore in place of a space inside the brackets; a comma is not a valid track separator for the
    `grid-template-columns` property itself (it is only valid *inside* a `minmax(0,1fr)`-style function
-   argument list, which this is not).
-2. **Compiled CSS.** `.next/static/css/app/layout.css:2388-2392` emits this literally:
-   `.xl\:grid-cols-\[1\.1fr\,1fr\] { @media (width >= 80rem) { grid-template-columns: 1.1fr,1fr; } }`.
-   80rem = 1280px, so at 1440px this media query does match — the `xl` breakpoint is not the problem.
-   The declaration value itself, `1.1fr,1fr`, is invalid for `grid-template-columns`; browsers drop an
-   invalid declaration entirely rather than partially applying it, so no explicit column tracks are
-   ever defined and the grid falls back to its single implicit column.
-3. **Computed-value check.** Isolated live testing (performed during review of this file, not
+   argument list, which this is not). Tailwind's default `xl` breakpoint is `width >= 80rem` (1280px),
+   so it matches at every viewport this task tested (1440px, 1280px) — the breakpoint is not the
+   problem; the invalid comma inside the bracket is.
+2. **Computed-value check.** Isolated live testing (performed during review of this file, not
    re-run in this pass) found the comma form computes to a single track (`"1424px"`), while changing
    only the separator to an underscore (`1.1fr_1fr`) computes to two tracks
-   (`"745.898px 678.102px"`) — directly confirming the comma, not the breakpoint, is the defect.
+   (`"745.898px 678.102px"`) — directly confirming the comma, not the breakpoint, is the defect: an
+   invalid `grid-template-columns` declaration is dropped by the browser entirely rather than
+   partially applied, so no explicit column tracks are ever defined and the grid falls back to its
+   single implicit column.
 
 Because the media query does match at every width from 1280px up (`width >= 80rem`), and the
 declaration itself is invalid, **the two-column layout has never rendered as two columns at any
@@ -178,7 +179,7 @@ and read the identical four values: 12, 2, 12, 0. The tiles do **not** react to 
 search. This matches L1's Q8 finding that the tiles are computed from a `caseQuery` narrowed only by
 `caseSearch`/`statusCode`/`companyId`/`rush`/`fromDate` — none of which is the `patientLookup` query
 param this form actually sets
-(`docs/superpowers/journeys/evidence/01-reception-L1.md:238-241`). So this is not the defect the
+(`docs/superpowers/journeys/evidence/01-reception-L1.md:256-259`). So this is not the defect the
 brief's Q8 pointer was checking for: the Patient Lookup search and the four tiles are simply
 decoupled, by design, from each other.
 
@@ -215,11 +216,12 @@ PEME Case all render at the same full content width and stack strictly verticall
 is not beside Patient Lookup, it is roughly 1400px further down the page (offset 1910 vs. 512). This
 is not a viewport-width collapse: `components/dashboard/staff/reception-module.tsx:239` sets
 `xl:grid-cols-[1.1fr,1fr]`, using a comma where Tailwind's arbitrary-value syntax requires an
-underscore; the compiled rule at `.next/static/css/app/layout.css:2388-2392` shows the media query
-(`width >= 80rem`, i.e. ≥1280px) correctly matching at 1440px, but the declaration
-`grid-template-columns: 1.1fr,1fr` itself is invalid CSS and is dropped by the browser, leaving no
-explicit column tracks. See the full root-cause writeup, the computed-value evidence, and the list of
-correctly-written comparison grids elsewhere in this repo under Step 2 above. The two-column layout
+underscore — not a valid `grid-template-columns` track separator. Tailwind's `xl` breakpoint
+(`width >= 80rem`, i.e. ≥1280px) correctly matches at 1440px, so the breakpoint is not the problem;
+the computed-value check under Step 2 above confirms the invalid declaration is dropped by the
+browser rather than partially applied, leaving no explicit column tracks. See the full root-cause
+writeup, the computed-value evidence, and the list of correctly-written comparison grids elsewhere in
+this repo under Step 2 above. The two-column layout
 has therefore never rendered as two columns at any viewport width since that line was written — it is
 a silent, unnoticed defect, not intentional single-column behavior at this size.
 

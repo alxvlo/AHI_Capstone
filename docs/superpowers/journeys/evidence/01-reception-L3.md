@@ -2,7 +2,8 @@
 
 Measured live against the seeded Singapore Supabase project via Playwright MCP, signed in as
 `probe.reception.20260320@ahi.local` (Reception/Billing role), on branch `journey-01-reception-review`.
-One patient and one case were created, verified, and deleted by ID. No other rows were touched.
+One patient and one case were created, verified, and deleted via a LIKE-derived id set (see Step 5),
+not by a hardcoded ID. No other rows were touched.
 
 ## Pre-state (Step 1)
 
@@ -209,7 +210,7 @@ Command:
 node --env-file=.env.local -e '
 const { createClient } = await import("@supabase/supabase-js");
 const a = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
-const { data: p } = await a.from("patient").select("patientid").like("governmentid", "L3-RECEPTION-20260904%");
+const { data: p } = await a.from("patient").select("patientid").like("governmentid", "%L3-RECEPTION-20260904%");
 const pids = p.map((r) => r.patientid);
 if (pids.length === 0) { console.log("nothing to clean"); process.exit(0); }
 const { data: c } = await a.from("peme_case").select("caseid").in("patientid", pids);
@@ -228,10 +229,11 @@ console.log(JSON.stringify({ deletedPatients: pids.length, deletedCases: cids.le
 '
 ```
 
-**Note:** the brief's Step 5 `.like("governmentid", "L3-RECEPTION-20260904%")` pattern (leading exact
-match, trailing wildcard) does not match `"Other Government ID::L3-RECEPTION-20260904"` — the stored
-value has the type prefix *before* the ID number, not after. The pattern was corrected to
-`.like("governmentid", "%L3-RECEPTION-20260904%")` (wildcards on both sides) to match the actual
+**Note:** the brief's Step 5 pattern, `.like("governmentid", "L3-RECEPTION-20260904%")` (leading
+exact match, trailing wildcard only), does not match `"Other Government ID::L3-RECEPTION-20260904"`
+— the stored value has the type prefix *before* the ID number, not after. The command block above
+uses the corrected pattern that was actually run,
+`.like("governmentid", "%L3-RECEPTION-20260904%")` (wildcards on both sides), to match the actual
 storage format used by `buildGovernmentIdForStorage` (`lib/government-id.ts:90-98`), consistent with
 the `.like` lookup already used successfully in Step 3.
 
