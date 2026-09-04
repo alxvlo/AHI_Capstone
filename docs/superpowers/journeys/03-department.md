@@ -17,8 +17,10 @@ L3 (write) pass for this journey.
 ## 1. Who and what
 
 Department Staff work the clinical stations that actually perform the tests a package requires —
-Laboratory, Radiology, and the other stations that together make up AHI's ten clinical departments
-(`CLAUDE.md:20`). There is exactly one `Department Staff` role in the system, but every account
+Laboratory, Radiology, and the other test-performing stations among the ten seeded `department` rows
+(`supabase/migrations/20260312000001_seed_reference_data.sql:37-46`; two of the ten, `RECEPTION` and
+`BILLING`, do no testing and are outside this journey's scope). There is exactly one `Department Staff`
+role in the system, but every account
 under it is pinned to a single department, and that pinning is enforced at the database layer, not
 merely in the UI (§2, §4 below — the answer to advisor 7:12 and 6:31). Their job on this screen is
 narrow and repeated all day: pull a `PENDING` visit off the queue, Start it, encode the required
@@ -38,7 +40,8 @@ in §2/§4 from evidence and quoted verbatim in §3.
 ## 2. Flow as built today
 
 **Page load.** Landing on `/dashboard/staff` as Department Staff resolves the session, then runs
-nine database queries, mostly sequential with two `Promise.all` parallel pairs: the shared
+eleven queries across nine sequential steps, two of which are `Promise.all` pairs of two queries
+each: the shared
 `status_code` catalog, the caller's own `department` row, the 40-row queue itself
 (`.eq("departmentid", ...)`, `.order("timepending", asc)`, `.limit(40)`), a conditional second lookup
 if a result panel is open for a visit outside that 40-row window, a parallel `result_item`/
@@ -77,7 +80,7 @@ finished work, finished work dominates it, for this account and this moment
 `timepending` ascending with no secondary sort. `DataTableContainer` accepts an optional `toolbar`
 slot, but the department queue's invocation passes none
 (`docs/superpowers/journeys/evidence/03-department-L1.md:72-83`, citing
-`components/dashboard/shared/data-table-container.tsx:14,30,53`,
+`components/dashboard/shared/data-table-container.tsx:16,31,52`,
 `components/dashboard/staff/department-module.tsx:280-288,98`). L2 confirms this by direct
 observation: a full accessibility-tree text search for "filter", "search", "sort", and a
 showing/total/page-number pattern returned zero matches anywhere on the page, and there is no
@@ -243,7 +246,7 @@ query filter
 patient visit, result, or file, so it sits outside the load-bearing question 7:12 asked, but it is the
 one place in this journey where department scoping is UI-only rather than RLS-enforced.
 
-**Refresh Queue is not redundant here, unlike on Reception and Releasing (the answer to 8:22).**
+**Refresh Queue is not redundant here — verified for Department only (the answer to 8:22).**
 "Refresh Queue" is a plain link back to `/dashboard/staff`, re-running the full server query chain
 (`docs/superpowers/journeys/evidence/03-department-L1.md:402-404`, citing
 `app/dashboard/staff/page.tsx:83-85`). `DepartmentModule` mounts exactly one realtime subscription —
@@ -257,11 +260,15 @@ It is **not** redundant for `result_item` or `result_file` changes: no `Realtime
 component covers either table, so if a colleague on the same visit saves a result, verifies one, or
 uploads or deletes a file, a second staff member's already-open queue or panel gets no realtime push
 and needs the manual link to see it
-(`docs/superpowers/journeys/evidence/03-department-L1.md:414-423`). The programme overview already
-records this correction against the general "largely redundant" read that applied cleanly to
-Reception and Releasing: "Do NOT remove it from the Department screen" — realtime there covers only
-`department_visit`, not `result_item` or `result_file`
-(`docs/superpowers/specs/2026-09-04-ux-programme-overview.md:129`).
+(`docs/superpowers/journeys/evidence/03-department-L1.md:414-423`). The advisor document called
+Refresh Queue "largely redundant" (`advisor-review-responses-2026-09-04.md`); the programme overview
+already records a correction to that general read, carved out for this screen specifically: "Do NOT
+remove it from the Department screen" — because realtime here covers only `department_visit`, not
+`result_item` or `result_file`
+(`docs/superpowers/specs/2026-09-04-ux-programme-overview.md:129`). **That correction is verified by
+this journey for Department only.** Whether Reception and Releasing are actually safe to treat as
+fully redundant is a separate, unverified question this review does not adjudicate — it belongs to
+journeys 01 and 05.
 
 **The result-encoding surface, measured (the answer to 5:57).** Opening "Encode Result" is a `<Link>`
 navigation, not a write, and renders the same shared `ActionPanel` drawer journey 02 measured for the
@@ -359,16 +366,17 @@ I'm concerned you've implemented them under just one department role. Did you?"
 
 **5:12 and 5:53 are the same question asked twice, and the screen answered it neither time.** §2 above
 gives the complete mechanism once — offered only on `PENDING`, hardcoded remark, audited, reversible
-via Re-Queue, terminal-for-progression but not terminal-for-release. That the same demonstrator could
-not explain a control on their own screen is not incidental to the answer; the DOM-level finding that
-both Skip buttons carry `null` `title` and `aria-label` (§2, §4) is the mechanical reason the question
-had nowhere to land the second time either.
+via Re-Queue, terminal-for-progression but not terminal-for-release. The DOM-level finding explains why
+neither ask landed: both Skip buttons carry `null` `title` and `null` `aria-label`
+(`docs/superpowers/journeys/evidence/03-department-L2.md:90-94`), so nothing on the rendered page
+answers the question — which is consistent with it being asked twice.
 
 Five of the nine were independently reachable from this journey's own evidence, matching the
 advisor's diagnosis exactly: the measured 72.7%-finished, unfiltered queue (5:06, 6:42, §2 above), the
 DOM-confirmed unlabeled Skip control (5:12, 5:53, §2 above), the `<table>` structure with no board, no
-columns, no drag (5:18, confirmed directly against `DataTableContainer`,
-`docs/superpowers/journeys/evidence/03-department-L1.md:475` cites the same table renderer as Q3/Q4),
+columns, no drag (5:18, confirmed directly by DOM read — `table[ref] > tbody > tr`,
+`docs/superpowers/journeys/evidence/03-department-L2.md:35` — and by `DataTableContainer`'s own
+toolbar-less invocation, `docs/superpowers/journeys/evidence/03-department-L1.md:74-83`),
 the 672px/46.7–52.5% drawer (5:57, §2 above), and the RLS-enforced per-account department scoping
 (7:12, §2 above). The remaining two — 6:31 and 8:22 — are answered mechanically in §2 above (one label,
 unstyled, hidden behind the panel; realtime covers only `department_visit`) with one correction to
@@ -421,8 +429,9 @@ corrected this specifically from this journey's L1 evidence before this review w
 `result_file`, so it is the only way a second staff member picks up a colleague's saved result or
 uploaded file without navigating away and back
 (`docs/superpowers/specs/2026-09-04-ux-programme-overview.md:129`, §2 above). Any redesign that treats
-"replace the manual refresh with realtime everywhere" as a single, uniform fix (as it correctly is for
-Reception and Releasing) would regress this screen specifically.
+"replace the manual refresh with realtime everywhere" as a single, uniform fix would regress this
+screen specifically. Whether that same fix is safe on Reception and Releasing is unverified by this
+journey — both are outside its scope — and is not adjudicated here.
 
 **Lex's §3.3 "Today" description holds up on all three clauses, and the reload count is understated
 rather than merely confirmed.** §2 above traces this in full: the summary's single parenthetical
@@ -446,7 +455,7 @@ not invent what it would have said.
 **Q-07** (the accepted reasons for skipping, re-queuing, or cancelling a visit) is an **AHI
 questionnaire item** — `docs/superpowers/specs/2026-08-16-staff-workflow-revision-design.md:120` —
 tracked in the programme overview's questionnaire row, **not** the Sept 2 site-visit row
-(`docs/superpowers/specs/2026-09-04-ux-programme-overview.md:215`). It bears directly on this
+(`docs/superpowers/specs/2026-09-04-ux-programme-overview.md:209`). It bears directly on this
 journey: the hardcoded Skip and Cancel remarks (§2, §4 above) cannot be turned into a real reason
 pick-list until AHI answers it, and the same gap is what Re-Queue's total absence of a reason field
 makes structurally worse. This review does not invent a plausible answer or a site-visit finding to

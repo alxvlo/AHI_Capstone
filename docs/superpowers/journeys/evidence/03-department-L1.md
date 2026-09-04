@@ -8,7 +8,8 @@ cited `path:line`.
 
 ## 1. What database queries run when a Department Staff user loads `/dashboard/staff`?
 
-**Answer:** Nine queries total, mostly sequential, with two `Promise.all` parallel pairs.
+**Answer:** Eleven queries across nine sequential steps, two of which are `Promise.all` pairs of
+two queries each.
 In execution order:
 
 1. `status_code` (domain CASE/VISIT, active, sorted) — runs in the shared page shell
@@ -75,7 +76,7 @@ consequence).
 `components/dashboard/staff/department-module.tsx:97` (`.order("timepending", {
 ascending: true })`). There is **no filtering or searching**: `DataTableContainer` accepts
 an optional `toolbar` slot for such controls
-(`components/dashboard/shared/data-table-container.tsx:14,30,53`) but the department
+(`components/dashboard/shared/data-table-container.tsx:16,31,52`) but the department
 queue's invocation passes no `toolbar` prop
 (`components/dashboard/staff/department-module.tsx:280-288`). There is **no pagination**:
 the query is a flat `.limit(40)`
