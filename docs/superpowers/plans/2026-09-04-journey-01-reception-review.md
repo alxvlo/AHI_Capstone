@@ -338,10 +338,21 @@ Run: `npm run test:run`
 Expected: PASS. Baseline on this branch is 286 passed / 53 files (measured at dee5b7e); expect 299 (286 + 13 new).
 If the count differs from 299, say so explicitly in the report rather than rounding it off.
 
-- [ ] **Step 7: Commit**
+- [ ] **Step 7: Confirm typecheck is clean**
+
+The test file imports the `.mjs` implementation under `strict: true` / `allowJs: false`, which
+has no type declarations of its own. Create `scripts/docs/verify-citations.d.mts` alongside the
+implementation, declaring `extractCitations` and `verifyCitations` with real types (follow the
+precedent at `scripts/supabase/demo-data/dataset.d.mts`, which declares the exports of an adjacent
+`.mjs` the same way).
+
+Run: `npm run typecheck`
+Expected: exit 0, no output beyond the npm banner.
+
+- [ ] **Step 8: Commit**
 
 ```bash
-git add scripts/docs/verify-citations.mjs tests/scripts/verify-citations.test.ts
+git add scripts/docs/verify-citations.mjs scripts/docs/verify-citations.d.mts tests/scripts/verify-citations.test.ts
 git commit -m "feat(docs): add file:line citation verifier for journey reviews
 
 Journey reviews are dense with file:line citations produced by agents with no
@@ -757,7 +768,9 @@ and every other row untouched.
 - [ ] **Step 7: Confirm the test suite is still green**
 
 Run: `npm run qa:local`
-Expected: lint passes with the one known pre-existing warning at `lib/supabase/client.ts:7`,
+Expected: lint passes with 0 errors and the two known pre-existing warnings
+(`lib/supabase/client.ts:7` unused eslint-disable, and `scripts/supabase/seed-demo-data.mjs:125`
+unused variable `key`),
 typecheck clean, tests pass at the count established in Task 1 Step 6.
 This plan adds no application code, so any new failure is a signal something unrelated broke —
 report it rather than working around it.
