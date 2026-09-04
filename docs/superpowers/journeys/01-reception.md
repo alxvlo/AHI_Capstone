@@ -35,11 +35,12 @@ single journey, per the routing table
 
 ## 2. Flow as built today
 
-**Page load.** Signing in and landing on `/dashboard/staff` as Reception runs a strictly sequential
-chain of database round trips — there is no `Promise.all` anywhere in the page or the module, so each
-`await` blocks the next: session resolution, then active `status_code` rows, then active `package`
-rows, then active `company` rows, then a patient lookup (12 rows, admin client), then a 40-row
-`peme_case` list, then an independent exact-count query for "patients registered today"
+**Page load.** Signing in and landing on `/dashboard/staff` as Reception first resolves the session
+(`auth.getUser()`), then runs a strictly sequential chain of database round trips — there is no
+`Promise.all` anywhere in the page or the module, so each `await` blocks the next: active `status_code`
+rows, then active `package` rows, then active `company` rows, then a patient lookup (12 rows, admin
+client), then a 40-row `peme_case` list, then an independent exact-count query for "patients registered
+today"
 (`docs/superpowers/journeys/evidence/01-reception-L1.md:3-38`, citing
 `lib/supabase/role-routing.ts:36-70`, `app/dashboard/staff/page.tsx:54-59`,
 `components/dashboard/staff/reception-module.tsx:81-198`). Three of those — `status_code`,
@@ -61,7 +62,7 @@ two-column grid (`docs/superpowers/journeys/evidence/01-reception-L1.md:58-60`, 
 `components/dashboard/staff/reception-module.tsx:239-484`). L2, rendering the page at 1440×900, found
 no two columns at all: Patient Lookup, the nested Register New Patient form, and Create PEME Case all
 render at the same full content width and stack strictly vertically
-(`docs/superpowers/journeys/evidence/01-reception-L2.md:68-104`, screenshots
+(`docs/superpowers/journeys/evidence/01-reception-L2.md:68-105`, screenshots
 `01-reception-1440x900-lookup.png`, `01-reception-1440x900-create-case.png`). This is not a
 narrower-viewport collapse — L2 traced it to a specific defect and confirmed it two ways: the
 source at `components/dashboard/staff/reception-module.tsx:239` reads
@@ -73,7 +74,7 @@ to two, confirming the browser drops the invalid declaration rather than partial
 with every utility-class change and are not stable evidence). Because the `xl` breakpoint (`width >= 80rem`, 1280px) matches at every width the
 page was tested at, the two-column layout has never rendered as two columns at any viewport since
 this line was written — it is a CSS authoring bug, not a responsive design choice
-(`docs/superpowers/journeys/evidence/01-reception-L2.md:74-104`). Every other arbitrary-value grid in
+(`docs/superpowers/journeys/evidence/01-reception-L2.md:74-105`). Every other arbitrary-value grid in
 the repo uses the correct underscore form and renders correctly, which is part of why this one went
 unnoticed. The same malformed pattern also exists at `app/dashboard/patient/page.tsx:108`; that
 belongs to journey 06 and is flagged there, not investigated further here.
@@ -88,7 +89,7 @@ visible in frame — each image instead shows the content immediately following 
 (`docs/superpowers/journeys/evidence/01-reception-L2.md:46-56`). At 1280×720 — "the realistic floor for a clinic workstation"
 per the review brief — only the Patient Lookup heading, its search box, and the first two rows of its
 result table are visible without scrolling; everything else requires a scroll
-(`docs/superpowers/journeys/evidence/01-reception-L2.md:112-130`, screenshot
+(`docs/superpowers/journeys/evidence/01-reception-L2.md:113-131`, screenshot
 `01-reception-1280x720-top.png`). A 64px sticky header is present at every scroll position, which at
 that 720px-tall viewport permanently removes about 9% of vertical space from page content, on top of
 those scroll distances (`docs/superpowers/journeys/evidence/01-reception-L2.md:62-66`, citing
@@ -97,7 +98,7 @@ those scroll distances (`docs/superpowers/journeys/evidence/01-reception-L2.md:6
 **Patient lookup.** The search form is a plain `method="get"` HTML form with no client-side override
 — submitting it is a full document navigation to
 `/dashboard/staff?patientLookup=<term>`, confirmed by the browser tab title transiently reading
-"Loading …" during submit (`docs/superpowers/journeys/evidence/01-reception-L2.md:132-142`). It runs
+"Loading …" during submit (`docs/superpowers/journeys/evidence/01-reception-L2.md:133-143`). It runs
 through the service-role/admin client rather than the RLS-scoped client used elsewhere in the module,
 because the RLS policy `patient_select_own_or_role_scoped` has no direct clause for Reception — a
 freshly walk-in-registered patient has no linked `user_account` and no `peme_case` yet, so the
@@ -115,14 +116,14 @@ index and `emailaddress`'s plain B-tree both only serve equality/prefix lookups,
 `memory-bank/database/schema.txt:72`,
 `supabase/migrations/20260328_core_table_indexes.sql:174-189`). Three timed searches through
 Playwright bracketed 11.2–14.0 seconds end to end
-(`docs/superpowers/journeys/evidence/01-reception-L2.md:143-156`); that bracket includes MCP
+(`docs/superpowers/journeys/evidence/01-reception-L2.md:144-157`); that bracket includes MCP
 tool-dispatch overhead the session had no way to subtract, so **it is not quoted here as the
 application's real response time** — only the architecture that would make any search slow (six
 sequential, un-parallelized database round trips per page load, per §2 above and L1 Q1, one of them
 an unindexed-for-this-operator `ilike` scan) is asserted as measured fact. Submitting a search does
 not change any of the four
 metric tiles — they read identically before and after a narrowing search
-(`docs/superpowers/journeys/evidence/01-reception-L2.md:173-186`), because the tiles are computed from
+(`docs/superpowers/journeys/evidence/01-reception-L2.md:174-187`), because the tiles are computed from
 a different, independently-filtered query (see below).
 
 **Registering a patient.** `createReceptionPatientAction` validates full name (required, truncated to
@@ -140,7 +141,7 @@ patient record with the same government ID already exists.", otherwise a generic
 writes one `PATIENT_REGISTERED_BY_RECEPTION` audit row
 (`features/dashboard/staff/actions.ts:414-420`). L3's measured walkthrough confirms the shape: 7
 field interactions plus 1 submit for a walk-in registration, one full page load
-(`docs/superpowers/journeys/evidence/01-reception-L3.md:41-52`).
+(`docs/superpowers/journeys/evidence/01-reception-L3.md:42-53`).
 
 **Creating the case.** `createReceptionCaseAction` requires `patientId`, `packageId`, and the waiver
 checkbox; company, category, remarks, and rush are optional
@@ -157,14 +158,14 @@ row — all inside one invocation with no intermediate commit
 `supabase/migrations/20260828_restore_bootstrap_role_gate.sql:36-127`). L3's live walkthrough measured
 this directly: creating one case produced exactly 5 `department_visit` rows in the same insert path,
 verified by database query after the fact, matching the "5 department visits" success notice text
-verbatim (`docs/superpowers/journeys/evidence/01-reception-L3.md:107-155`). The Create PEME Case
+verbatim (`docs/superpowers/journeys/evidence/01-reception-L3.md:108-156`). The Create PEME Case
 patient `<select>` is fed by the same admin-client query as the Patient Lookup table — same 12-row
 cap, same alphabetical-by-`fullname` ordering, not recency
 (`docs/superpowers/journeys/evidence/01-reception-L1.md:20-21`, citing
 `components/dashboard/staff/reception-module.tsx:98-118`) — so a patient just registered in this same
 session does not appear in it until searched for again; L3 confirmed this is not an artifact of the
 measurement but a real, unavoidable step for a brand-new walk-in
-(`docs/superpowers/journeys/evidence/01-reception-L3.md:77-86, 168-169`).
+(`docs/superpowers/journeys/evidence/01-reception-L3.md:78-87, 169-170`).
 
 **"Initialize Visits."** A form wired to `bootstrapCaseVisitsAction` exists inside the case-detail
 panel, but it renders only in the branch that fires when the currently open case has zero
@@ -173,17 +174,17 @@ panel, but it renders only in the branch that fires when the currently open case
 `features/dashboard/staff/actions.ts:621-755`). Under normal operation that branch does not fire,
 because `bootstrap_peme_case` already created the visits at case-creation time; L3's run confirms
 this — the panel was never opened and the form was never rendered, because nothing in the measured
-path called for it (`docs/superpowers/journeys/evidence/01-reception-L3.md:171-194`). This is a
+path called for it (`docs/superpowers/journeys/evidence/01-reception-L3.md:172-195`). This is a
 conditional repair/backfill path, not a routine step of case creation.
 
 **Measured cost of the full happy path (L3).** One live, torn-down walkthrough — register a walk-in,
 search for them, create their case — took **14 interactions across 3 full page loads, all on the
-same `/dashboard/staff` route** (`docs/superpowers/journeys/evidence/01-reception-L3.md:41-75,
-187-194`). A wall-clock bracket around that run read 91.6 seconds, but that figure is
+same `/dashboard/staff` route** (`docs/superpowers/journeys/evidence/01-reception-L3.md:42-76,
+188-195`). A wall-clock bracket around that run read 91.6 seconds, but that figure is
 **`[UNVERIFIED]`** as a measure of real operator speed: it is dominated by Playwright/MCP round-trip
 latency (one request/response per tool call plus an accessibility-tree snapshot after most steps),
 not by human typing or clicking, and the evidence file itself states no defensible single number can
-be derived from it (`docs/superpowers/journeys/evidence/01-reception-L3.md:88-105`). The interaction
+be derived from it (`docs/superpowers/journeys/evidence/01-reception-L3.md:89-106`). The interaction
 count (14) and page-load count (3) are the reliable figures from this run.
 
 **Metric tiles.** Active Queue, Rush Cases, and Waiver Pending are all `.filter()` calls over the same
@@ -199,7 +200,7 @@ reconciliation, so a returning patient updating their own profile inflates today
 `components/dashboard/staff/reception-module.tsx:120-237`). L2 confirmed by direct observation that
 the tiles do not react to a Patient Lookup search, which is expected given none of the tiles' filters
 match the `patientLookup` parameter that search sets
-(`docs/superpowers/journeys/evidence/01-reception-L2.md:173-183`).
+(`docs/superpowers/journeys/evidence/01-reception-L2.md:174-184`).
 
 ## 3. What Sir Ng said
 
@@ -252,14 +253,14 @@ experienced its consequence — everything stacked in one long scroll (1:44, 1:5
 nothing in his review names a CSS authoring bug as the cause. It is the mechanical explanation for
 his scroll-depth complaints: the page was designed as two columns and never rendered as two columns,
 at any viewport, since the line was written
-(`docs/superpowers/journeys/evidence/01-reception-L2.md:68-104, 210-224`).
+(`docs/superpowers/journeys/evidence/01-reception-L2.md:68-105, 211-226`).
 
 **The Create-Case patient dropdown is capped at 12 rows, sorted alphabetically, not by recency.**
 This is the mechanical cause of the "search again" step the advisor questions at 2:41 and Lex's §3.1
 names — it is not a leftover of an old design, it is what the current code still does. A patient
 registered moments earlier is invisible in that dropdown until searched for by name or ID
 (`docs/superpowers/journeys/evidence/01-reception-L1.md:20-21`,
-`docs/superpowers/journeys/evidence/01-reception-L3.md:77-86`).
+`docs/superpowers/journeys/evidence/01-reception-L3.md:78-87`).
 
 **Government ID format inconsistency weakens the duplicate guard the advisor asked about at 1:53.**
 New registrations are forced into `TYPE::NUMBER` before insert
@@ -287,7 +288,7 @@ the happy path: `bootstrap_peme_case` creates the case and all of its department
 and the case-detail panel (a genuine modal) was never needed in the measured run because the
 "Initialize Visits" control inside it only appears when visits are missing, which they were not
 (`docs/superpowers/journeys/evidence/01-reception-L1.md:204-243`,
-`docs/superpowers/journeys/evidence/01-reception-L3.md:157-194`). Measured reality: 14 interactions
+`docs/superpowers/journeys/evidence/01-reception-L3.md:158-195`). Measured reality: 14 interactions
 across 3 full page loads, all on one route, and the modal was never opened.
 
 **The sticky 64px navbar costs roughly 9% of vertical space at the 1280×720 floor viewport**, on top
