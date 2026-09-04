@@ -94,7 +94,7 @@ the same problem in five places and will know what the shared piece actually has
 - **09 (shell + canonical case detail) is the keystone for the staff chain.** Journeys 01–05 either
   use it or get built twice. This is Lex's §3.0.
 - **10 (queue model) blocks 06.** The patient portal cannot show "where to go next" until queue
-  numbers are assigned and visits are ordered. See `exam-progress.tsx:35-41` (alphabetical sort) and
+  numbers are assigned and visits are ordered. See `components/dashboard/patient/exam-progress.tsx:35-41` (alphabetical sort) and
   RC-4 below.
 - **07 and 08 are independent** of everything else and can run in parallel at any time.
 - **S0 is independent of all reviews** and should run in parallel with Pass 1 so discovery does not
@@ -206,7 +206,7 @@ Work that is blocked on something outside the codebase.
 | Input | Blocks | Owner | Status |
 |---|---|---|---|
 | **Sept 2 site visit write-up** | 01, 02, 10 · answers to Q-01, Q-02, Q-03, Q-12, Q-13 | Team | ⚠️ **Missing** — not in `memory-bank/` or `docs/` |
-| **AHI questionnaire answers** (Q-01–Q-14) | Lex's spec approval; skip reasons (Q-07), certificate (Q-09), retention (Q-14) | AHI, via advisor | Not sent — no date recorded in `current-sprint.md:44-46` |
+| **AHI questionnaire answers** (Q-01–Q-14) | Lex's spec approval; skip reasons (Q-07), certificate (Q-09), retention (Q-14) | AHI, via advisor | Not sent — no date recorded in `memory-bank/current-sprint.md:44-46` |
 | **Demo case release status** | The clinical-values answer in journey 06 | Keith | Pending |
 | **Lex's response** to §9 and the ordering change | OD-3 | Lex | Pending |
 
