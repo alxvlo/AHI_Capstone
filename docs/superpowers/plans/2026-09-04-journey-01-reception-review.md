@@ -291,8 +291,8 @@ citations, do not weaken the script. Report any such fix in the task report.
 - [ ] **Step 6: Confirm the full suite still passes**
 
 Run: `npm run test:run`
-Expected: PASS. Baseline before this task was 272 tests; expect 281 (272 + 9 new).
-If the count differs from 281, say so explicitly in the report rather than rounding it off.
+Expected: PASS. Baseline on this branch is 286 passed / 53 files (measured at dee5b7e); expect 295 (286 + 9 new).
+If the count differs from 295, say so explicitly in the report rather than rounding it off.
 
 - [ ] **Step 7: Commit**
 
