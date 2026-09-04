@@ -149,9 +149,21 @@ The error path: the insert is issued through the admin client
 with a generic "Patient registration failed" message
 (`features/dashboard/staff/actions.ts:397-412`).
 
+**Addendum, added 2026-09-04 during Task 5 synthesis (not part of the original Task 2 pass).** The
+`TYPE::NUMBER` format enforced above at insert time (`features/dashboard/staff/actions.ts:370-373`)
+is not the only format actually stored in `patient.governmentid`. Seeded/demo patients are inserted
+with a plain string carrying no `TYPE::` prefix at all: `DEMO_GOVID_PREFIX = "DEMO-ID-"` (`scripts/supabase/demo-data/dataset.mjs:7`) and
+`governmentid: \`${DEMO_GOVID_PREFIX}${seq}\`` (`scripts/supabase/demo-data/dataset.mjs:60`).
+`patient_governmentid_key` still enforces uniqueness
+on whatever string lands in the column, so the constraint itself is not broken — but it now spans two
+structurally incompatible formats for what should be the same real-world identifier. The same person
+recorded once in the legacy plain form and once in the current `TYPE::NUMBER` form would not collide
+under this constraint.
+
 **Evidence:** `features/dashboard/staff/actions.ts:292-412`,
 `memory-bank/database/schema.txt:72`,
-`supabase/migrations/20260518000001_performance_advisor_remediation.sql:358-363`.
+`supabase/migrations/20260518000001_performance_advisor_remediation.sql:358-363`,
+`scripts/supabase/demo-data/dataset.mjs:7`, `scripts/supabase/demo-data/dataset.mjs:60`.
 
 ## 6. What is required to create a PEME case, and what exactly happens on submit? Name the RPC and state whether department visits are created in the same transaction.
 

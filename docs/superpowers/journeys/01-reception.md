@@ -4,7 +4,7 @@
 **Role:** Reception/Billing
 **Route:** `/dashboard/staff` (Reception renders `ReceptionModule` when the signed-in role is
 `Reception/Billing`)
-**Evidence:** `docs/superpowers/journeys/evidence/01-reception-L1.md` (code, 115 citations),
+**Evidence:** `docs/superpowers/journeys/evidence/01-reception-L1.md` (code, 120 citations),
 `docs/superpowers/journeys/evidence/01-reception-L2.md` (rendered UI, screenshots, measured scroll
 depths), `docs/superpowers/journeys/evidence/01-reception-L3.md` (measured interaction cost).
 Screenshots referenced below live in `docs/superpowers/journeys/evidence/screenshots/`.
@@ -42,8 +42,11 @@ rows, then active `company` rows, then a patient lookup (12 rows, admin client),
 `peme_case` list, then an independent exact-count query for "patients registered today"
 (`docs/superpowers/journeys/evidence/01-reception-L1.md:3-38`, citing
 `lib/supabase/role-routing.ts:36-70`, `app/dashboard/staff/page.tsx:54-59`,
-`components/dashboard/staff/reception-module.tsx:81-198`). None of the four un-limited queries in
-that chain carries an explicit `.limit()`, and no repo-level PostgREST row cap was found for them.
+`components/dashboard/staff/reception-module.tsx:81-198`). Three of those — `status_code`,
+`package`, and `company` — carry no explicit `.limit()`, and no repo-level PostgREST row cap was
+found for them. A fourth un-limited query exists in L1's accounting (a `department_visit` select,
+L1 item 8) but is conditional on a `panelCaseId` URL parameter being present; it is not part of the
+unconditional page-load chain enumerated above and is not double-counted with it here.
 
 **What's on the page, top to bottom.** The DOM order, read from `app/dashboard/staff/page.tsx:74-149`
 and `components/dashboard/staff/reception-module.tsx:214-832`
@@ -256,12 +259,14 @@ registered moments earlier is invisible in that dropdown until searched for by n
 New registrations are forced into `TYPE::NUMBER` before insert
 (`features/dashboard/staff/actions.ts:370-373`), but seeded/demo patients are inserted as a plain
 string with no type prefix at all — `governmentid: \`${DEMO_GOVID_PREFIX}${seq}\`` where
-`DEMO_GOVID_PREFIX` is `"DEMO-ID-"` (`scripts/supabase/demo-data/dataset.mjs:7, 60`). The unique
-constraint (`patient_governmentid_key`) still enforces uniqueness on whatever string lands in the
-column, so it is not broken — but it now spans two structurally incompatible formats for what should
-be the same real-world identifier, which means two records for the same government ID typed under
-different conventions (one legacy plain, one `TYPE::NUMBER`) would not collide and the constraint
-would silently miss them.
+`DEMO_GOVID_PREFIX` is `"DEMO-ID-"` (`scripts/supabase/demo-data/dataset.mjs:7`,
+`scripts/supabase/demo-data/dataset.mjs:60`), recorded in evidence at
+`docs/superpowers/journeys/evidence/01-reception-L1.md:152-166`. The unique constraint
+(`patient_governmentid_key`) still enforces uniqueness on whatever string lands in the column, so it
+is not broken — but it now spans two structurally incompatible formats for what should be the same
+real-world identifier, which means two records for the same government ID typed under different
+conventions (one legacy plain, one `TYPE::NUMBER`) would not collide and the constraint would
+silently miss them.
 
 **Reception's metric tiles are wrong, not merely unhelpful.** §2 above already states the mechanism
 (page-scoped `.filter()` calls, structurally-always-zero Waiver Pending, `updatedat`-based Patients
