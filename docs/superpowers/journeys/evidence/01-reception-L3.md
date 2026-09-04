@@ -168,17 +168,26 @@ screens / ≤ 60 s."
 | search again | **Confirmed, and necessary** — not an artifact of the old design. The Create-Case Patient dropdown is capped at 12 rows, sorted alphabetically by name, not by recency. A freshly-registered patient is invisible in that dropdown until searched for. |
 | pick from last-12 dropdown | Confirmed — step 11. Note "last-12" is inaccurate framing: it's alphabetically-first-12, not most-recently-registered-12. |
 | create case | Confirmed — steps 11-14 (patient, package, waiver, submit). |
-| open modal | **Refuted** — no modal exists anywhere in this flow. Case creation is a plain form on the same page. |
+| open modal | **Refuted for the happy path, not for the app.** A genuine modal does exist — `ActionPanel` (`components/dashboard/shared/action-panel.tsx:109-116`, `role="dialog"`, `aria-modal="true"`, backdrop overlay) is rendered from `components/dashboard/staff/reception-module.tsx:609-829` and opens via the `panelCaseId` URL parameter; that is the URL-param-driven detail view Lex's §1 describes generically. This measured run never opened it, because the "Initialize Visits" control that lives inside it was unnecessary — the RPC had already created all 5 visits before the panel could ever be reached. |
 | initialize visits | **Refuted** — `bootstrap_peme_case` creates case + 5 department visits atomically in one RPC call (confirmed above). "Initialize Visits" is a conditional repair form that only renders when a case already has zero visits (`01-reception-L1.md` Q7); it was never rendered in this run and was not clicked. |
 
-**Conclusion: partly stale.** The spec's "≈7 steps" step count and its "search again / pick from
-dropdown" steps are accurate and measured. But two of its seven listed steps — "open modal" and
-"initialize visits" — do not exist in the current code path; that portion of the "Today" narrative is
-stale, consistent with Task 2/3's finding that `bootstrap_peme_case` already creates visits atomically.
-The measured flow was **14 interactions across 3 full page loads, all on a single route**, to reach a
-case with all 5 department visits created — a genuinely different (and shorter) shape than "search →
-register → search again → pick → create → open modal → initialize visits" implies, because the last
-two of those seven never happen.
+**Units note:** "interactions" (14, counted above) and Lex's "steps" are not the same unit — an
+interaction is one click, field fill, or dropdown/checkbox selection; a "step" in his §1/§3.1 list is
+a coarser phase that can itself span several interactions (e.g. his single "register" step covers 7
+field interactions plus 1 submit in this run). The two counts are not directly comparable; the
+per-step table above is the like-for-like mapping, not "14 vs. 7."
+
+**Conclusion: partly stale.** The spec's step-count framing and its "search again / pick from
+dropdown" steps are accurate and measured. Its "initialize visits" step does not exist as a routine
+part of case creation — that portion of the "Today" narrative is stale, consistent with Task 2/3's
+finding that `bootstrap_peme_case` already creates visits atomically. Its "open modal" step is not
+wrong about the app (the `ActionPanel` modal is real and reachable) but is not required by the happy
+path this run measured: the modal was never opened, because the only reason to open it — running
+"Initialize Visits" — never applied. The measured flow was **14 interactions across 3 full page
+loads, all on a single route**, to reach a case with all 5 department visits created, without ever
+opening the case-detail modal — a genuinely different (and shorter) shape than "search → register →
+search again → pick → create → open modal → initialize visits" implies, because the last two of those
+steps never happen on this path.
 
 Against §6's target: **"≤ 3 screens" is met** by any reasonable reading — every full page load in
 this run resolved to the same `/dashboard/staff` route (no other page/route was ever visited), so this
