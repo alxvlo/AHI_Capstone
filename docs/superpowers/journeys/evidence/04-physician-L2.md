@@ -236,7 +236,7 @@ Sidebar (`Dashboard Navigation`) for the Physician role, read from the rendered 
 | Decisions | `/dashboard/staff?view=decisions` | **No — lands back on the identical screen.** Navigated directly to this URL and read `document.querySelector('h2')?.textContent` → `"Physician Decision Board"`, the same heading, same board, same two queue rows. This confirms L1's cross-journey observation (citing `lib/dashboard/nav-config.ts:30`) rendered: nothing in `physician-module.tsx` or the parent `app/dashboard/staff/page.tsx` reads the `view` search param, so the `?view=decisions` query string is inert — the nav item's target URL differs from the home URL only in a parameter nothing consumes. |
 | Account | `/dashboard/account` | **Yes — distinct screen.** Navigated to this URL and read `document.querySelector('h1')?.textContent` → `"Account"`, a different page entirely (profile/access details, not the decision board). |
 
-Nav item source: `lib/dashboard/nav-config.ts:30-33` (`Physician` role's single non-shared item,
+Nav item source: `lib/dashboard/nav-config.ts:34` (`Physician` role's single non-shared item,
 "Decisions", href `/dashboard/staff?view=decisions`).
 
 ---

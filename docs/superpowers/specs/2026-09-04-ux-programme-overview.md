@@ -75,7 +75,7 @@ demo runs in.
 | **01** | Reception / intake | — | Reviewed | *unassigned* |
 | **02** | Triage | — | Reviewed | *unassigned* |
 | **03** | Department stations | — | Reviewed | *unassigned* |
-| **04** | Physician decision | — | Not started | *unassigned* |
+| **04** | Physician decision | — | Complete | *unassigned* |
 | **05** | Releasing | — | Not started | *unassigned* |
 | **06** | Patient portal | 10 | Not started | *unassigned* |
 | **07** | Client / agency portal | — | Not started | *unassigned* |
@@ -195,7 +195,7 @@ re-argued in each journey.
 | **OD-2** | Queue: does the system suggest who's next, or only sort and highlight? | Advisor 5:31 vs Lex principle 6 | **Open** — see `2026-08-16` spec §9.1 |
 | **OD-3** | Build order: Department first (Lex §8) or Reception first? | Programme | **Open** — needs Lex |
 | **OD-4** | Reception layout: split into routes, or modal-from-empty-state? | Advisor 1:53 | **Open** — defer to journey 01 |
-| **OD-5** | Data entry container: keep the drawer, or move to split view? | Advisor 4:38 / 5:57 | **Open** — defer to journeys 02 and 03 |
+| **OD-5** | Data entry container: keep the drawer, or move to split view? | Advisor 4:38 / 5:57 | **Open** — defer to journeys 02, 03, and 04 |
 
 ---
 
