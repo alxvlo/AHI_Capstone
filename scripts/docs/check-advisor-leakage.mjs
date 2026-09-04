@@ -70,6 +70,59 @@ import { fileURLToPath } from "node:url";
 // rationale as scripts/docs/verify-citations.mjs: they hold example/fixture
 // text, not the review's own prose or real advisor content.
 //
+// Excluding the mandated verbatim-quote section:
+// ------------------------------------------------
+// Every journey review has a section with the exact heading
+// `## 3. What Sir Ng said`, whose entire purpose is to quote advisor
+// comments verbatim — the template *requires* this. Narrowing the
+// attribution exclusion to sentence scope (above) closed a real gap
+// (an unattributed lift hiding in an attributed paragraph) but opened a
+// much bigger one: every §3 quote is now a multi-sentence, multi-line block
+// of advisor text with the filename cited only once, often several
+// sentences away from the quoted words themselves (`**4:15** — "..."
+// (`advisor-file.md`)` puts the attribution at the very end of the
+// quotation, but the quotation itself is the sentence, so sentence-scoping
+// works there — the real failure mode is a quote spanning a `**timestamp**`
+// line plus the quoted text as *one* sentence with the filename attached at
+// the end, which sentence-scoping does handle; testing showed the bigger
+// practical problem is simply the volume of exact-text overlap in §3, which
+// a per-sentence filename check is a poor tool for policing at all: this is
+// *supposed* to be verbatim). Rather than trying to make sentence-level
+// attribution smarter, §3 is excluded wholesale: `stripAdvisorQuoteSection`
+// blanks every line from the `## 3. What Sir Ng said` heading up to (not
+// including) the next `## `-level heading, before block-splitting. This
+// only touches the review's own §3 — later sections (§4 onward) are
+// unaffected and still get full sentence-scoped scanning, so an
+// unattributed lift placed after §3 is still caught (see the corresponding
+// test).
+//
+// Ignoring citation-path shingles:
+// ---------------------------------
+// A `file:line` citation like `memory-bank/database/schema.txt:72` tokenizes
+// (see `tokenize`) into plain words indistinguishable from prose —
+// "memory bank database schema txt 72" — and can combine with an adjacent
+// real word into a 7-word shingle that happens to also appear in an advisor
+// document quoting the same path. That is not a lifted phrase; it is the
+// same citation appearing in both documents, tokenized. `PATH_SPAN_RE`
+// identifies citation-shaped substrings in the *original* text — a run of
+// path characters (word chars, `.`, `/`, `-`) ending in one of this
+// project's real file extensions, optionally followed by `:NN` or
+// `:NN-MM` — deliberately anchored on the extension rather than on bare
+// slashes: prose can contain a slash without being a path (e.g. advisor
+// text reads "filter by status/rush/company," three plain words joined by
+// slashes, not a citation), but a dot immediately followed by a known
+// extension with no intervening space is a much more specific signal.
+// `tokenizeWithPathFlags` marks each token as path-like if it falls inside
+// such a span, or if it is a bare number on its own (a line number or
+// numeric id, e.g. the trailing `72`) — bare numbers are marked regardless
+// of span membership because a citation's line number often sits just past
+// the matched extension (`:72`) rather than inside a `\w` run. A shingle is
+// excluded only when a strict *majority* of its tokens are path-like
+// (`> n/2`), not just one — the stated goal is to leave borderline shingles
+// in rather than risk suppressing real prose, and a single incidental
+// number or filename mention among mostly-prose words should not exempt a
+// genuine lift sitting next to it.
+//
 // Sentence splitting — known limitations:
 // ----------------------------------------
 // `splitIntoSentences` is a pragmatic heuristic, not a grammar-aware parser.
@@ -100,9 +153,76 @@ export function stripFencedCodeBlocks(markdown) {
   return markdown.replace(/```[\s\S]*?```/g, (block) => block.replace(/[^\n]/g, " "));
 }
 
+// Blanks the mandated `## 3. What Sir Ng said` section wholesale — from that
+// exact heading line up to (not including) the next `## `-level heading, or
+// end of file if it is the last section. See the header comment above for
+// why this section is excluded entirely rather than sentence-scoped like
+// the rest of the document. Line-based rather than a single regex so
+// heading detection isn't tangled up with a multi-line `$` anchor.
+export function stripAdvisorQuoteSection(markdown) {
+  const heading = "## 3. What Sir Ng said";
+  const lines = markdown.split("\n");
+  const start = lines.findIndex((line) => line.trim() === heading);
+  if (start === -1) return markdown;
+
+  let end = lines.length;
+  for (let i = start + 1; i < lines.length; i++) {
+    if (/^## /.test(lines[i])) {
+      end = i;
+      break;
+    }
+  }
+
+  for (let i = start; i < end; i++) {
+    lines[i] = lines[i].replace(/[^\n]/g, " ");
+  }
+  return lines.join("\n");
+}
+
 export function tokenize(text) {
   const matches = text.toLowerCase().match(/[a-z0-9']+/g);
   return matches ?? [];
+}
+
+// File extensions actually used for citations in this project's docs/code.
+// Anchoring on these (rather than on a bare "/") is what keeps this rule
+// from also catching ordinary prose that happens to contain a slash — see
+// the header comment above.
+const CITATION_EXTENSIONS =
+  "ts|tsx|js|jsx|mjs|cjs|json|ya?ml|txt|md|mdx|sql|css|html|sh|mts|cts|py";
+
+// Matches a citation-shaped substring: a run of path characters ending in a
+// real extension, optionally followed by a `:NN` or `:NN-MM` line
+// reference. Exported so the rule is directly testable and documentable.
+export const PATH_SPAN_RE = new RegExp(
+  `[\\w./-]*\\.(?:${CITATION_EXTENSIONS})\\b(?::\\d+(?:-\\d+)?)?`,
+  "gi"
+);
+
+// Tokenizes `text` like `tokenize`, but also returns a same-length boolean
+// array marking which tokens are "path-like": inside a `PATH_SPAN_RE` match,
+// or a bare number on its own. See the header comment above for why.
+export function tokenizeWithPathFlags(text) {
+  const spans = [];
+  PATH_SPAN_RE.lastIndex = 0;
+  let spanMatch;
+  while ((spanMatch = PATH_SPAN_RE.exec(text))) {
+    spans.push([spanMatch.index, spanMatch.index + spanMatch[0].length]);
+  }
+
+  const tokens = [];
+  const pathLike = [];
+  const tokenRe = /[a-z0-9']+/gi;
+  let tokenMatch;
+  while ((tokenMatch = tokenRe.exec(text))) {
+    const start = tokenMatch.index;
+    const end = start + tokenMatch[0].length;
+    const word = tokenMatch[0].toLowerCase();
+    const inSpan = spans.some(([spanStart, spanEnd]) => start >= spanStart && end <= spanEnd);
+    tokens.push(word);
+    pathLike.push(inSpan || /^\d+$/.test(word));
+  }
+  return { tokens, pathLike };
 }
 
 export function extractShingles(tokens, n) {
@@ -178,8 +298,10 @@ export function splitIntoBlocks(markdown) {
 // an attributed quotation, to be excluded — other sentences in the same
 // block are still scanned.
 export function reviewShingles(reviewText, advisorBasenames, n) {
-  const blocks = splitIntoBlocks(stripFencedCodeBlocks(reviewText));
+  const withoutQuoteSection = stripAdvisorQuoteSection(reviewText);
+  const blocks = splitIntoBlocks(stripFencedCodeBlocks(withoutQuoteSection));
   const tokens = [];
+  const pathLike = [];
   for (const block of blocks) {
     const blockText = block.join("\n");
     for (const sentence of splitIntoSentences(blockText)) {
@@ -189,11 +311,15 @@ export function reviewShingles(reviewText, advisorBasenames, n) {
         // sentinel so its removal can't bridge the sentence before it to
         // the sentence after it as though they were adjacent prose.
         tokens.push(SENTINEL);
+        pathLike.push(false);
         continue;
       }
-      tokens.push(...tokenize(sentence));
+      const { tokens: sentenceTokens, pathLike: sentencePathLike } = tokenizeWithPathFlags(sentence);
+      tokens.push(...sentenceTokens);
+      pathLike.push(...sentencePathLike);
     }
     tokens.push(SENTINEL);
+    pathLike.push(false);
   }
   // Shingles must never span the sentinel — that would join words from two
   // different blocks (or across an excluded sentence) as though they were
@@ -203,6 +329,12 @@ export function reviewShingles(reviewText, advisorBasenames, n) {
   for (let i = 0; i + n <= tokens.length; i++) {
     const window = tokens.slice(i, i + n);
     if (window.includes(SENTINEL)) continue;
+    // A shingle that is mostly citation-path fragments (see PATH_SPAN_RE
+    // above) rather than prose is not a lift — skip it. Strict majority,
+    // not "any", so one incidental number or filename next to real prose
+    // doesn't exempt the prose.
+    const pathCount = pathLike.slice(i, i + n).filter(Boolean).length;
+    if (pathCount > n / 2) continue;
     shingles.push(window.join(" "));
   }
   return new Set(shingles);

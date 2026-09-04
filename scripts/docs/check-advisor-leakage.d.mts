@@ -1,6 +1,15 @@
 export function stripFencedCodeBlocks(markdown: string): string;
 
+export function stripAdvisorQuoteSection(markdown: string): string;
+
 export function tokenize(text: string): string[];
+
+export const PATH_SPAN_RE: RegExp;
+
+export function tokenizeWithPathFlags(text: string): {
+  tokens: string[];
+  pathLike: boolean[];
+};
 
 export function extractShingles(tokens: string[], n: number): string[];
 

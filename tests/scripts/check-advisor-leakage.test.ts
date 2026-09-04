@@ -267,3 +267,75 @@ describe("CLI: node scripts/docs/check-advisor-leakage.mjs", () => {
     expect(result.stdout).toContain("advisor-review-responses-2026-09-04.md");
   });
 });
+
+describe("findLeakage — '## 3. What Sir Ng said' section exclusion (FIX 3a)", () => {
+  it("does not flag verbatim advisor text quoted inside the mandated §3 section", () => {
+    const lift = "so the queue should filter by status rush and company";
+    const review = [
+      "## 3. What Sir Ng said",
+      "",
+      `**1:10** — "${lift} for busy days."`,
+      "",
+      "## 4. What we found ourselves",
+      "",
+      "Nothing further to add here.",
+    ].join("\n");
+    const advisor = `What we'd add: ${lift} for busy days.`;
+
+    const findings = findLeakage({
+      review,
+      evidenceTexts: [],
+      advisorFiles: [{ name: "advisor-review-responses-2026-09-04.md", text: advisor }],
+      n: 7,
+    });
+
+    expect(findings).toEqual([]);
+  });
+
+  it("still flags an unattributed lift appearing after §3, in a later section", () => {
+    const lift = "so the queue should filter by status rush and company";
+    const review = [
+      "## 3. What Sir Ng said",
+      "",
+      `**1:10** — "${lift} for busy days."`,
+      "",
+      "## 4. What we found ourselves",
+      "",
+      `This review independently states that the team should ${lift} today, unattributed.`,
+    ].join("\n");
+    const advisor = `What we'd add: ${lift} for busy days.`;
+
+    const findings = findLeakage({
+      review,
+      evidenceTexts: [],
+      advisorFiles: [{ name: "advisor-review-responses-2026-09-04.md", text: advisor }],
+      n: 7,
+    });
+
+    expect(findings.some((f) => f.shingle === lift)).toBe(true);
+  });
+});
+
+describe("findLeakage — citation-path shingle exclusion (FIX 3b)", () => {
+  it("does not flag a citation-path shingle, while a same-length prose shingle is still flagged", () => {
+    const citation = "memory-bank/database/schema.txt:72";
+    const prosLift = "filter by status rush company and search";
+    const review =
+      `The constraint is documented at \`${citation}\` for this rule, read directly from the code. ` +
+      "Separately, and with no citation of its own, " +
+      `this review also states on its own that the team should ${prosLift} today.`;
+    const advisor =
+      `The constraint lives at \`${citation}\` for this rule, per the schema. ` +
+      `What we'd add: ${prosLift} and real pagination with a total count.`;
+
+    const findings = findLeakage({
+      review,
+      evidenceTexts: [],
+      advisorFiles: [{ name: "advisor-review-responses-2026-09-04.md", text: advisor }],
+      n: 7,
+    });
+
+    expect(findings.some((f) => f.shingle.includes("memory bank database schema"))).toBe(false);
+    expect(findings.some((f) => f.shingle === prosLift)).toBe(true);
+  });
+});
