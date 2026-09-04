@@ -6,7 +6,7 @@ session (Playwright MCP) against the running dev server (`localhost:3000`), sign
 bottom of this file.
 
 **Account scope caveat (applies to every observation below):** this probe account is
-pinned to the **Laboratory** department only (`components/dashboard/staff/department-module.tsx:88`, rendered as
+pinned to the **Laboratory** department only (`components/dashboard/staff/department-module.tsx:266-268`, rendered as
 "Scoped to Laboratory (LAB)"). Every queue-composition, row-count, and layout observation
 in this file describes the Laboratory queue as rendered for this one account. Any
 statement about how the other nine departments' queues would look is an **inference**
@@ -181,7 +181,7 @@ Screenshots: `03-department-1280x720-top.png`, `03-department-1280x720-encoding.
   fully visible** (DEMO-0004, bottom at 670.5px ≤ 720), a **2nd row (DEMO-0005) partially
   visible** (top 670.5, bottom 727.5 — cut by the viewport edge at 720), and the
   remaining 9 rows entirely below the fold. Compare Step 1's 4 fully visible rows at
-  900px tall — a 260px height reduction (900→720, −20%) drops fully-visible rows from 4
+  900px tall — a 180px height reduction (900→720, −20%) drops fully-visible rows from 4
   to 1 (−75%), because the metric-tile row and page header above the table are a fixed
   cost that does not shrink.
 - **Encoding surface width:** unchanged — `x=608, y=0, width=672, height=720` measured at
