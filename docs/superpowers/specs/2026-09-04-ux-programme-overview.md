@@ -74,7 +74,7 @@ demo runs in.
 | **S0** | Quick wins (see below) | — | Not started | *unassigned* |
 | **01** | Reception / intake | — | Reviewed | *unassigned* |
 | **02** | Triage | — | Reviewed | *unassigned* |
-| **03** | Department stations | — | Not started | *unassigned* |
+| **03** | Department stations | — | Reviewed | *unassigned* |
 | **04** | Physician decision | — | Not started | *unassigned* |
 | **05** | Releasing | — | Not started | *unassigned* |
 | **06** | Patient portal | 10 | Not started | *unassigned* |
