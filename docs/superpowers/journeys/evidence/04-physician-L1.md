@@ -510,7 +510,7 @@ scoping — by *status*, not by *physician*. RLS does not add a narrower scope o
 the same "any physician, any `FOR_DECISION` case" visibility, so the manual-pull model is a
 genuinely shared, unassigned pool at both layers, consistent with the domain rule that
 department queues (and by the same pattern, this queue) are manual-pull with no auto-assignment
-(`.claude/rules/peme-domain.md` — "Department queues are manual-pull Kanban... Do not add
+(`.claude/rules/peme-domain.md:17` — "Department queues are manual-pull Kanban... Do not add
 auto-assignment").
 
 **`peme_decision_delete_admin_only`
@@ -627,7 +627,7 @@ per-department grouping or subheadings (`components/dashboard/staff/physician-mo
 `syncCaseWorkflowStatusAfterVisitUpdate` later moves `PENDING_ADDITIONAL_TESTS → IN_PROGRESS`
 once a queued visit actually starts (`features/dashboard/staff/actions.ts:195-206`, comment tag
 `SCRUM-25`) — exactly "returns to IN_PROGRESS via PENDING_ADDITIONAL_TESTS," matching the case
-lifecycle diagram in `.claude/rules/peme-domain.md` and in
+lifecycle diagram in `.claude/rules/peme-domain.md:36-42` and in
 `docs/superpowers/specs/2026-08-16-staff-workflow-revision-design.md:84-91` (§4, also unedited by
 §9). "Remarks *enforced* required for UNFIT/RESTRICTIONS" matches Q6's server-side check
 (`features/dashboard/staff/actions.ts:1546-1551`) exactly, with the caveat from Q6 that the
@@ -641,13 +641,13 @@ explicitly frames it as "Proposed," not a description of current behavior.
 
 **§9.2's gap table links this journey's own Q4 finding.** "Dashboard metrics are meaningless and
 wrong (1:36, 4:02, 11:02)" is listed as picked up by "Journey 01, 02, 08"
-(`docs/superpowers/specs/2026-08-16-staff-workflow-revision-design.md:246`) — Journey 04 is not
+(`docs/superpowers/specs/2026-08-16-staff-workflow-revision-design.md:258`) — Journey 04 is not
 named there, but Q4 above shows the same defect class (tiles computed from a capped fetch array
 rather than a true population count) is present on the physician screen too, undocumented in
 that gap table.
 
 **§9.2 also lists "dead Refresh Queue button (8:22)" as quick win S0-4**
-(`docs/superpowers/specs/2026-08-16-staff-workflow-revision-design.md:248`). This screen uses
+(`docs/superpowers/specs/2026-08-16-staff-workflow-revision-design.md:265`). This screen uses
 that same shared "Refresh Queue" control (Q11), so whatever makes it "dead" for other roles
 applies here too — not independently re-verified in this file since the control lives outside
 `physician-module.tsx` and is shared shell behavior, not journey-specific code.
@@ -712,6 +712,6 @@ tiles are computed from the same `.limit(40)`-capped array, not a database count
 defect class the advisor material names as **RC-3** for Reception specifically
 (`advisor-review-responses-2026-09-04.md:91-95`, "Metrics are computed in JavaScript from the
 current page of rows, not from the database"). §9.2's gap table
-(`docs/superpowers/specs/2026-08-16-staff-workflow-revision-design.md:246`) credits "Journey 01,
+(`docs/superpowers/specs/2026-08-16-staff-workflow-revision-design.md:258`) credits "Journey 01,
 02, 08" with picking this up but does not name Journey 04 — this file's Q4 shows RC-3 applies to
 the physician screen too, undocumented there until now.
