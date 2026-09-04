@@ -298,10 +298,12 @@ instruction not to disguise a guess as a finding.
 a triage nurse needs to see on arrival, which no amount of code reading answers. §2 above establishes
 what the three tiles currently compute and over what data (mechanically honest, in that they at least
 reflect the genuinely-filtered queue, unlike some of Reception's); it does not and cannot establish
-whether those are the right three things to show a nurse, or whether a nurse would instead want
-something like prior abnormal vitals or package-specific triage-gated tests. That is a clinical
-workflow question for the Sept 2 findings or a direct conversation with AHI staff, not a code-reading
-question.
+whether those are the right three things to show a nurse. The advisor document's own draft answer
+proposes candidates — patients waiting past a threshold, prior abnormal vitals, and package-specific
+triage-gated tests (`advisor-review-responses-2026-09-04.md`) — but those are that document's
+proposal, not a finding of this review, and this review does not adopt them. What a nurse actually
+needs is a clinical workflow question for the Sept 2 findings or a direct conversation with AHI
+staff, not a code-reading question.
 
 Two further items depend on the same missing write-up, tracked in the programme overview's Inputs
 Needed table rather than invented here: **Q-10** (who may flag rush, and can it change after

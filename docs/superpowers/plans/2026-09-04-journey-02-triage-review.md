@@ -82,6 +82,20 @@ several edits in one pass, make all the edits first, then re-base once against t
 **The verifier cannot detect this class of error.** It checks that a cited line exists, not that it
 supports the claim. A green verifier run is not evidence that citations are correct.
 
+### The advisor documents contain drafted answers, not only questions
+
+Both `advisor-review-responses-2026-09-04.md` and `advisor-answers-simple-2026-09-04.md` contain
+drafted *answers* and proposed solutions to the advisor's comments, not only the comments
+themselves — that is exactly what makes their content easy to absorb into a review unnoticed: it
+already reads like a finding, in prose, sitting right next to the quote a review is there to cite.
+Speculative or conclusory content from either document (a proposed fix, a candidate list, a "we
+would recommend" line) may be quoted **with attribution by name** (no line number — both are
+untracked) and clearly marked as that document's proposal, not this review's own conclusion; or it
+may be omitted entirely. It must never be restated in a review's own voice as though it were derived
+from the L1/L2 evidence files. This has now occurred once in each of the first two journeys (01 and
+02) — it is systemic, not incidental, and every remaining journey review must check for it
+specifically before being reported done.
+
 ---
 
 ## File Structure
