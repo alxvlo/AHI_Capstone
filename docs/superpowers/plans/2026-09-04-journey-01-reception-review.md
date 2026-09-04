@@ -105,13 +105,19 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { extractCitations, verifyCitations } from "@/scripts/docs/verify-citations.mjs";
 
-function makeRepo() {
+// `trailingNewline` defaults to true because that's the realistic case: nearly
+// every source file in this repo ends in a newline. A fixture built with
+// `.join("\n")` alone has NO trailing newline and sidesteps the off-by-one
+// this suite exists to catch, so callers that need that shape ask for it
+// explicitly.
+function makeRepo({ trailingNewline = true } = {}) {
   const root = mkdtempSync(path.join(tmpdir(), "cite-"));
   mkdirSync(path.join(root, "components"), { recursive: true });
-  // 20-line file
+  // 20 real lines
+  const content = Array.from({ length: 20 }, (_, i) => `line ${i + 1}`).join("\n");
   writeFileSync(
     path.join(root, "components", "thing.tsx"),
-    Array.from({ length: 20 }, (_, i) => `line ${i + 1}`).join("\n")
+    trailingNewline ? `${content}\n` : content
   );
   return root;
 }
@@ -171,6 +177,32 @@ describe("verifyCitations", () => {
     expect(failures).toHaveLength(1);
     expect(failures[0].reason).toMatch(/only 20 lines/);
   });
+
+  describe("end-of-file boundary (trailing-newline off-by-one regression)", () => {
+    it("accepts a citation at the last real line of a trailing-newline-terminated file", () => {
+      const root = makeRepo({ trailingNewline: true });
+      expect(verifyCitations("`components/thing.tsx:20`", root)).toEqual([]);
+    });
+
+    it("rejects a citation one line past the end of a trailing-newline-terminated file", () => {
+      const root = makeRepo({ trailingNewline: true });
+      const failures = verifyCitations("`components/thing.tsx:21`", root);
+      expect(failures).toHaveLength(1);
+      expect(failures[0].reason).toMatch(/only 20 lines/);
+    });
+
+    it("accepts a citation at the last real line of a file with no trailing newline", () => {
+      const root = makeRepo({ trailingNewline: false });
+      expect(verifyCitations("`components/thing.tsx:20`", root)).toEqual([]);
+    });
+
+    it("rejects a citation one line past the end of a file with no trailing newline", () => {
+      const root = makeRepo({ trailingNewline: false });
+      const failures = verifyCitations("`components/thing.tsx:21`", root);
+      expect(failures).toHaveLength(1);
+      expect(failures[0].reason).toMatch(/only 20 lines/);
+    });
+  });
 });
 ```
 
@@ -192,6 +224,7 @@ Create `scripts/docs/verify-citations.mjs`:
 ```javascript
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 // A citation is a backtick-quoted repo-relative path with a file extension we
 // recognise, followed by :line or :start-end. Requiring the extension is what
@@ -211,6 +244,17 @@ export function extractCitations(markdown) {
   return found;
 }
 
+// Conventional line count (what `wc -l` reports for a newline-terminated
+// file): a single trailing newline is not itself an extra line. Without this,
+// split("\n") counts an extra phantom empty line for every file that ends in
+// a newline — which is nearly every source file — inflating the bound by 1
+// and silently accepting a citation one line past end-of-file.
+function countLines(content) {
+  if (content.length === 0) return 0;
+  const withoutTrailingNewline = content.endsWith("\n") ? content.slice(0, -1) : content;
+  return withoutTrailingNewline === "" ? 1 : withoutTrailingNewline.split("\n").length;
+}
+
 export function verifyCitations(markdown, repoRoot) {
   const failures = [];
   const lineCounts = new Map();
@@ -224,7 +268,7 @@ export function verifyCitations(markdown, repoRoot) {
     }
 
     if (!lineCounts.has(absolute)) {
-      lineCounts.set(absolute, readFileSync(absolute, "utf8").split("\n").length);
+      lineCounts.set(absolute, countLines(readFileSync(absolute, "utf8")));
     }
     const lines = lineCounts.get(absolute);
     const highest = citation.end ?? citation.start;
@@ -246,7 +290,7 @@ export function verifyCitations(markdown, repoRoot) {
 }
 
 // CLI: node scripts/docs/verify-citations.mjs <markdown-file> [...more]
-if (process.argv[1] && import.meta.url.endsWith(path.basename(process.argv[1]))) {
+if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1])) {
   const targets = process.argv.slice(2);
 
   if (targets.length === 0) {
@@ -276,7 +320,7 @@ if (process.argv[1] && import.meta.url.endsWith(path.basename(process.argv[1])))
 - [ ] **Step 4: Run the test to verify it passes**
 
 Run: `npx vitest run tests/scripts/verify-citations.test.ts`
-Expected: PASS, 9 tests.
+Expected: PASS, 13 tests.
 
 - [ ] **Step 5: Verify the CLI form works against a real file**
 
@@ -291,8 +335,8 @@ citations, do not weaken the script. Report any such fix in the task report.
 - [ ] **Step 6: Confirm the full suite still passes**
 
 Run: `npm run test:run`
-Expected: PASS. Baseline on this branch is 286 passed / 53 files (measured at dee5b7e); expect 295 (286 + 9 new).
-If the count differs from 295, say so explicitly in the report rather than rounding it off.
+Expected: PASS. Baseline on this branch is 286 passed / 53 files (measured at dee5b7e); expect 299 (286 + 13 new).
+If the count differs from 299, say so explicitly in the report rather than rounding it off.
 
 - [ ] **Step 7: Commit**
 

@@ -20,6 +20,17 @@ export function extractCitations(markdown) {
   return found;
 }
 
+// Conventional line count (what `wc -l` reports for a newline-terminated
+// file): a single trailing newline is not itself an extra line. Without this,
+// split("\n") counts an extra phantom empty line for every file that ends in
+// a newline — which is nearly every source file — inflating the bound by 1
+// and silently accepting a citation one line past end-of-file.
+function countLines(content) {
+  if (content.length === 0) return 0;
+  const withoutTrailingNewline = content.endsWith("\n") ? content.slice(0, -1) : content;
+  return withoutTrailingNewline === "" ? 1 : withoutTrailingNewline.split("\n").length;
+}
+
 export function verifyCitations(markdown, repoRoot) {
   const failures = [];
   const lineCounts = new Map();
@@ -33,7 +44,7 @@ export function verifyCitations(markdown, repoRoot) {
     }
 
     if (!lineCounts.has(absolute)) {
-      lineCounts.set(absolute, readFileSync(absolute, "utf8").split("\n").length);
+      lineCounts.set(absolute, countLines(readFileSync(absolute, "utf8")));
     }
     const lines = lineCounts.get(absolute);
     const highest = citation.end ?? citation.start;

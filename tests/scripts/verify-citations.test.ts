@@ -4,13 +4,19 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { extractCitations, verifyCitations } from "@/scripts/docs/verify-citations.mjs";
 
-function makeRepo() {
+// `trailingNewline` defaults to true because that's the realistic case: nearly
+// every source file in this repo ends in a newline. A fixture built with
+// `.join("\n")` alone has NO trailing newline and sidesteps the off-by-one
+// this suite exists to catch, so callers that need that shape ask for it
+// explicitly.
+function makeRepo({ trailingNewline = true } = {}) {
   const root = mkdtempSync(path.join(tmpdir(), "cite-"));
   mkdirSync(path.join(root, "components"), { recursive: true });
-  // 20-line file
+  // 20 real lines
+  const content = Array.from({ length: 20 }, (_, i) => `line ${i + 1}`).join("\n");
   writeFileSync(
     path.join(root, "components", "thing.tsx"),
-    Array.from({ length: 20 }, (_, i) => `line ${i + 1}`).join("\n")
+    trailingNewline ? `${content}\n` : content
   );
   return root;
 }
@@ -69,5 +75,31 @@ describe("verifyCitations", () => {
     const failures = verifyCitations("`components/thing.tsx:18-40`", root);
     expect(failures).toHaveLength(1);
     expect(failures[0].reason).toMatch(/only 20 lines/);
+  });
+
+  describe("end-of-file boundary (trailing-newline off-by-one regression)", () => {
+    it("accepts a citation at the last real line of a trailing-newline-terminated file", () => {
+      const root = makeRepo({ trailingNewline: true });
+      expect(verifyCitations("`components/thing.tsx:20`", root)).toEqual([]);
+    });
+
+    it("rejects a citation one line past the end of a trailing-newline-terminated file", () => {
+      const root = makeRepo({ trailingNewline: true });
+      const failures = verifyCitations("`components/thing.tsx:21`", root);
+      expect(failures).toHaveLength(1);
+      expect(failures[0].reason).toMatch(/only 20 lines/);
+    });
+
+    it("accepts a citation at the last real line of a file with no trailing newline", () => {
+      const root = makeRepo({ trailingNewline: false });
+      expect(verifyCitations("`components/thing.tsx:20`", root)).toEqual([]);
+    });
+
+    it("rejects a citation one line past the end of a file with no trailing newline", () => {
+      const root = makeRepo({ trailingNewline: false });
+      const failures = verifyCitations("`components/thing.tsx:21`", root);
+      expect(failures).toHaveLength(1);
+      expect(failures[0].reason).toMatch(/only 20 lines/);
+    });
   });
 });
