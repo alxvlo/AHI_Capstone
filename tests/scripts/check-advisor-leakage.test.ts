@@ -113,10 +113,8 @@ describe("findLeakage — core detection", () => {
     // every Markdown table). Joining them naively could spell out a phrase
     // that happens to match the advisor document by accident.
     const review = [
-      "| Enhancement | Effort |",
-      "|---|---|",
-      "| The nurse should search real pagination | Medium |",
-      "| totals shown clearly always in the header | Low |",
+      "| The nurse should search real pagination |",
+      "| totals shown clearly always in the header |",
     ].join("\n");
     const advisor = "What we'd add: search real pagination totals shown clearly always for everyone.";
     const findings = findLeakage({
