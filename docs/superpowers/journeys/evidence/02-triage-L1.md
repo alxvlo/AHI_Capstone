@@ -182,10 +182,24 @@ step 2 leaves a `triage_assessment` row persisted for a case that is not marked
 `triagecompletedtimestamp` and never received the status update — the code's own error message
 acknowledges this partial-failure state.
 
+**A retry after that partial failure does not recover, and cannot through the UI.**
+`triage_assessment` carries `constraint triage_assessment_one_per_case unique (caseid)`
+(`supabase/migrations/20260411_triage_assessment.sql:25`). The case is still in the triage queue
+(its `triagecompletedtimestamp` is still `NULL`, so it still satisfies the queue predicate from Q2),
+so the nurse's only available action is "Assess Vitals" again, which submits the same form to the
+same `.insert()` at `features/dashboard/staff/actions.ts:836`. That insert now violates the unique
+constraint on `caseid` and fails, so `redirectWithError` fires (the same path as any other insert
+failure, `features/dashboard/staff/actions.ts:851-856`) and the case's status is still never
+updated. There is no `.update()` path to `triage_assessment` anywhere in application code (Q10), so
+nothing in the UI can either complete this case's transition or clear the orphaned row. The case
+remains `triagecompletedtimestamp IS NULL` indefinitely — permanently un-triageable through the UI
+after that first partial failure, not merely left in a recoverable orphaned state.
+
 **Evidence:** `features/dashboard/staff/actions.ts:834-849`,
 `features/dashboard/staff/actions.ts:851-856`, `features/dashboard/staff/actions.ts:858-865`,
 `features/dashboard/staff/actions.ts:867-872`, `features/dashboard/staff/actions.ts:874-880`,
-`features/dashboard/staff/actions.ts:882-886`, `lib/dashboard/action-redirect.ts:35-43`.
+`features/dashboard/staff/actions.ts:882-886`, `lib/dashboard/action-redirect.ts:35-43`,
+`supabase/migrations/20260411_triage_assessment.sql:25`.
 
 ---
 

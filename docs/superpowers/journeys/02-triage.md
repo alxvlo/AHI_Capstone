@@ -4,7 +4,7 @@
 **Role:** Triage Nurse
 **Route:** `/dashboard/staff` (renders `TriageModule` when `role === TRIAGE_ROLE`,
 `app/dashboard/staff/page.tsx:112`, `lib/supabase/roles.ts:5`)
-**Evidence:** `docs/superpowers/journeys/evidence/02-triage-L1.md` (code, 95 citations),
+**Evidence:** `docs/superpowers/journeys/evidence/02-triage-L1.md` (code, 99 citations),
 `docs/superpowers/journeys/evidence/02-triage-L2.md` (rendered UI, 4 screenshots, measured
 geometry). Screenshots referenced below live in
 `docs/superpowers/journeys/evidence/screenshots/`.
@@ -21,18 +21,17 @@ The Triage Nurse is the first clinician a case reaches after Reception. Their jo
 gated: pull a case off the queue, record six vitals plus vision and an optional observation, submit,
 and the case moves from `REGISTERED` (or, if it somehow arrived that way, `IN_PROGRESS`) to
 `IN_PROGRESS` with `triagecompletedtimestamp` stamped
-(`docs/superpowers/journeys/evidence/02-triage-L1.md:152-188`, citing
-`features/dashboard/staff/actions.ts:834-886`). That single submission is the gate that admits a
-case into the clinical workflow — every downstream department, and the physician's eventual
-decision, depend on a `triage_assessment` row existing and on the case having moved off
-`REGISTERED`.
+(`docs/superpowers/journeys/evidence/02-triage-L1.md:152-202`, citing
+`features/dashboard/staff/actions.ts:834-886`). That single submission is what moves the case off
+`REGISTERED` and into `IN_PROGRESS` — every downstream department, and the physician's eventual
+decision, depend on a `triage_assessment` row existing and on that transition having happened.
 
 The queue itself is small and fixed in shape: cases in `REGISTERED` or `IN_PROGRESS` that have not
 yet been triaged, `.limit(40)`, ordered rush-first then oldest-registration-first, with no search, no
 sub-filter, and no pagination
 (`docs/superpowers/journeys/evidence/02-triage-L1.md:35-80`, citing
-`components/dashboard/staff/triage-module.tsx:39-61`). At AHI's stated ~1,000 exams/month, that cap
-is a real ceiling, not a decorative ordering choice — see §2 and §4.
+`components/dashboard/staff/triage-module.tsx:39-61`). Given AHI's own stated volume of ~1,000 exams
+a month, that cap is a real ceiling, not a decorative ordering choice — see §2 and §4.
 
 Two of the four advisor comments routed to this journey ask what the role's dashboard should show
 and whether the mechanism it uses is real (4:02, 4:50); the other two are direct observations about
@@ -94,7 +93,7 @@ undercount past 40 pending cases, since none of them is a real count of the unde
 **Vitals entry.** "Assess Vitals" navigates to the same page with `triageCaseId` set, opening
 `ActionPanel` — a component with `role="dialog"`, `aria-modal="true"`, focus trap, and Escape-to-close
 (ARIA-modal), rendered visually as a fixed right-side slide-over, not a centered dialog box
-(`docs/superpowers/journeys/evidence/02-triage-L1.md:336-372`, citing
+(`docs/superpowers/journeys/evidence/02-triage-L1.md:350-386`, citing
 `components/dashboard/shared/action-panel.tsx:51-57,105-117`). L2 measured the panel directly at
 1440×900: `width=672px`, exactly Tailwind's `max-w-2xl` (42rem) — **46.7% of the 1440px viewport**
 — with no scaling mismatch between the class name and the render
@@ -105,12 +104,13 @@ text and status badges are not legible; only coarse layout is discernible) and i
 a click anywhere in that region closes the panel rather than reaching the table underneath
 (`docs/superpowers/journeys/evidence/02-triage-L2.md:89-104`). Even the 672px allotted to the form is
 not enough: the scrollable content container measured `scrollHeight=1007px` against
-`clientHeight=742px` at 1440×900 (265px of overflow, hiding Vision, Observations, and the submit
-button below the fold) and `scrollHeight=1007px` against `clientHeight=562px` at 1280×720 (445px of
+`clientHeight=742px` at 1440×900 (265px of overflow — the Vision section's labels are visible but its
+inputs are clipped, and Observations and the submit button are entirely below the fold) and
+`scrollHeight=1007px` against `clientHeight=562px` at 1280×720 (445px of
 overflow, hiding everything past the first row of numeric vitals)
-(`docs/superpowers/journeys/evidence/02-triage-L2.md:106-124,138-149`). At 1280×720 the panel widens
+(`docs/superpowers/journeys/evidence/02-triage-L2.md:106-126,140-151`). At 1280×720 the panel widens
 proportionally to 52.5% of the (narrower) viewport without growing in pixels — the viewport shrank,
-the panel did not (`docs/superpowers/journeys/evidence/02-triage-L2.md:139-142`).
+the panel did not (`docs/superpowers/journeys/evidence/02-triage-L2.md:141-144`).
 
 **Form fields.** Nine fields total: six required numeric vitals (systolic, diastolic, heart rate,
 temperature, weight, height — all `required` client-side and bounds-validated a second time
@@ -124,7 +124,7 @@ nurse noticing), and one optional observations textarea
 `supabase/migrations/20260411_triage_assessment.sql:4-26`,
 `features/dashboard/staff/actions.ts:772-773,780-802`). L2 confirms the rendered form matches this
 inventory exactly, in the same three visual groups (Blood Pressure / Vitals+Height / Vision) plus
-Observations (`docs/superpowers/journeys/evidence/02-triage-L2.md:114-117,190-193`).
+Observations (`docs/superpowers/journeys/evidence/02-triage-L2.md:116-119,192-195`).
 
 **Submission is not atomic.** `submitTriageAssessmentAction` runs three independent, sequentially
 awaited Supabase calls with no transaction wrapper: insert `triage_assessment`, update `peme_case`
@@ -132,16 +132,16 @@ awaited Supabase calls with no transaction wrapper: insert `triage_assessment`, 
 `peme_case` update fails after the `triage_assessment` insert succeeds, the code redirects with
 *"Assessment saved but case transition failed: ..."* — wording that documents the prior insert is
 not rolled back
-(`docs/superpowers/journeys/evidence/02-triage-L1.md:152-188`, citing
+(`docs/superpowers/journeys/evidence/02-triage-L1.md:152-202`, citing
 `features/dashboard/staff/actions.ts:834-886`). L2 performed no write against this path — the
 "Submit Triage Assessment" button was never clicked in either browser pass
-(`docs/superpowers/journeys/evidence/02-triage-L2.md:206-207`) — so this finding is L1-only,
+(`docs/superpowers/journeys/evidence/02-triage-L2.md:208-209`) — so this finding is L1-only,
 mechanism confirmed from the code, not observed as a live failure.
 
 **Re-triage is blocked at both layers, but not by the same mechanism, and the two layers disagree.**
 The UI only renders `TriageForm` when `!panelCase.triagecompletedtimestamp`; once set, the panel
 shows a static "already been triaged" message with no edit control
-(`docs/superpowers/journeys/evidence/02-triage-L1.md:290-332`, citing
+(`docs/superpowers/journeys/evidence/02-triage-L1.md:304-346`, citing
 `components/dashboard/staff/triage-module.tsx:93-95,259-262`). The server action independently
 re-checks and rejects a crafted repeat POST
 (`features/dashboard/staff/actions.ts:827-832`). But no application code anywhere calls `.update()`
@@ -149,7 +149,7 @@ on `triage_assessment` — the only write is the single `.insert()` in
 `submitTriageAssessmentAction` — while a later migration grants Triage Nurse and System
 Administrator database-level `UPDATE` on that table specifically "for typo correction," with its
 header stating DELETE stays blocked so corrections go through UPDATE
-(`docs/superpowers/journeys/evidence/02-triage-L1.md:290-332`, citing
+(`docs/superpowers/journeys/evidence/02-triage-L1.md:304-346`, citing
 `supabase/migrations/20260519_triage_patient_select_admin_update.sql:2-5,22-34`,
 `features/dashboard/staff/actions.ts:836`). The database was built expecting a correction path; the
 application never built one. A nurse who mistypes a blood pressure value has no way, through any UI
@@ -159,7 +159,7 @@ or server action in this codebase, to fix it. See §6.
 same two `peme_case` writes as the real submission path (status → `IN_PROGRESS`,
 `triagecompletedtimestamp` → now) and writes a `TRIAGE_COMPLETED` audit row, but never touches
 `triage_assessment`. No component anywhere binds it to a form, link, or handler
-(`docs/superpowers/journeys/evidence/02-triage-L1.md:192-230`, citing
+(`docs/superpowers/journeys/evidence/02-triage-L1.md:206-244`, citing
 `features/dashboard/staff/actions.ts:889-950`,
 `components/dashboard/staff/triage-module.tsx:172-178,186-271`,
 `tests/features/dashboard/staff/triage-completion.test.ts:39-141`). If it were ever wired to the UI,
@@ -170,13 +170,13 @@ live hole.
 **An RLS asymmetry exists on `peme_case`, structurally identical to a gap in `triage_assessment`'s
 own UPDATE policy.** `peme_case` UPDATE carries the case-visibility gate in `USING` but is role-only
 in `WITH CHECK`
-(`docs/superpowers/journeys/evidence/02-triage-L1.md:234-286`, citing
+(`docs/superpowers/journeys/evidence/02-triage-L1.md:248-300`, citing
 `supabase/migrations/20260326_role_scoped_rls_write_baseline.sql:93-120`). Separately,
 `triage_assessment`'s UPDATE policy (the same migration that adds the correction path above) is
 role-only in both `USING` and `WITH CHECK` — not scoped by case visibility, by
 `triagecompletedtimestamp`, or by `recorded_by = current user` — so a Triage Nurse who authenticates
 can, per RLS alone, `UPDATE` any `triage_assessment` row for any case, triaged or not
-(`docs/superpowers/journeys/evidence/02-triage-L1.md:234-286`, citing
+(`docs/superpowers/journeys/evidence/02-triage-L1.md:248-300`, citing
 `supabase/migrations/20260519_triage_patient_select_admin_update.sql:22-34`). No application code
 exercises either write path today, so neither is a live exposure — but both are wider than the
 product's own visibility rules elsewhere.
@@ -185,7 +185,7 @@ product's own visibility rules elsewhere.
 the pass, and no read-only navigation path exists to reduce the queue to zero — reaching one would
 require triaging out all 8 (a write, out of scope for this task) or a different, already-empty
 account, neither of which was available
-(`docs/superpowers/journeys/evidence/02-triage-L2.md:162-170`). No claim is made here about what the
+(`docs/superpowers/journeys/evidence/02-triage-L2.md:164-172`). No claim is made here about what the
 empty state looks like.
 
 **What changed from journey 01.** This journey has no L3 pass — no live write walkthrough exists for
@@ -197,7 +197,7 @@ CSS authoring bug that made the coded intent (a two-column grid) never render as
 such code/render mismatch here: the panel's measured width matches its class name exactly, the queue
 row count and tile values match L1's predictions exactly, and L1's field inventory matches the
 rendered form exactly
-(`docs/superpowers/journeys/evidence/02-triage-L2.md:174-193`). The gap this journey surfaces is not
+(`docs/superpowers/journeys/evidence/02-triage-L2.md:176-195`). The gap this journey surfaces is not
 a bug in the code doing something other than what it says — it is that the code, rendering precisely
 as written, produces the cramped layout and silent 40-row cap the advisor is objecting to.
 
@@ -260,12 +260,12 @@ wider at the database layer than anything the application currently exercises. N
 document raises RLS at all for this journey.
 
 **Lex's §3.2 "Today" description holds up clause by clause, unlike journey 01's finding that §3.1
-was partly stale.** "List → 'Assess Vitals' modal → submit → redirect"
-(`docs/superpowers/specs/2026-08-16-staff-workflow-revision-design.md:58`) checks out on every
+was partly stale.** "list → 'Assess Vitals' modal → submit → redirect"
+(`docs/superpowers/specs/2026-08-16-staff-workflow-revision-design.md:59`) checks out on every
 element: it is a list (a `<table>`), the button reads exactly "Assess Vitals" and opens an
 ARIA-modal panel, submission is a real `<form action={submitTriageAssessmentAction}>`, and
 completion is a genuine server `redirect()` that strips `triageCaseId` and closes the panel
-(`docs/superpowers/journeys/evidence/02-triage-L1.md:336-367`). The one nuance is presentational, not
+(`docs/superpowers/journeys/evidence/02-triage-L1.md:350-381`). The one nuance is presentational, not
 functional: the panel is visually a right-side slide-over, not a centered dialog box, even though it
 is a real ARIA modal — L1 flags this as a naming detail, not a contradiction. Journey 01 found its
 comparable claim (the two-column grid) partly stale; this journey's confirmation is a genuine result
@@ -282,7 +282,7 @@ site-visit write-up, which does not exist yet
 (`docs/superpowers/specs/2026-09-04-ux-programme-overview.md`, Inputs Needed table). This review does
 not invent what that write-up would have said.
 
-**4:50 — "Is it just how the clinic does this or did you just make that up?"** The mechanism is
+**4:50 — "Is it how the clinic does this, or did you make that up?"** The mechanism is
 fully answerable from code and is stated in §2 and §3 above: submitting the triage assessment sets
 `casestatuscodeid` to `IN_PROGRESS` and stamps `triagecompletedtimestamp` in the same update, and
 writes a `TRIAGE_ASSESSMENT_COMPLETED` audit row. What code reading cannot answer is whether that
@@ -294,22 +294,30 @@ in the same breath that the visit is unwritten and the claim cannot currently be
 own finding — it is recorded here as blocked, not as answered, consistent with the brief's
 instruction not to disguise a guess as a finding.
 
-**4:02 — "Are these the only actionable stats the Nurse cares for?"** This is a question about what
-a triage nurse needs to see on arrival, which no amount of code reading answers. §2 above establishes
-what the three tiles currently compute and over what data (mechanically honest, in that they at least
-reflect the genuinely-filtered queue, unlike some of Reception's); it does not and cannot establish
-whether those are the right three things to show a nurse. The advisor document's own draft answer
-proposes candidates — patients waiting past a threshold, prior abnormal vitals, and package-specific
-triage-gated tests (`advisor-review-responses-2026-09-04.md`) — but those are that document's
-proposal, not a finding of this review, and this review does not adopt them. What a nurse actually
-needs is a clinical workflow question for the Sept 2 findings or a direct conversation with AHI
-staff, not a code-reading question.
+**4:02 — "Are these stats the only actionable stats the nurse cares for?"** This is a question about
+what a triage nurse needs to see on arrival, which no amount of code reading answers. §2 above
+establishes what the three tiles currently compute and over what data (a queue predicate that already
+excludes already-triaged and out-of-scope-status cases — §2's "Queue contents and ordering" finding,
+`docs/superpowers/journeys/evidence/02-triage-L1.md:35-51` — not an arbitrary unfiltered array); it
+does not and cannot establish whether those are the right three things to show a nurse. The advisor
+document's own draft answer proposes candidates — patients waiting past a threshold, prior abnormal
+vitals, and package-specific triage-gated tests (`advisor-review-responses-2026-09-04.md`) — but
+those are that document's proposal, not a finding of this review, and this review does not adopt
+them. What a nurse actually needs is a clinical workflow question for the Sept 2 findings or a direct
+conversation with AHI staff, not a code-reading question.
 
-Two further items depend on the same missing write-up, tracked in the programme overview's Inputs
-Needed table rather than invented here: **Q-10** (who may flag rush, and can it change after
-creation — bears on whether the queue's rush-first ordering is the right default) and **what staff
-weigh when choosing the next patient**, relevant to whether the queue ever gets suggested-next-action
-treatment (OD-2).
+A separate missing input is the **AHI questionnaire answers (Q-01–Q-14)**, owned by AHI via the
+advisor and not yet sent
+(`docs/superpowers/specs/2026-09-04-ux-programme-overview.md:209`) — a different row, with a
+different owner, from the Sept 2 write-up above. **Q-10** (who may flag rush, and can it change after
+creation — bears on whether the queue's rush-first ordering is the right default) is tracked there,
+not blocked on the site visit.
+
+**What staff weigh when choosing the next patient** — relevant to whether the queue ever gets
+suggested-next-action treatment (OD-2) — appears in neither "Inputs needed" row in the programme
+overview. It is blocked on neither of the two inputs above and not tracked anywhere; journey 01
+records the reception-side equivalent of this same open question
+(`docs/superpowers/journeys/01-reception.md:332-341`).
 
 ## 6. Gaps ranked
 
@@ -326,12 +334,19 @@ treatment (OD-2).
 2. **Vitals submission is not atomic.** Three sequential, unwrapped Supabase calls (insert
    assessment, update case, insert audit row) mean a failure between the first two leaves an
    orphaned `triage_assessment` row for a case that never transitioned — a state the code's own
-   error message documents but does not prevent. Candidate defect, same caveat as above.
+   error message documents but does not prevent. `triage_assessment` carries a
+   `unique (caseid)` constraint (`supabase/migrations/20260411_triage_assessment.sql:25`), so a
+   retry of the same submission after that partial failure hits the unique constraint on its
+   `.insert()` and fails outright — the case, still `triagecompletedtimestamp IS NULL`, remains in
+   the triage queue and is **permanently un-triageable through the UI**, not merely left in an
+   orphaned state recoverable by resubmitting. Candidate defect, same caveat as above.
 
 **Should-fix — real friction and landmines, not correctness bugs today.**
 
-3. **The 40-row queue cap has no visible ceiling and no filter.** At AHI's stated ~1,000
-   exams/month, the 41st pending case is silently invisible with no on-screen signal — advisor 4:15.
+3. **The 40-row queue cap has no visible ceiling and no filter.** Per §2, once pending cases exceed
+   the 40-row `.limit()`, the overflow case disappears from the queue and every tile with no
+   on-screen indicator that anything is missing — a real risk at AHI's ~1,000-exams/month volume,
+   not a hypothetical one — advisor 4:15.
 4. **The vitals drawer is too small for its own content, and the backdrop is dead space.** 672px
    fixed-width (46.7%–52.5% of the tested viewports) does not shrink or grow, the remaining space is
    a blurred, non-interactive overlay, and the form itself overflows the panel by 265–445px,
@@ -362,9 +377,9 @@ enough to sequence.
 |---|---|---|
 | Build a vitals-correction path (UI + server action) reusing the `UPDATE` grant already present in RLS | Must-fix #1 | Low–Medium |
 | Wrap vitals submission (insert assessment, update case, insert audit) in a single RPC transaction, matching Reception's `bootstrap_peme_case` pattern | Must-fix #2 | Low–Medium |
-| Filter by status/rush/company, search by name or case number, real pagination with a total count | Should-fix #3, advisor 4:15, this is RC-2 | Medium |
-| Move vitals entry off the fixed-width drawer to a two-pane split view (queue left, active case right, both live) | Should-fix #4, advisor 4:38, OD-5 | Medium |
-| Compute the three metric tiles from real database counts | Should-fix #5, advisor 4:02's honesty concern | Low |
+| Add filtering, search, and real pagination with a visible total count to the queue — the specific fields (status/rush/company) are the advisor document's own proposed remedy (`advisor-review-responses-2026-09-04.md`), not an enumeration 4:15 itself makes | Should-fix #3, advisor 4:15 ("no way to filter"), this is RC-2 | Medium |
+| Redesign the vitals-entry container per OD-5 — the advisor document sketches three options (a full-page route, a two-pane split view, or a wider drawer without the backdrop) and recommends the split view (`advisor-review-responses-2026-09-04.md`); this review does not pick among them | Should-fix #4, advisor 4:38, OD-5 | Medium |
+| Compute the three metric tiles from real database counts | Should-fix #5, advisor 4:02 | Low |
 | Remove `updateTriageCompletionAction`, or redesign it to require a `triage_assessment` row before transitioning the case | Should-fix #6 | Trivial (removal) – Low (redesign) |
 | Scope `triage_assessment` and `peme_case` UPDATE `WITH CHECK` clauses to case visibility, matching their `USING` clauses | Should-fix #7 | Low |
 | Mark `vision_left`/`vision_right` `required` in the form to match the form's own default-fallback intent | Nice-to-have #8 | Trivial |

@@ -108,8 +108,10 @@ the dashboard/queue behind it.
 measured `scrollHeight=1007px` against `clientHeight=742px` at this viewport — **265px of content
 does not fit and requires internal scrolling.** The screenshot confirms this directly: the visible
 region shows Case Snapshot, Blood Pressure (Systolic/Diastolic), and the start of Vitals (Heart
-Rate/Temperature/Weight, Height); Vision (Left Eye/Right Eye), Observations, and the "Submit Triage
-Assessment" button are below the fold and not visible without scrolling inside the panel.
+Rate/Temperature/Weight, Height); the "Vision", "Left Eye", and "Right Eye" labels are also visible,
+around y=761–799, but their input fields are clipped at the very bottom edge of the viewport and are
+not usable without scrolling; Observations and the "Submit Triage Assessment" button are entirely
+below the fold and not visible at all without scrolling inside the panel.
 
 Total form fields (per L1 Q6, confirmed present in the rendered DOM): 6 required numeric vitals
 (systolic, diastolic, heart rate, temperature, weight, height), 2 optional-looking text fields

@@ -92,9 +92,21 @@ Speculative or conclusory content from either document (a proposed fix, a candid
 would recommend" line) may be quoted **with attribution by name** (no line number — both are
 untracked) and clearly marked as that document's proposal, not this review's own conclusion; or it
 may be omitted entirely. It must never be restated in a review's own voice as though it were derived
-from the L1/L2 evidence files. This has now occurred once in each of the first two journeys (01 and
-02) — it is systemic, not incidental, and every remaining journey review must check for it
-specifically before being reported done.
+from the L1/L2 evidence files. This has now occurred multiple times across the first two journeys
+(01 and 02), including inside the very commit that added this constraint — it is systemic, not
+incidental, and a written rule alone has not prevented it. Every remaining journey review (03-10)
+must run the mechanical check before being reported done:
+
+```
+node scripts/docs/check-advisor-leakage.mjs \
+  --review docs/superpowers/journeys/<NN>-<name>.md \
+  --evidence docs/superpowers/journeys/evidence/<NN>-<name>-L1.md docs/superpowers/journeys/evidence/<NN>-<name>-L2.md [...any other L-passes for that journey] \
+  --advisor advisor-review-responses-2026-09-04.md advisor-answers-simple-2026-09-04.md
+```
+
+and get exit 0 (`0 candidate lift(s) found`) before that journey is reported done. A nonzero exit
+means fix the flagged wording — attribute it to the advisor document by name, or restate it from the
+evidence in the review's own terms — and re-run until it is clean.
 
 ---
 
