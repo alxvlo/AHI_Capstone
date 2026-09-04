@@ -6,6 +6,10 @@ export function extractShingles(tokens: string[], n: number): string[];
 
 export function splitIntoBlocks(markdown: string): string[][];
 
+export function splitIntoSentences(text: string): string[];
+
+export function mergeOverlappingShingles(shingles: string[], n: number): string[];
+
 export function reviewShingles(
   reviewText: string,
   advisorBasenames: string[],

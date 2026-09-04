@@ -18,6 +18,16 @@ import { fileURLToPath } from "node:url";
 // reach the same conclusion the advisor did, from the code) and is not a
 // leak.
 //
+// A single lifted phrase longer than N words produces one matching shingle
+// per sliding-window position over it — a 12-word lift at N=7 is 6 raw
+// matches, not 6 separate lifts. Reporting raw shingles would inflate one
+// instance into several findings, so matched shingles from the same advisor
+// file are merged into maximal phrases before being reported (see
+// `mergeOverlappingShingles`): two shingles merge when the last N-1 words of
+// one equal the first N-1 words of the other, i.e. they are the same run of
+// source text advanced by one word. The reported count is the number of
+// merged phrases — instances, not windows.
+//
 // Excluding legitimate quotation:
 // -------------------------------
 // The review's own §3 quotes advisor comments verbatim by design, and the
@@ -31,24 +41,58 @@ import { fileURLToPath } from "node:url";
 // mark and the attribution on a different physical line than the quoted
 // words themselves (Markdown hard-wraps prose at ~100 columns), so a strict
 // per-line rule would still flag the wrapped line that has no attribution on
-// it. Instead this script excludes at the *block* level: a block is a run of
-// non-blank lines that are all continuations of the same unit of content —
-// a wrapped paragraph, one heading, one list item, or one table row. A new
-// block starts at a blank line, or at a line beginning a heading (`#`),
-// table row (`|`), list item (`-`, `*`, `+`, or `N.`), or blockquote (`>`),
-// even with no blank line before it (this is what keeps adjacent table rows
-// and adjacent list items — e.g. the ranked-gaps list in §6 — from being
-// merged into one giant excluded block). If ANY line in a block names an
-// advisor file, the whole block is excluded from the review's shingle set.
+// it. This script first reassembles wrapped physical lines into blocks: a
+// block is a run of non-blank lines that are all continuations of the same
+// unit of content — a wrapped paragraph, one heading, one list item, or one
+// table row. A new block starts at a blank line, or at a line beginning a
+// heading (`#`), table row (`|`), list item (`-`, `*`, `+`, or `N.`), or
+// blockquote (`>`), even with no blank line before it (this is what keeps
+// adjacent table rows and adjacent list items — e.g. the ranked-gaps list in
+// §6 — from being merged into one giant block).
 //
-// Shingles never span a block boundary (a sentinel token is inserted between
-// blocks before windowing), so excluding a block cannot leak its words into
-// an adjacent, unattributed block, and an unattributed block never gains
-// words from a neighboring excluded one either.
+// Exclusion itself, however, is scoped to the *sentence*, not the block.
+// Block-level exclusion was tried first and is too coarse: a paragraph that
+// names an advisor file once to attribute one quoted sentence would exempt
+// every other sentence in that paragraph too, silently, even an unattributed
+// near-verbatim lift sitting right next to the attributed quote. Each block
+// is split into sentences (see `splitIntoSentences` below); a sentence is
+// excluded only if it itself names an advisor file. Other sentences in the
+// same block are still scanned.
+//
+// Shingles never span a sentence-exclusion gap or a block boundary (a
+// sentinel token is inserted wherever an excluded sentence was removed, and
+// after every block, before windowing), so excluding a sentence cannot leak
+// its words into an adjacent, unattributed sentence or block, and an
+// unattributed sentence never gains words from a neighboring excluded one
+// either.
 //
 // Fenced code blocks (``` ... ```) are blanked out before any of this, same
 // rationale as scripts/docs/verify-citations.mjs: they hold example/fixture
 // text, not the review's own prose or real advisor content.
+//
+// Sentence splitting — known limitations:
+// ----------------------------------------
+// `splitIntoSentences` is a pragmatic heuristic, not a grammar-aware parser.
+// It splits after a sentence-ending mark (`.`, `!`, `?`) that is followed by
+// whitespace and then something that looks like the start of a new sentence
+// (a capital letter, digit, opening quote/paren, or a protected code-span
+// placeholder). Known gaps, all of which fail toward *under*-splitting
+// (treating two sentences as one), which is the safer direction here — see
+// the header note above on why over-splitting is the one to avoid:
+//   - No abbreviation list. "e.g.", "i.e.", "Dr.", "§5." etc. are not
+//     recognized as non-terminal periods. In practice this rarely causes a
+//     bad split, because the word after most such abbreviations in this
+//     corpus is lowercase, and the regex requires a capital/digit/quote/paren
+//     to treat the gap as a sentence boundary at all.
+//   - No decimal-number handling. Not needed in practice: a split requires
+//     the punctuation mark to be followed by whitespace, and a decimal like
+//     "3.14" has no space after its period.
+//   - Backtick-quoted spans (`` `...` ``) are treated as opaque — the
+//     splitter never breaks inside one — so an inline code citation
+//     containing punctuation (e.g. `` `path/file.ts:123` ``) cannot fragment
+//     a sentence. Citations outside backticks are not specially protected,
+//     but a bare `path/file.ts:123` has no space after any of its periods
+//     either, so it does not trigger a split regardless.
 
 const SENTINEL = "\0";
 
@@ -83,6 +127,30 @@ function isBlockStarter(line) {
   return false;
 }
 
+// Splits a block's text into sentences. See the header comment above for the
+// documented, deliberately-simple heuristic and its known limitations.
+export function splitIntoSentences(text) {
+  // Protect backtick-quoted spans so the splitter can never break inside
+  // one: swap each span for a placeholder that keeps its enclosing
+  // backticks and replaces only the inner content with a numeric index,
+  // restored after splitting. This reuses ordinary backtick and digit
+  // characters already used throughout this file, rather than introducing
+  // a control character — a prior version of this file used a literal NUL
+  // byte for SENTINEL below and it made git treat the file as binary,
+  // suppressing diffs and `git blame`; not worth risking again here.
+  const codeSpans = [];
+  const protectedText = text.replace(/`[^`\n]*`/g, (match) => {
+    codeSpans.push(match);
+    return "`" + (codeSpans.length - 1) + "`";
+  });
+
+  const pieces = protectedText.split(/(?<=[.!?])\s+(?=[A-Z0-9"'(`])/);
+
+  return pieces.map((piece) =>
+    piece.replace(/`(\d+)`/g, (_, index) => codeSpans[Number(index)])
+  );
+}
+
 export function splitIntoBlocks(markdown) {
   const lines = markdown.split("\n");
   const blocks = [];
@@ -104,22 +172,33 @@ export function splitIntoBlocks(markdown) {
   return blocks;
 }
 
-// Builds the review's shingle set, honoring the block-level exclusion rule
-// documented above. `advisorBasenames` is the list of advisor-document
-// filenames (basenames) whose mention in a block marks that block as an
-// attributed quotation, to be excluded.
+// Builds the review's shingle set, honoring the sentence-level exclusion
+// rule documented above. `advisorBasenames` is the list of advisor-document
+// filenames (basenames) whose mention in a sentence marks that sentence as
+// an attributed quotation, to be excluded — other sentences in the same
+// block are still scanned.
 export function reviewShingles(reviewText, advisorBasenames, n) {
   const blocks = splitIntoBlocks(stripFencedCodeBlocks(reviewText));
   const tokens = [];
   for (const block of blocks) {
     const blockText = block.join("\n");
-    const attributed = advisorBasenames.some((name) => blockText.includes(name));
-    if (attributed) continue;
-    tokens.push(...tokenize(blockText), SENTINEL);
+    for (const sentence of splitIntoSentences(blockText)) {
+      const attributed = advisorBasenames.some((name) => sentence.includes(name));
+      if (attributed) {
+        // An excluded sentence contributes no words, but still needs a
+        // sentinel so its removal can't bridge the sentence before it to
+        // the sentence after it as though they were adjacent prose.
+        tokens.push(SENTINEL);
+        continue;
+      }
+      tokens.push(...tokenize(sentence));
+    }
+    tokens.push(SENTINEL);
   }
   // Shingles must never span the sentinel — that would join words from two
-  // different blocks as though they were contiguous prose, which they were
-  // not (and could produce a "shingle" that never existed in the source).
+  // different blocks (or across an excluded sentence) as though they were
+  // contiguous prose, which they were not (and could produce a "shingle"
+  // that never existed in the source).
   const shingles = [];
   for (let i = 0; i + n <= tokens.length; i++) {
     const window = tokens.slice(i, i + n);
@@ -134,6 +213,60 @@ export function fileShingles(text, n) {
   return new Set(extractShingles(tokens, n));
 }
 
+// Merges overlapping N-word shingles matched against the same advisor file
+// into maximal phrases, so one lifted run of text is reported once instead
+// of once per sliding-window position over it. Two shingles merge when the
+// last N-1 words of one equal the first N-1 words of the other — exactly
+// the relationship consecutive positions of the sliding window in
+// `extractShingles` produce for genuinely contiguous source text, so this
+// only merges shingles that really were one contiguous phrase.
+//
+// This does not attempt to disambiguate the rare case where two distinct
+// matched shingles share the same N-1-word head or tail (e.g. an identical
+// short phrase recurring at two unrelated points in the review) — it is a
+// pragmatic merge for the common case of one contiguous lift, not a general
+// sequence-alignment algorithm.
+export function mergeOverlappingShingles(shingles, n) {
+  if (n <= 1) return [...shingles];
+
+  const wordsByShingle = new Map(shingles.map((s) => [s, s.split(" ")]));
+  const head = (words) => words.slice(0, n - 1).join(" ");
+  const tail = (words) => words.slice(-(n - 1)).join(" ");
+
+  // Index matched shingles by their head, to walk a chain forward one word
+  // at a time; a shingle is a chain *start* when no other matched shingle's
+  // tail feeds into its head.
+  const byHead = new Map();
+  for (const words of wordsByShingle.values()) {
+    byHead.set(head(words), words);
+  }
+  const isChainStart = (words) => {
+    for (const other of wordsByShingle.values()) {
+      if (other !== words && tail(other) === head(words)) return false;
+    }
+    return true;
+  };
+
+  const merged = [];
+  const consumed = new Set();
+  for (const [shingle, words] of wordsByShingle) {
+    if (consumed.has(shingle) || !isChainStart(words)) continue;
+
+    let phrase = words;
+    consumed.add(shingle);
+    for (;;) {
+      const nextWords = byHead.get(tail(phrase));
+      if (!nextWords) break;
+      const nextShingle = nextWords.join(" ");
+      if (consumed.has(nextShingle)) break;
+      phrase = [...phrase, nextWords[nextWords.length - 1]];
+      consumed.add(nextShingle);
+    }
+    merged.push(phrase.join(" "));
+  }
+  return merged;
+}
+
 // Core detection. Inputs are plain text (already read from disk), not file
 // paths — kept pure and file-I/O-free so it is directly unit-testable.
 //
@@ -141,6 +274,10 @@ export function fileShingles(text, n) {
 // checked against the review's attribution blocks, and as the label
 // reported alongside a finding, so pass it as the filename (basename is
 // fine; a full path also works since block matching is a substring check).
+//
+// Findings report merged instances (see `mergeOverlappingShingles`), not
+// raw sliding-window shingles — one contiguous lift is one finding even
+// when it spans several windows.
 export function findLeakage({ review, evidenceTexts, advisorFiles, n = 7 }) {
   const advisorBasenames = advisorFiles.map((f) => path.basename(f.name));
   const reviewSet = reviewShingles(review, advisorBasenames, n);
@@ -153,10 +290,14 @@ export function findLeakage({ review, evidenceTexts, advisorFiles, n = 7 }) {
   const findings = [];
   for (const { name, text } of advisorFiles) {
     const advisorSet = fileShingles(text, n);
+    const matched = [];
     for (const shingle of reviewSet) {
       if (advisorSet.has(shingle) && !evidenceSet.has(shingle)) {
-        findings.push({ shingle, advisorFile: name });
+        matched.push(shingle);
       }
+    }
+    for (const phrase of mergeOverlappingShingles(matched, n)) {
+      findings.push({ shingle: phrase, advisorFile: name });
     }
   }
   return findings;

@@ -8,6 +8,7 @@ import {
   tokenize,
   extractShingles,
   findLeakage,
+  splitIntoSentences,
 } from "@/scripts/docs/check-advisor-leakage.mjs";
 
 const repoRoot = path.resolve(fileURLToPath(import.meta.url), "../../..");
@@ -124,6 +125,103 @@ describe("findLeakage — core detection", () => {
       n: 7,
     });
     expect(findings).toEqual([]);
+  });
+});
+
+describe("findLeakage — sentence-scoped attribution exclusion (FIX 1)", () => {
+  it("flags an unattributed lift in a sentence that shares a block with an attributed sentence", () => {
+    const lift = "filter by status rush company and search";
+    // One block (no blank line inside), two sentences. The first sentence
+    // names the advisor file to attribute unrelated context; the second
+    // sentence, in the same block, restates the lift with no attribution of
+    // its own. Block-level exclusion would have exempted the whole block;
+    // sentence-level exclusion must still catch the second sentence.
+    const review =
+      "The advisor's draft answer is quoted for context " +
+      "(advisor-review-responses-2026-09-04.md). Separately, this review also " +
+      `states on its own that the team should ${lift} today.`;
+    const advisor = `What we'd add: ${lift} and real pagination with a total count.`;
+
+    const findings = findLeakage({
+      review,
+      evidenceTexts: [],
+      advisorFiles: [{ name: "advisor-review-responses-2026-09-04.md", text: advisor }],
+      n: 7,
+    });
+
+    expect(findings.some((f) => f.shingle === lift)).toBe(true);
+  });
+
+  it("still exempts a sentence that both quotes the lift and attributes it, in a multi-sentence block", () => {
+    const lift = "filter by status rush company and search";
+    const review =
+      "Some unrelated framing sentence opens this paragraph with no advisor content in it. " +
+      `The team's draft note says the queue should ${lift} and real pagination with a total ` +
+      "count, as recorded in (advisor-review-responses-2026-09-04.md).";
+    const advisor = `What we'd add: ${lift} and real pagination with a total count.`;
+
+    const findings = findLeakage({
+      review,
+      evidenceTexts: [],
+      advisorFiles: [{ name: "advisor-review-responses-2026-09-04.md", text: advisor }],
+      n: 7,
+    });
+
+    expect(findings).toEqual([]);
+  });
+});
+
+describe("splitIntoSentences", () => {
+  it("does not split at a period inside a file:line citation", () => {
+    const text =
+      "This mirrors the guard clause at lib/auth/session.ts:42, which the review found " +
+      "accurate on inspection. A second, unrelated sentence follows here.";
+
+    const sentences = splitIntoSentences(text);
+
+    expect(sentences).toHaveLength(2);
+    expect(sentences[0]).toContain("lib/auth/session.ts:42");
+    expect(sentences[1].trimStart()).toBe("A second, unrelated sentence follows here.");
+  });
+});
+
+describe("findLeakage — merged instance counting (FIX 2)", () => {
+  it("reports a 12-word lift as exactly one finding with the full merged phrase", () => {
+    const lift = "alpha bravo charlie delta echo foxtrot golf hotel india juliet kilo lima";
+    const review = `The enhancement should ${lift} or something similar, per the team's own analysis.`;
+    const advisor = `What we'd add: ${lift} and nothing else worth noting here.`;
+
+    const findings = findLeakage({
+      review,
+      evidenceTexts: [],
+      advisorFiles: [{ name: "advisor-review-responses-2026-09-04.md", text: advisor }],
+      n: 7,
+    });
+
+    expect(findings).toHaveLength(1);
+    expect(findings[0].shingle).toBe(lift);
+    expect(findings[0].advisorFile).toBe("advisor-review-responses-2026-09-04.md");
+  });
+
+  it("reports two genuinely separate lifts as two findings, not merged into one", () => {
+    const lift1 = "mango papaya guava kiwi lychee starfruit durian";
+    const lift2 = "cinnamon nutmeg clove cardamom saffron turmeric paprika";
+    const review =
+      `The enhancement should include ${lift1} as one change, and also ` +
+      `${lift2} as a second, unrelated change worth making.`;
+    const advisor =
+      `What we'd add: ${lift1} for one idea, and separately ${lift2} for ` +
+      "another idea entirely unrelated to the first.";
+
+    const findings = findLeakage({
+      review,
+      evidenceTexts: [],
+      advisorFiles: [{ name: "advisor-review-responses-2026-09-04.md", text: advisor }],
+      n: 7,
+    });
+
+    expect(findings).toHaveLength(2);
+    expect(findings.map((f) => f.shingle).sort()).toEqual([lift1, lift2].sort());
   });
 });
 
