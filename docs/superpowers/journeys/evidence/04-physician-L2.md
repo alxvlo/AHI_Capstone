@@ -233,7 +233,7 @@ Sidebar (`Dashboard Navigation`) for the Physician role, read from the rendered 
 | Label | Target | Resolves to a distinct screen? |
 |---|---|---|
 | Dashboard Home | `/dashboard/staff` | Baseline — this is the screen already being reviewed. |
-| Decisions | `/dashboard/staff?view=decisions` | **No — lands back on the identical screen.** Navigated directly to this URL and read `document.querySelector('h2')?.textContent` → `"Physician Decision Board"`, the same heading, same board, same two queue rows. This confirms L1's cross-journey observation (citing `lib/dashboard/nav-config.ts:30`) rendered: nothing in `physician-module.tsx` or the parent `app/dashboard/staff/page.tsx` reads the `view` search param, so the `?view=decisions` query string is inert — the nav item's target URL differs from the home URL only in a parameter nothing consumes. |
+| Decisions | `/dashboard/staff?view=decisions` | **No — lands back on the identical screen.** Navigated directly to this URL and read `document.querySelector('h2')?.textContent` → `"Physician Decision Board"`, the same heading, same board, same two queue rows. This confirms L1's cross-journey observation (citing `lib/dashboard/nav-config.ts:34`) rendered: nothing in `physician-module.tsx` or the parent `app/dashboard/staff/page.tsx` reads the `view` search param, so the `?view=decisions` query string is inert — the nav item's target URL differs from the home URL only in a parameter nothing consumes. |
 | Account | `/dashboard/account` | **Yes — distinct screen.** Navigated to this URL and read `document.querySelector('h1')?.textContent` → `"Account"`, a different page entirely (profile/access details, not the decision board). |
 
 Nav item source: `lib/dashboard/nav-config.ts:34` (`Physician` role's single non-shared item,
@@ -256,7 +256,7 @@ exactly as predicted:
 - No vitals, no visit history, no file/attachment affordance anywhere in the panel (L1 Q5,
   confirmed by full-text search of the rendered panel).
 - `?view=decisions` nav target is inert, landing back on the same screen (L1's cross-journey
-  `lib/dashboard/nav-config.ts:30` observation, confirmed).
+  `lib/dashboard/nav-config.ts:34` observation, confirmed).
 - The `.limit(40)` cap (L1 Q3/Q4) is real in code but genuinely unobservable in this run — the
   seeded queue holds only 2 cases. This is not a contradiction of L1; L1 itself frames this
   correctly as "a cap you cannot reach is still a cap," and the render side agrees: nothing on

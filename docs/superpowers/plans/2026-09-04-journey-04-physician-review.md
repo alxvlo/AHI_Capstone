@@ -392,7 +392,7 @@ submitting. Read-only; no database writes."
 
 **Files:**
 - Create: `docs/superpowers/journeys/04-physician.md`
-- Modify: `docs/superpowers/specs/2026-09-04-ux-programme-overview.md:78` (unit 04 row → Complete)
+- Modify: `docs/superpowers/specs/2026-09-04-ux-programme-overview.md:78` (unit 04 row → Reviewed)
 
 **Interfaces:**
 - Consumes: both evidence files. **Every claim in the review traces to one of them.**
@@ -495,7 +495,7 @@ document by name. In your report, list every remaining finding and why it is leg
 
 - [ ] **Step 8: Update the programme overview and commit**
 
-Set unit 04's row in the overview table (`:78`) to Complete. Do not touch any other row, and do not
+Set unit 04's row in the overview table (`:78`) to Reviewed. Do not touch any other row, and do not
 alter S0-4.
 
 ```bash

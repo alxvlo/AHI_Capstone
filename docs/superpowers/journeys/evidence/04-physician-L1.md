@@ -604,7 +604,7 @@ confirm/refute exercise, not a gap report.
 
 > "**Today:** one modal holding both the decision form and the additional-tests form; flat
 > result table."
-> (`docs/superpowers/specs/2026-08-16-staff-workflow-revision-design.md:68`)
+> (`docs/superpowers/specs/2026-08-16-staff-workflow-revision-design.md:69`)
 
 **Confirmed on both clauses.** One `ActionPanel` (`components/dashboard/shared/action-panel.tsx`)
 wraps both the "Decision Entry" section

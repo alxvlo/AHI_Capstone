@@ -75,7 +75,7 @@ demo runs in.
 | **01** | Reception / intake | — | Reviewed | *unassigned* |
 | **02** | Triage | — | Reviewed | *unassigned* |
 | **03** | Department stations | — | Reviewed | *unassigned* |
-| **04** | Physician decision | — | Complete | *unassigned* |
+| **04** | Physician decision | — | Reviewed | *unassigned* |
 | **05** | Releasing | — | Not started | *unassigned* |
 | **06** | Patient portal | 10 | Not started | *unassigned* |
 | **07** | Client / agency portal | — | Not started | *unassigned* |

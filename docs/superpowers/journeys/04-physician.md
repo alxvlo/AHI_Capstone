@@ -32,8 +32,8 @@ The queue is a shared, unassigned pool, not a personal worklist: every account w
 `Physician` sees every case at `FOR_DECISION`, with no per-physician ownership column on `peme_case`
 and no RLS narrowing beyond status
 (`docs/superpowers/journeys/evidence/04-physician-L1.md:477-489,507-514`). Only one of the advisor's
-thirty-seven timestamped comments is routed here — **8:02**, on how additional tests work
-(`docs/superpowers/specs/2026-09-04-ux-programme-overview.md:171`) — a far lighter advisor footprint
+thirty-five (`docs/superpowers/specs/2026-09-04-ux-programme-overview.md:142`) timestamped comments is routed here — **8:02**, on how additional tests work
+(`docs/superpowers/specs/2026-09-04-ux-programme-overview.md:170`) — a far lighter advisor footprint
 than journey 03's nine, so this review's weight sits in §4.
 
 ## 2. Flow as built today
@@ -180,7 +180,7 @@ Quoted verbatim from `advisor-review-responses-2026-09-04.md` — an untracked w
 repo root, referenced by name only, not by line number, since it is not committed to this branch
 (the convention journey 01 established, continued in journeys 02 and 03). This is the only
 timestamped comment the programme overview routes to this journey
-(`docs/superpowers/specs/2026-09-04-ux-programme-overview.md:171`).
+(`docs/superpowers/specs/2026-09-04-ux-programme-overview.md:170`).
 
 **8:02** — "How does additional tests work?" (`advisor-review-responses-2026-09-04.md`)
 
