@@ -76,7 +76,7 @@ demo runs in.
 | **02** | Triage | — | Reviewed | *unassigned* |
 | **03** | Department stations | — | Reviewed | *unassigned* |
 | **04** | Physician decision | — | Reviewed | *unassigned* |
-| **05** | Releasing | — | Not started | *unassigned* |
+| **05** | Releasing | — | Reviewed | *unassigned* |
 | **06** | Patient portal | 10 | Not started | *unassigned* |
 | **07** | Client / agency portal | — | Not started | *unassigned* |
 | **08** | Admin | — | Not started | *unassigned* |
@@ -126,7 +126,7 @@ parallel with Pass 1.
 | S0-1 | **Case History panel** — audit trail filtered by `entityid` on the case detail view | 11:52 | Data already captured; only the UI is missing |
 | S0-2 | **Real dashboard metrics** — reception's four tiles counted from the database, not from `cases.filter()` | 1:36 | Change three `.filter()` calls to counts |
 | S0-3 | **Department badge** in the staff header so the role's department is unmistakable | 6:31 | One component |
-| S0-4 | **Refresh Queue button** — ⚠️ **HOLD.** Do not remove it anywhere yet. Verified needed on Department; Reception and Releasing unverified (journeys 01/05 to judge) | 8:22 | Department is verified (journey 03) to need the button: its only `RealtimeBridge` covers `department_visit` (`components/dashboard/staff/department-module.tsx:260-263`), not `result_item` or `result_file`, so removing it would lose the only way to pick up a colleague's result or file changes. Reception (`components/dashboard/staff/reception-module.tsx:181,216`) and Releasing (`components/dashboard/staff/releasing-module.tsx:70,134`) both query `department_visit` but mount only a `peme_case` `RealtimeBridge` — they may have the same gap and are **unverified**, not confirmed safe. Corrected 2026-09-04 from journey 03's L1 evidence; the Reception/Releasing rationale corrected 2026-09-04 in the journey 03 fix wave. |
+| S0-4 | **Refresh Queue button** — ⚠️ **HOLD.** Do not remove it anywhere yet. Verified needed on Department and Releasing; Reception unverified (journey 01 to judge) | 8:22 | Department is verified (journey 03) to need the button: its only `RealtimeBridge` covers `department_visit` (`components/dashboard/staff/department-module.tsx:260-263`), not `result_item` or `result_file`, so removing it would lose the only way to pick up a colleague's result or file changes. Releasing is now also verified (journey 05) to need it: it queries `department_visit` and `peme_decision` (`components/dashboard/staff/releasing-module.tsx:69-77`) but mounts only a `peme_case` `RealtimeBridge` (`:134`), and journey 05's L1 evidence traces a realistic in-app path — a Department Staff Re-Queue on a case already at `FOR_RELEASING` — where a colleague's `department_visit` change is missed on an open Release Checklist page (`docs/superpowers/journeys/evidence/05-releasing-L1.md:565-576`). Reception (`components/dashboard/staff/reception-module.tsx:181,216`) remains **unverified** — journey 01 did not settle it. Corrected 2026-09-04 from journey 03's L1 evidence; Releasing settled 2026-09-04 from journey 05's L1 evidence (Q10). |
 | S0-5 | **Provision SMTP** on a test mailbox and verify one live send end to end | 9:17 | Config plus one manual test |
 
 S0-2 is a **defect**, not a design improvement — the numbers on screen are wrong. Candidate

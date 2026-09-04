@@ -7,6 +7,12 @@ explicit account required by the task brief. No `Release Case`, no portal-visibi
 form submitted. Every pixel figure below was measured with `browser_evaluate` +
 `getBoundingClientRect()`, not estimated, except where marked `[UNVERIFIED]`.
 
+**Note on screenshots.** `05-releasing-1440x900-row-actions.png` (Step 3) and
+`05-releasing-1440x900-top.png` (Step 1) are byte-identical (sha256 confirmed) — five distinct
+images exist for six filenames in `docs/superpowers/journeys/evidence/screenshots/`, because both
+captures were taken of the same at-rest board at the same 1440×900 viewport with nothing on screen
+changed between them, not from two different interaction states.
+
 Seeded data at the time of this run: **2** `FOR_RELEASING` cases (`DEMO-0011`, `DEMO-0012`) and
 **2** `RELEASED` cases visible in the Portal Visibility Management table (`DEMO-0013`, `DEMO-0014`).
 Zero cases released "today" (all `releasedtimestamp` values are `Aug 31, 2026`, current date in
