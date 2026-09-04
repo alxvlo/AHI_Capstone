@@ -182,8 +182,12 @@ dropdown" steps are accurate and measured. Its "initialize visits" step does not
 part of case creation — that portion of the "Today" narrative is stale, consistent with Task 2/3's
 finding that `bootstrap_peme_case` already creates visits atomically. Its "open modal" step is not
 wrong about the app (the `ActionPanel` modal is real and reachable) but is not required by the happy
-path this run measured: the modal was never opened, because the only reason to open it — running
-"Initialize Visits" — never applied. The measured flow was **14 interactions across 3 full page
+path this run measured: the panel was never opened during this walkthrough because nothing in the
+measured path called for reviewing case details or running "Initialize Visits" — not because there
+was no other way or reason to open it. Every case row unconditionally offers a "View Details" entry
+point into the same panel (`components/dashboard/staff/reception-module.tsx:596-599`), which a
+reception clerk can use at any time to review a case; this run simply never needed to. The measured
+flow was **14 interactions across 3 full page
 loads, all on a single route**, to reach a case with all 5 department visits created, without ever
 opening the case-detail modal — a genuinely different (and shorter) shape than "search → register →
 search again → pick → create → open modal → initialize visits" implies, because the last two of those
