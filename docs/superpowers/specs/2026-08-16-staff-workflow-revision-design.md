@@ -152,3 +152,180 @@ Each item has a **default** used if unanswered. Please answer with "default OK" 
 1. AHI reviews §3 and answers §5 (or accepts defaults).
 2. Update this document with answers → mark **APPROVED**.
 3. Produce the implementation plan (per-slice breakdown; shell/case-detail first, then one role at a time: Department → Reception → Physician → Releasing → Triage).
+
+---
+
+## 9. Post-Review Addendum (added 2026-09-04)
+
+**Added by:** Keith, following the 2026-09-03 advisor walkthrough with Sir Ng.
+**Nature of this change:** Purely additive. Sections 1–8 are Lex's and are **unchanged** — no
+sentence above this line has been edited. This section records what the advisor review added, what
+it contradicts, and what it left untouched.
+
+**Standing of this document:** unchanged. It remains the AHI-facing artefact and the home of the
+Q-01–Q-14 questionnaire. Nothing here supersedes it.
+
+**Note for the record:** §1 of this spec identified four problems — too many clicks, can't find the
+case, unclear next step, data re-entry — on 2026-08-16. The advisor independently raised all four on
+2026-09-03. The analysis above held up; this addendum extends it rather than correcting it.
+
+---
+
+### 9.1 Two conflicts — open decisions, not edits
+
+The advisor review contradicts two design decisions made above. Both are Lex's calls and are
+recorded here as **open decisions for the group**, deliberately unresolved. Neither §3 nor §2 has
+been amended.
+
+#### OD-1 — The waiver
+
+| | Position |
+|---|---|
+| **This spec, §3.1 step 2** | Waiver checkbox, "unchanged rule: required to create the case" |
+| **Advisor, 3:10** | "The checkbox is such a weak check. If there was an actual upload of the signed waiver, then the system has material proof of this waiver." |
+
+**Verified state.** `peme_case.waiversigned` is a plain `boolean default false`
+(`memory-bank/database/schema.txt:88`). The UI is one required checkbox
+(`components/dashboard/staff/reception-module.tsx:469`), re-checked server-side
+(`features/dashboard/staff/actions.ts:449-454`). No file, no timestamp, no signatory, no retained
+copy.
+
+**Assessment.** The advisor is correct on the compliance point: under RA 10173 a boolean set by a
+staff member is not evidence that the data subject consented. This is the same class of problem as
+the client portal's `?dpaAccepted=1` URL parameter already flagged in §4 of this spec — consent
+recorded as ephemeral state rather than as evidence.
+
+**Recommendation.** Upload a scan or photo of the signed waiver into a `waiver_file` table reusing
+the existing `result_file` storage pattern (`supabase/migrations/20260414_result_file_storage.sql`).
+The infrastructure exists and is proven. Pair it with the DPA persistence item already in §4 as one
+"consent as evidence" slice.
+
+**Impact if adopted:** §3.1 step 2 changes from a checkbox to an upload-or-checkbox with the upload
+required for company-sponsored cases. §4's change table gains one row.
+
+#### OD-2 — Does the queue advise?
+
+| | Position |
+|---|---|
+| **This spec, principle 6** | "Keep the manual-pull Kanban. Staff still choose the next patient; the system sorts and highlights, it **never** auto-assigns." |
+| **Advisor, 5:31 / 5:36** | "Maybe you want to know what the staff's considerations are on who should be next and then the system will at least advise or suggest based on that." … "It's just a queueing problem, no?" |
+
+**This may be a false conflict.** Principle 6 rejects *auto-assignment*. The advisor asked for a
+*suggestion with a reason*, staff free to override. Those are compatible: "sorts and highlights"
+and "advises with a stated reason" differ in degree, not in kind. Neither takes the decision away
+from the staff member.
+
+**Verified state — and it is worse than principle 6 implies.** There is currently no queue model at
+all:
+
+- `department_visit.queuenumber` exists (`schema.txt:38`) and is rendered in four places
+  (`department-module.tsx:309`, `:463`, `reception-module.tsx:770`,
+  `components/dashboard/patient/exam-progress.tsx:104`) — **nothing in the codebase ever writes it.**
+  It always displays "Not assigned".
+- Department queue ordering is `timepending ASC` only (`department-module.tsx:96`).
+- `isrush` orders the triage and releasing queues (`triage-module.tsx:59`,
+  `releasing-module.tsx:46`) but is **not** applied to the department queue.
+
+So principle 6's "the system sorts and highlights" is not yet true either. Whatever the group
+decides, the queue model has to be built before the distinction matters.
+
+**Recommendation.** Adopt an explicit four-stage position and record which stage is in scope:
+
+| Stage | Behaviour | Blocked on |
+|---|---|---|
+| 1 | Assign `queuenumber` on visit creation | nothing |
+| 2 | Order the department queue by rush, then wait time | nothing |
+| 3 | Surface a "suggested next" row **with the reason shown**; staff override freely | Sept 2 findings |
+| 4 | Record overrides so the suggestion can be evaluated against what staff actually did | stage 3 |
+
+Stages 1–2 satisfy principle 6 as written. Stage 3 satisfies the advisor without violating it.
+Stage 4 is the academically interesting part.
+
+**Blocked on Sept 2.** Stage 3 requires knowing what staff actually weigh when two patients are
+waiting. Candidate factors — fasting patients first for lab draws, rush cases, patients who would
+miss a department's cut-off, elderly or unwell patients, clearing a station about to bottleneck —
+are **guesses and must be confirmed, not assumed.**
+
+---
+
+### 9.2 Gaps — what this spec does not cover
+
+Not criticisms. §7 deliberately scoped patient and client portals out, and §3.6 scoped admin to
+cleanup only. Listed so each item has an owner.
+
+| Advisor item | Not covered because | Picked up by |
+|---|---|---|
+| Dashboard metrics are meaningless **and wrong** (1:36, 4:02, 11:02) | Metrics are never mentioned in §1–§8 | Journey 01, 02, 08 · quick win S0-2 |
+| Per-case history / changelog (11:52) | Not in scope | Journey 08 · quick win S0-1 |
+| Patient portal itinerary and "where do I go next" (3:54) | §7 out of scope | Journey 06 + queue model |
+| Patient portal multi-case overview and info overload (9:26) | §7 out of scope | Journey 06 |
+| Client portal surface and meaning (10:29) | §7 out of scope — only DPA persistence was in §4 | Journey 07 |
+| Admin metrics, tab naming, audit views (11:02, 11:29) | §3.6 cleanup only | Journey 08 |
+| Department assignment has no admin UI; `user_account` has no `departmentid` column (7:12) | Not surfaced in §1–§8 | Journey 08 |
+| Department badge not visible enough (6:31); dead Refresh Queue button (8:22) | Below the level of §3 | Quick wins S0-3, S0-4 |
+
+**One correction to the advisor, for the record.** At 8:43 he asked whether the releasing table
+shows every case in the database. It does not — there are two scoped tables, `FOR_RELEASING`
+(`releasing-module.tsx:41-49`) and `RELEASED` (`:118-127`). The presentation makes them read as one
+dump. §3.5's single-queue proposal already addresses this.
+
+---
+
+### 9.3 Sept 2 site visit — answers to §5
+
+The team conducted a site visit on **2 September 2026**. It confirmed that the current workflow
+reflects observed AHI practice rather than invention — which is the direct answer to the advisor's
+questions at 4:50 and 5:31.
+
+⚠️ **The visit has not been written up.** It does not exist in `memory-bank/` or `docs/`. Until it
+does, the answer to "did you just make that up?" cannot be evidenced. Suggested location:
+`memory-bank/requirements/2026-09-02-ahi-site-visit.md`.
+
+Fill this table from those notes. Several are likely already answered.
+
+| # | Question | Sept 2 finding | Default still stands? |
+|---|---|---|---|
+| Q-01 | Patient identification at each station | *pending* | |
+| Q-02 | Fixed department order or any order | *pending* | |
+| Q-03 | Shared station logins or individual | *pending* | |
+| Q-04 | Required fields at registration | *pending* | |
+| Q-05 | Does billing gate the flow | *pending* | |
+| Q-06 | Required tests per package; N/A allowed | *pending* | |
+| Q-07 | Accepted skip / re-queue / cancel reasons | *pending* | |
+| Q-08 | Release and portal-visible: one action or two | *pending* | |
+| Q-09 | Certificate template, signatory, signature type | *pending* | |
+| Q-10 | Who may flag rush, and when | *pending* | |
+| Q-11 | Multiple agency representatives; in-progress visibility | *pending* | |
+| Q-12 | Peak volume per station; workstations per department | *pending* | |
+| Q-13 | Network and hardware limits | *pending* | |
+| Q-14 | Retention window before ARCHIVED | *pending* | |
+
+**Also record, beyond §5:** what staff weigh when choosing the next patient (blocks OD-2 stage 3),
+and whether agencies send employee lists in advance and in what form (blocks the §3.1 batch-import
+idea the advisor raised at 2:41).
+
+---
+
+### 9.4 Build order — one proposed change
+
+§8 step 3 orders the build: shell/case-detail first, then Department → Reception → Physician →
+Releasing → Triage.
+
+**Proposed change: Reception before Department.** Two reasons. Eight of the advisor's comments land
+on reception (1:32 through 3:44) — more than any other single journey. And every demo begins by
+registering a patient, so reception is the first thing any audience sees.
+
+**This is Lex's call.** Department-first is defensible — it is the highest-volume station and the
+most self-contained — and the reasoning behind §8 is not recorded here. Tracked as **OD-3** in
+`docs/superpowers/specs/2026-09-04-ux-programme-overview.md`.
+
+---
+
+### 9.5 What this addendum does not change
+
+- §1–§8 stand as written.
+- The case lifecycle in §4 is unchanged.
+- The §5 questionnaire is unchanged; §9.3 adds a place to record answers.
+- The §6 success criteria are unchanged and remain the measurable target.
+- §7's out-of-scope list is unchanged — the excluded journeys are now covered by their own reviews
+  under `docs/superpowers/journeys/`, not by this document.
