@@ -196,6 +196,8 @@ re-argued in each journey.
 | **OD-3** | Build order: Department first (Lex §8) or Reception first? | Programme | **Open** — needs Lex |
 | **OD-4** | Reception layout: split into routes, or modal-from-empty-state? | Advisor 1:53 | **Open** — defer to journey 01 |
 | **OD-5** | Data entry container: keep the drawer, or move to split view? | Advisor 4:38 / 5:57 | **Open** — defer to journeys 02, 03, and 04 |
+| **OD-6** | Should a release ever be reversible, and by whom? Includes what to do about notification emails that cannot be un-sent | Journey 05 | **Open** — see `docs/superpowers/journeys/05-releasing.md` §8 |
+| **OD-7** | Does a certificate have to exist before a case can be released, and is that check part of `releaseCaseAction`'s precondition chain or a separate gate? | Journey 05, tied to Q-09 | **Open** — needs AHI's Q-09 answer first |
 
 ---
 

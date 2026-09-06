@@ -29,10 +29,12 @@ is inert: navigating to `/dashboard/staff?view=release` renders the identical `h
 
 **State plainly: this is the last human gate before a result leaves the hospital.** Once a
 Releasing Staff member clicks Release Case, the case moves to `RELEASED`, both the patient- and
-client-facing notification emails fire, and — per §4 below — no role, including Admin, can move
-the case out of `RELEASED` again by any UI path, action, or code path found in this codebase
-(`docs/superpowers/journeys/evidence/05-releasing-L1.md:638-668`). Nothing downstream of this screen
-double-checks the decision.
+client-facing notification emails fire, and — per §4 below — no rendered screen in this product,
+for any role including Admin, can move the case out of `RELEASED` again
+(`docs/superpowers/journeys/evidence/05-releasing-L1.md:638-642`). The one code path that can is a
+server action nothing renders, reachable only by a System Administrator, and it is a gap rather
+than a recovery procedure (`docs/superpowers/journeys/evidence/05-releasing-L1.md:659-682`).
+Nothing downstream of this screen double-checks the decision.
 
 Releasing Staff is accountable for exactly the checks the release gate encodes: every
 `department_visit` row for the case is `COMPLETED`, a `peme_decision` row exists, and the case is
@@ -82,7 +84,7 @@ ordered `isrush desc, registrationtimestamp asc`, capped at 40; Table 2 is order
 search control — there is no filtering, searching, sorting, or pagination on either table
 (`docs/superpowers/journeys/evidence/05-releasing-L1.md:70-75`, citing
 `components/dashboard/shared/data-table-container.tsx:16`,
-`components/dashboard/shared/data-table-container.tsx:30`,
+`components/dashboard/shared/data-table-container.tsx:31`,
 `components/dashboard/staff/releasing-module.tsx:153-161`,
 `components/dashboard/staff/releasing-module.tsx:233-241`). L2 confirms this directly: a
 DOM search for `input[type="search"]`, any `<select>`, and pagination-pattern text found zero of
@@ -239,7 +241,7 @@ one layer further, at the file-storage layer itself: the Storage RLS SELECT poli
 zero effect on what the patient can see or download — a patient can be looking at a case the patient
 dashboard itself badges "Portal Hidden" while downloading every attached result file, since that
 badge is purely cosmetic, computed straight from `portalvisible` with no effect on anything else the
-page renders (`docs/superpowers/journeys/evidence/05-releasing-L1.md:818-824`, citing
+page renders (`docs/superpowers/journeys/evidence/05-releasing-L1.md:873-879`, citing
 `app/dashboard/patient/page.tsx:207-211`). **The claim is correct for the client/agency side**: the
 client-portal query and the RLS `'Client Representative'` branch both require `portalvisible` **and**
 `waiversigned` together, so a case with only one of the two flags true is invisible to the agency
@@ -280,22 +282,37 @@ cannot be inferred from source alone
 empirically by this journey** — sending mail is forbidden here; that belongs to S0-5, provisioning a
 test mailbox and observing one live send.
 
-**A release cannot be undone by any role, including Admin, and both emails have already gone out by
-the time anyone could react.** Checked exhaustively across the app's write surface: no case-status
-write anywhere targets `RELEASED` as a source status to transition away from; `softCancelCaseAction`
-(the only action that reaches `ARCHIVED`) explicitly forbids `RELEASED` as a source; and the entire
-admin action surface contains no reference to `peme_case` at all — RLS's `System Administrator`
-branch would technically permit the write, but no code in this repo ever attempts it
-(`docs/superpowers/journeys/evidence/05-releasing-L1.md:638-668`, citing
-`features/dashboard/staff/actions.ts:82-86`,
-`features/dashboard/staff/actions.ts:533-541`,
-`supabase/migrations/20260525_physician_pending_additional_visibility.sql:32`). The only two things
-that can still be done after an erroneous release are toggling `portalvisible` off — which, per the
-finding above, hides the case from the agency but does nothing for the patient — or nothing.
+**A release cannot be undone through any screen in the product, and both emails have already gone
+out by the time anyone could react.** Nine case-status writes exist in the staff action surface;
+eight are guarded so they cannot act on a `RELEASED` case, and `softCancelCaseAction` (the only
+action reaching `ARCHIVED`) explicitly forbids `RELEASED` as a source
+(`docs/superpowers/journeys/evidence/05-releasing-L1.md:644-682`, citing
+`features/dashboard/staff/actions.ts:82-86` and `:533-541`).
+
+**The ninth is not guarded, and it means a System Administrator can revert a release.**
+`updateTriageCompletionAction` (`features/dashboard/staff/actions.ts:889-944`) writes
+`casestatuscodeid: inProgressStatusId` without ever reading the case's current status, and its role
+gate admits `System Administrator` alongside `Triage Nurse` (`:898`). No page renders it — a
+repo-wide search finds only its own test — so it is unreachable from the UI, but it remains a live
+Server Action. RLS does not stop it: `peme_case_update_role_scoped`'s `WITH CHECK` constrains the
+caller's role and never the status being written
+(`supabase/migrations/20260326_role_scoped_rls_write_baseline.sql:92-119`), and while the
+`Triage Nurse` visibility branch hides released cases from that role, the `System Administrator`
+branch returns true unconditionally
+(`supabase/migrations/20260525_physician_pending_additional_visibility.sql:32`). The audit row it
+writes says `TRIAGE_COMPLETED`
+(`docs/superpowers/journeys/evidence/05-releasing-L1.md:659-682`). This is a defect to close, not a
+recovery path to document: it lands the case in `IN_PROGRESS` rather than `FOR_RELEASING`, resets
+`triagecompletedtimestamp`, and records a reason that did not happen.
+
+For the Releasing Staff member who made the mistake, the practical position is unchanged — there is
+no undo available to them. The only two things that can still be done through the product after an
+erroneous release are toggling `portalvisible` off — which, per the finding above, hides the case
+from the agency but does nothing for the patient — or nothing.
 Both `notifyPatientOnRelease` and `notifyClientOnRelease` fire inside the same synchronous function
 call that flips the case to `RELEASED`, before the success redirect; by the time a staff member
 could recognize a mistake, both send attempts (and their audit rows) have already happened
-(`docs/superpowers/journeys/evidence/05-releasing-L1.md:678-689`, citing
+(`docs/superpowers/journeys/evidence/05-releasing-L1.md:720-731`, citing
 `features/dashboard/staff/actions.ts:1830-1836`).
 
 **Audit coverage has real gaps, and no UI reachable from this role shows any of it.** This journey's
@@ -352,7 +369,7 @@ bear directly on this journey, distinct from each other and from the Sept 2 writ
   (`docs/superpowers/specs/2026-08-16-staff-workflow-revision-design.md:127`). This is sharper than
   "the answer is missing": §4 above establishes that no code path in this repo ever moves a
   `RELEASED` case to `ARCHIVED` at all — `softCancelCaseAction` forbids it explicitly
-  (`docs/superpowers/journeys/evidence/05-releasing-L1.md:648-668`, citing
+  (`docs/superpowers/journeys/evidence/05-releasing-L1.md:683-688`, citing
   `features/dashboard/staff/actions.ts:82-86`,
   `features/dashboard/staff/actions.ts:533-541`). Whatever retention window AHI specifies
   (the spec's own default is 12 months,
@@ -364,11 +381,17 @@ bear directly on this journey, distinct from each other and from the Sept 2 writ
 
 **Must-fix — irreversible or dead-end consequences.**
 
-1. **A release cannot be undone by any role, including Admin, and both notification emails have
-   already been dispatched by the time a mistake could be noticed.** The only recourse — toggling
-   `portalvisible` off — does nothing for the patient (§4 above). This is the worst gap in this
-   journey: unlike a blocked release, which only delays a legitimate action, a mis-release cannot be
-   recalled and both parties have already been told.
+1. **A release cannot be undone through any screen in the product, and both notification emails have
+   already been dispatched by the time a mistake could be noticed.** The only recourse available to
+   the person who released — toggling `portalvisible` off — does nothing for the patient (§4 above).
+   This is the worst gap in this journey: unlike a blocked release, which only delays a legitimate
+   action, a mis-release cannot be recalled and both parties have already been told.
+   **Paired defect:** the single code path that *can* revert a release —
+   `updateTriageCompletionAction`, reachable by a System Administrator, rendered by nothing, with no
+   status guard and an audit row reading `TRIAGE_COMPLETED` (§4 above) — is the wrong shape for a
+   recovery procedure and should be guarded rather than adopted as one. Designing a real reversal
+   path and closing this hole are two pieces of work, not one, and closing the hole does not depend
+   on the design decision.
 2. **A case blocked by a `CANCELLED` visit has no way forward at all**: it cannot be released,
    cannot be requeued (no button exists), and cannot be archived (explicitly forbidden at this
    stage) (§4 above). A legitimate case can become permanently stuck.
@@ -415,6 +438,7 @@ enough to sequence. Proposals only — nothing here is approved or scheduled.
 
 | Enhancement | Answers | Rough effort |
 |---|---|---|
+| Guard `updateTriageCompletionAction` against cases past triage — a status check, or removing an action nothing renders | Must-fix #1 (paired defect) | Trivial–Low |
 | Decide whether a released case should ever be recoverable by an authorized role, and if so, design that path (see OD-6, §8) | Must-fix #1 | Medium–High |
 | Add a UI path (or extend `updateDepartmentVisitStatusAction`'s allowed transitions) so a `CANCELLED` visit blocking a `FOR_RELEASING` case is not a permanent dead end | Must-fix #2 | Low–Medium |
 | Gate `syncCaseWorkflowStatusAfterVisitUpdate` / the Department Staff Re-Queue control against `FOR_RELEASING` cases, or re-check visit status inside `releaseCaseAction` against a live, per-status message | Must-fix #3 | Low–Medium |
@@ -447,16 +471,22 @@ overall HOLD: the row is edited to record Releasing as verified needed, leaving 
 last unverified screen — journey 01 (already Reviewed) did not address S0-4 at all, so its status
 there is unchanged by this journey.
 
-**New — not previously registered: should a release ever be reversible, and by whom?**
-§4 and §6's must-fix #1 establish that `RELEASED` is a one-way state for every role today, including
-Admin, and that both notification emails fire before any human could intervene
-(`docs/superpowers/journeys/evidence/05-releasing-L1.md:638-689`). Whether an authorized correction
-path should exist — and if so, whether it should also address the fact that notification emails
-cannot be un-sent — is a decision for the group, not a gap this review can close. This review
+**OD-6 — should a release ever be reversible, and by whom?** Registered in the programme's open
+decisions register by this journey
+(`docs/superpowers/specs/2026-09-04-ux-programme-overview.md:199`).
+§4 and §6's must-fix #1 establish that `RELEASED` is a one-way state through every rendered screen,
+for every role including Admin, and that both notification emails fire before any human could
+intervene (`docs/superpowers/journeys/evidence/05-releasing-L1.md:638-731`). Whether an authorized
+correction path should exist — and if so, whether it should also address the fact that notification
+emails cannot be un-sent — is a decision for the group, not a gap this review can close. This review
 surfaces the mechanism and its consequence but does not recommend between "add a reversal path" and
-"keep it one-way and rely on process controls before clicking."
+"keep it one-way and rely on process controls before clicking." Note that the decision is
+independent of the paired defect in §6: `updateTriageCompletionAction` must be guarded whichever way
+the group decides, because it reverts a release by accident rather than by design.
 
-**New — not previously registered: does a certificate need to exist before release?**
+**OD-7 — does a certificate need to exist before release?** Registered in the programme's open
+decisions register by this journey
+(`docs/superpowers/specs/2026-09-04-ux-programme-overview.md:200`).
 Directly related to Q-09 (§5 above). Today's release gate never checks for a certificate/PDF record
 in any of its eight preconditions (§4 above,
 `docs/superpowers/journeys/evidence/05-releasing-L1.md:143-161`). Once AHI answers Q-09, the group

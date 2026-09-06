@@ -69,7 +69,7 @@ rows.
 
 **No filtering, searching, sorting, or pagination exists on either table.**
 `DataTableContainer` accepts an optional `toolbar` slot for exactly this purpose
-(`components/dashboard/shared/data-table-container.tsx:16,30`), but neither table's call in
+(`components/dashboard/shared/data-table-container.tsx:16`, destructured at `:31`), but neither table's call in
 `releasing-module.tsx` passes one (`:153-161`, `:233-241`) — no `toolbar` prop is given to either
 `DataTableContainer` invocation. There is no page-size control, no "load more," no cursor, and no
 search input anywhere in this module.
@@ -635,16 +635,51 @@ cannot create cases either, consistent with this journey having no case-creation
 
 ## 12. Is a release reversible? Can a case leave RELEASED, by any UI path, any action, or any role including Admin? If it cannot, say so plainly and state what that means for a case released in error — including whether the two emails have already gone out by then.
 
-**Answer:** **No UI path, server action, or admin feature in this codebase moves a case out of
-`RELEASED` once it is set.** This was checked exhaustively across the app's write surface:
+**Answer:** **No *rendered* UI path moves a case out of `RELEASED`.** But the stronger claim — that
+no server action or admin feature can — is **false**, and this answer originally made it. One
+server action reverts a released case for one role. Corrected in the final review's fix wave; the
+error and how it was made are recorded at the end of this answer, because the method that produced
+it is reusable and worth not repeating.
 
-- `grep -n "casestatuscodeid" features/*/actions.ts` shows every case-status write in the app
-  (`features/dashboard/staff/actions.ts:179,190,203,1662,1798,1887`,
-  `features/dashboard/client/actions.ts:183`). None targets `RELEASED` as a *source* status to
-  transition away from — the only two writes involving `RELEASED` are `releaseCaseAction`'s own
-  transition *into* it (`:1798`) and `togglePortalVisibilityAction`'s `portalvisible` flip, which
-  requires `casestatuscodeid === releasedStatusId` as a **precondition** and never changes
-  `casestatuscodeid` itself (`:1874-1889`).
+- **Every case-status write in the app.** `grep -n "casestatuscodeid" features/*/actions.ts`
+  returns nine writes in the staff surface — `features/dashboard/staff/actions.ts:179`, `:190`,
+  `:203`, `:586`, `:862`, `:925`, `:1502`, `:1662`, `:1798` — and none in
+  `features/dashboard/client/actions.ts`, whose only hit (`:183`) is an `.eq()` filter. The same is
+  true of `features/dashboard/staff/actions.ts:1887`, which reads as a write in a grep but is
+  `togglePortalVisibilityAction`'s **precondition** `.eq("casestatuscodeid", releasedStatusId)`; the
+  write on that statement is `portalvisible`, and `casestatuscodeid` is never changed (`:1885-1889`).
+- **Eight of the nine cannot act on a `RELEASED` case.** `:179`/`:190`/`:203` sit inside
+  `syncCaseWorkflowStatusAfterVisitUpdate`, which early-returns unless the case is in
+  `IN_PROGRESS`/`PENDING_ADDITIONAL_TESTS`/`FOR_DECISION` (`:132-140`). `:586` is
+  `softCancelCaseAction`, guarded below. `:1502` is `requestAdditionalTestsAction`, which requires
+  `FOR_DECISION` (`:1399`). `:1662` is `submitPhysicianDecisionAction`, same requirement (`:1579`).
+  `:1798` is `releaseCaseAction`'s own transition *into* `RELEASED`, which requires `FOR_RELEASING`
+  (`:1735`). `:862` is `submitTriageAssessmentAction`, which refuses any case that already carries a
+  `triagecompletedtimestamp` (`:827-832`) — a released case always does.
+- **The ninth is unguarded: `updateTriageCompletionAction` (`:889-944`) can move a `RELEASED` case
+  back to `IN_PROGRESS`.** It loads the case selecting only `caseid, casenumber` (`:909-913`) — it
+  never reads `casestatuscodeid` and never reads `triagecompletedtimestamp` — then writes
+  `casestatuscodeid: inProgressStatusId` plus a fresh `triagecompletedtimestamp` (`:922-928`)
+  unconditionally. Its role gate is `ensureAllowedRole(role, [TRIAGE_ROLE, ADMIN_ROLE])` (`:898`).
+  Reachability, layer by layer:
+  - **UI: none.** `grep -rn "updateTriageCompletionAction" components app features lib tests`
+    returns only `tests/features/dashboard/staff/triage-completion.test.ts`. No page, module, or
+    form renders it. It is a live Next.js Server Action with no caller — still POST-reachable, but
+    nothing in the product invokes it.
+  - **RLS write policy: permits it.** `peme_case_update_role_scoped`
+    (`supabase/migrations/20260326_role_scoped_rls_write_baseline.sql:92-119`) lists both
+    `Triage Nurse` and `System Administrator` in `USING` and in `WITH CHECK`, and `WITH CHECK`
+    constrains the caller's role only — it never restricts which `casestatuscodeid` may be written.
+  - **RLS visibility: blocks the nurse, not the admin.** The `Triage Nurse` branch of
+    `rls_case_visible_to_current_user` requires `triagecompletedtimestamp is null` **and** a status
+    of `REGISTERED`/`IN_PROGRESS`
+    (`supabase/migrations/20260525_physician_pending_additional_visibility.sql:70-78`), so a nurse
+    cannot see, and therefore cannot update, a released case. The `System Administrator` branch
+    returns true unconditionally (`:32`).
+  - **Net: a System Administrator can revert a release.** The audit row it writes is
+    `actiontype: "TRIAGE_COMPLETED"`, details `` `Case ${casenumber} marked triage complete.` ``
+    (`:937-943`) — so the reversion is traceable, but the trail describes an event that did not
+    happen.
 - `softCancelCaseAction` — the only action in the codebase that moves a case to `ARCHIVED` —
   explicitly forbids both `FOR_RELEASING` and `RELEASED` as source statuses: `` `Case
   ${caseRow.casenumber} can no longer be cancelled at this workflow stage.` ``
@@ -654,26 +689,33 @@ cannot create cases either, consistent with this journey having no case-creation
 - `features/dashboard/admin/actions.ts` and `features/dashboard/admin/shared.ts` — the entire
   admin action surface — contain **no reference to `peme_case` at all**
   (`grep -n "peme_case" features/dashboard/admin/*.ts` returns nothing). There is no admin action
-  anywhere that writes to this table, so Admin has no code path in this repo to revert a release
-  even though RLS's `System Administrator` branch of `rls_case_visible_to_current_user` would
-  technically permit it (`returns true` unconditionally,
-  `supabase/migrations/20260525_physician_pending_additional_visibility.sql:32`) and the
-  `peme_case_update_role_scoped` policy's `WITH CHECK` clause does not itself re-validate the new
-  status value (Q11) — RLS does not forbid it, but nothing in this app's code ever attempts it.
+  anywhere that writes to this table. RLS's `System Administrator` branch of
+  `rls_case_visible_to_current_user` returns true unconditionally
+  (`supabase/migrations/20260525_physician_pending_additional_visibility.sql:32`) and the
+  `peme_case_update_role_scoped` policy's `WITH CHECK` clause does not re-validate the new status
+  value (Q11), so nothing at the database layer would stop an admin write — the *admin* surface
+  simply never issues one. That is not the same as no code issuing one: the staff surface does, via
+  `updateTriageCompletionAction` above, and an admin is inside its role gate.
 
-**So: within this codebase, `RELEASED` is a one-way door for every role, including Admin.** The
-only route out is `ARCHIVED`, and `softCancelCaseAction` closes that route off specifically for
-`FOR_RELEASING`/`RELEASED` cases (above), so there is no lifecycle exit from `RELEASED` at all
-through any code path found here — matching `.claude/rules/peme-domain.md`'s stated lifecycle
-diagram, where `RELEASED → ARCHIVED` is the only forward edge and nothing points back.
+**So: within this codebase, `RELEASED` is a one-way door for every role through every rendered
+screen, and for the Triage Nurse absolutely (RLS hides released cases from that role entirely). It
+is not a one-way door for a System Administrator**, who is inside `updateTriageCompletionAction`'s
+role gate, is visible to every case under RLS, and faces no status check in the action. The
+`ARCHIVED` route out stays closed to everyone — `softCancelCaseAction` forbids `FOR_RELEASING` and
+`RELEASED` sources (above) — so the lifecycle diagram in `.claude/rules/peme-domain.md`, where
+`RELEASED → ARCHIVED` is the only forward edge and nothing points back, holds for the *intended*
+paths and misses this one.
 
-**What that means for a case released in error.** There is no "undo." A staff member who releases
-the wrong case, or releases before verifying it should be released, has no button, form, or admin
-override anywhere in this app to reverse `casestatuscodeid` back to `FOR_RELEASING` or anything
-earlier. The only two things that *can* still be done afterward are: (a) toggle `portalvisible`
-off via `togglePortalVisibilityAction` (Q7) — which, per Q7's own finding, hides the case from the
-**agency** portal but has **no effect on the patient portal**, since the patient's visibility does
-not depend on `portalvisible` at all; and (b) nothing else — the case stays `RELEASED` permanently.
+**What that means for a case released in error.** For the person who made the mistake, there is no
+undo: a Releasing Staff member has no button, form, or override anywhere in the product to reverse
+`casestatuscodeid`, and neither does anyone else through any rendered screen. Recovery would mean a
+System Administrator issuing a POST to an action no page exposes — which is not a recovery
+procedure, it is an unguarded gap that happens to be usable as one. It would land the case in
+`IN_PROGRESS`, not back at `FOR_RELEASING`, with a `triagecompletedtimestamp` reset to now and an
+audit row claiming triage was completed. The two things that can be done through the product are:
+(a) toggle `portalvisible` off via `togglePortalVisibilityAction` (Q7) — which, per Q7's own
+finding, hides the case from the **agency** portal but has **no effect on the patient portal**,
+since the patient's visibility does not depend on `portalvisible` at all; and (b) nothing else.
 
 **Have the two emails already gone out by then?** Yes, unavoidably, by construction. Both
 `notifyPatientOnRelease` and `notifyClientOnRelease` are fired (`void`, fire-and-forget) inside
@@ -687,6 +729,19 @@ emails have already been queued for delivery (whether they were actually deliver
 unverifiable SMTP factors in Q9, but the *send attempt*, and the corresponding
 `EMAIL_SENT`/`EMAIL_FAILED` audit write, has already happened). Toggling `portalvisible` off after
 the fact does nothing to un-send them.
+
+**How the original answer got this wrong.** Recorded because the method, not the conclusion, is the
+reusable part. This answer claimed to have "checked exhaustively across the app's write surface" and
+presented a six-item citation list as the output of
+`grep -n "casestatuscodeid" features/*/actions.ts`. The grep was real; the list was not its output.
+It contained one hit that is a filter, not a write (`:1887`), and omitted four hits that are writes
+(`:586`, `:862`, `:925`, `:1502`) — a hand-trimmed list presented as a mechanical one. Because
+`:925` was the omission that mattered, the conclusion inverted. Two secondary habits kept it hidden:
+the admin surface was searched for `peme_case` and correctly found empty, which was then read as
+"no code attempts an admin write" when the actual question is which actions an admin's *role* can
+enter; and reachability was reasoned about from the UI inward, so an action with no UI caller
+registered as absent rather than as unguarded. The check that would have caught it is the cheap one
+— paste the grep's real output, then account for every line in it.
 
 ---
 

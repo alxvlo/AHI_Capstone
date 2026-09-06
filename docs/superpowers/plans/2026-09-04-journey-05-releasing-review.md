@@ -552,3 +552,36 @@ The deliverable's own acceptance criteria, set before the work per `.claude/rule
 advisor-document prose restated as this review's own finding; no edit to the programme overview
 beyond unit 05's status row and S0-4's row; S0-4's overall HOLD not lifted while Reception remains
 unverified.
+
+### Post-review amendments to these criteria
+
+Recorded rather than silently applied, per `.claude/rules/verification.md`: "Never edit an assertion
+silently after seeing it fail... Flag it in the PR if the acceptance criteria themselves moved."
+Three of the criteria above did not survive the final whole-branch review unchanged.
+
+**Criterion 2 is weaker than it reads, and was weaker throughout this journey.**
+`scripts/docs/verify-citations.mjs` does not recognize comma-joined multi-range citations such as
+`` `file.tsx:40-77,118-126` `` — its regex matches no branch for them, so they are neither counted
+nor flagged, and a citation to a nonexistent file in that form returns `0 citations, 0 bad`. Ten
+such citations existed in this journey's evidence files (nine in L1, one in L2). "0 bad" therefore
+certified 134 citations while silently skipping ten of them. All ten were hand-verified by the final
+reviewer; two were wrong (`data-table-container.tsx:16,30`, off by one, and
+`actions.ts:179,190,203,1662,1798,1887`, which listed a filter as a write). Both are fixed. The
+verifier's own defect is separate work, ruled to start immediately after this journey merges, and is
+not fixed here.
+
+**Criterion 6 was met in form and failed in substance.** L1 question 12 did answer reversibility
+plainly — and answered it wrongly, stating that no server action or admin feature can move a case
+out of `RELEASED`. `updateTriageCompletionAction` can, for a System Administrator. The corrected
+answer and a note on how the error was made are in L1 §12. A criterion that asks for a plain answer
+cannot detect a plainly wrong one; if this template is reused, criterion 6 should ask for the full
+grep output to be pasted and every line in it accounted for, which is the check that would have
+caught this.
+
+**The overview scope in "What must NOT happen" was deliberately exceeded.** Two rows were added to
+the open decisions register — **OD-6** (should a release ever be reversible) and **OD-7** (must a
+certificate exist before release). The final reviewer found the review referencing "OD-6" as though
+it were already registered while §8 registered the decision only as unnumbered prose, and judged
+prose-only registration inadequate because journeys 06-10 will read the register, not journey 05's
+§8. Minting the numbers was chosen over deleting the reference. This is a real departure from the
+criterion, not a reinterpretation of it: the overview diff for this journey is four lines, not two.
