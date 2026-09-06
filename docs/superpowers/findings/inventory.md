@@ -91,3 +91,36 @@ Source: `docs/superpowers/journeys/03-department.md`
 | 03§7.8 | Enhancement | Scope `test_catalog` and `package_test` SELECT by department at the RLS layer, matching every other table this journey touches | `docs/superpowers/journeys/03-department.md:539` |
 | 03§7.9 | Enhancement | Populate `verifiedbyuserid`/`verifiedat` on verification | `docs/superpowers/journeys/03-department.md:540` |
 | 03§7.10 | Enhancement | Persistent department badge in the staff header | `docs/superpowers/journeys/03-department.md:541` |
+
+## 04 — Physician / fitness decision
+
+Source: `docs/superpowers/journeys/04-physician.md`
+
+| ID | Severity | Finding (verbatim lead sentence) | Source |
+|---|---|---|---|
+| 04§6.1 | Must-fix | A physician decides fitness without triage vitals, visit history, or uploaded result files — three independent absences in the one screen this decision is made from. | `docs/superpowers/journeys/04-physician.md:367` |
+| 04§6.2 | Must-fix | A physician who requests additional tests loses all ability to query that case until it returns to `FOR_DECISION`, directly contradicting the migration written to prevent exactly that. | `docs/superpowers/journeys/04-physician.md:372` |
+| 04§6.3 | Must-fix | A skipped or cancelled additional-test visit returns the case to the queue indistinguishably from a completed one, with nothing in the panel to show which happened. | `docs/superpowers/journeys/04-physician.md:378` |
+| 04§6.4 | Should-fix | The decision write and its case-status transition are two separate, unwrapped Supabase calls, as is the additional-tests visit insert and its own case-status transition. | `docs/superpowers/journeys/04-physician.md:384` |
+| 04§6.5 | Should-fix | A recorded decision cannot be corrected by anyone once the case leaves `FOR_DECISION`, not even an Admin, despite an RLS policy (`peme_decision_delete_admin_only`) that implies the system was designed to allow it. | `docs/superpowers/journeys/04-physician.md:388` |
+| 04§6.6 | Should-fix | All three metric tiles are computed from the same `.limit(40)`-capped array, not a database count | `docs/superpowers/journeys/04-physician.md:392` |
+| 04§6.7 | Should-fix | Decision remarks have no client-side length limit and are silently truncated to 255 characters on submit, with no warning, on a field the system itself treats as required for `UNFIT` and `FIT_WITH_RESTRICTIONS` | `docs/superpowers/journeys/04-physician.md:395` |
+| 04§6.8 | Should-fix | The additional-tests reason is subject to a second, invisible truncation once persisted | `docs/superpowers/journeys/04-physician.md:399` |
+| 04§6.9 | Should-fix | This screen's only realtime coverage is `peme_case`; `department_visit`, `result_item`, and `peme_decision` changes never trigger a live refresh here | `docs/superpowers/journeys/04-physician.md:402` |
+| 04§6.10 | Should-fix | The decision panel is fixed at 672px regardless of viewport and requires internal scrolling to reach Request Additional Tests even for a case with zero results | `docs/superpowers/journeys/04-physician.md:404` |
+| 04§6.11 | Nice-to-have | Fitness codes render as raw enum strings (`FIT`, `UNFIT`, `FIT_WITH_RESTRICTIONS`) in the `<select>`, not human-readable labels | `docs/superpowers/journeys/04-physician.md:410` |
+| 04§6.12 | Nice-to-have | The "Decisions" sidebar nav item's `?view=decisions` query string is inert | `docs/superpowers/journeys/04-physician.md:412` |
+| 04§6.13 | Nice-to-have | No `audit_log` row exists for the automatic case-status transitions performed by `syncCaseWorkflowStatusAfterVisitUpdate`, for the `FOR_RELEASING` transition inside the decision action, or for the `department_visit` rows the additional-tests action inserts | `docs/superpowers/journeys/04-physician.md:415` |
+| 04§7.1 | Enhancement | Surface triage vitals, a per-visit timeline, and any uploaded result files inside the decision panel | `docs/superpowers/journeys/04-physician.md:428` |
+| 04§7.2 | Enhancement | Reconcile `20260525_physician_pending_additional_visibility.sql`'s visibility branch with its own stated intent, so a physician retains query access to a case they sent for additional tests | `docs/superpowers/journeys/04-physician.md:429` |
+| 04§7.3 | Enhancement | Distinguish a completed additional-test visit from a skipped or cancelled one on the case the physician reviews next | `docs/superpowers/journeys/04-physician.md:430` |
+| 04§7.4 | Enhancement | Wrap the decision write + case-status transition, and separately the additional-tests visit inserts + case-status transition, in a single RPC transaction each | `docs/superpowers/journeys/04-physician.md:431` |
+| 04§7.5 | Enhancement | Decide whether a decision should ever be correctable after the case leaves `FOR_DECISION`, and if so, wire the already-existing admin-only delete policy to an actual action | `docs/superpowers/journeys/04-physician.md:432` |
+| 04§7.6 | Enhancement | Replace the client-side capped-array tiles with a real database count | `docs/superpowers/journeys/04-physician.md:433` |
+| 04§7.7 | Enhancement | Add a client-side length limit and/or live counter to the decision remarks textarea | `docs/superpowers/journeys/04-physician.md:434` |
+| 04§7.8 | Enhancement | Remove the second truncation on `department_visit.remarks`, or drop the fixed prefix / widen the column | `docs/superpowers/journeys/04-physician.md:435` |
+| 04§7.9 | Enhancement | Add realtime coverage for `department_visit`, `result_item`, and `peme_decision` on this screen | `docs/superpowers/journeys/04-physician.md:436` |
+| 04§7.10 | Enhancement | Redesign the decision/additional-tests container per OD-5 — shared with journeys 02 and 03 | `docs/superpowers/journeys/04-physician.md:437` |
+| 04§7.11 | Enhancement | Human-readable copy for the fitness-code options | `docs/superpowers/journeys/04-physician.md:438` |
+| 04§7.12 | Enhancement | Point the "Decisions" nav item at something that actually changes state, or remove the dead `?view=decisions` param | `docs/superpowers/journeys/04-physician.md:439` |
+| 04§7.13 | Enhancement | Audit rows for automatic case-status transitions and additional-test visit creation | `docs/superpowers/journeys/04-physician.md:440` |
