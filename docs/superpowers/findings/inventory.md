@@ -41,3 +41,26 @@ Source: `docs/superpowers/journeys/01-reception.md`
 | 01§7.9 | Enhancement | Sort or boost the Create-Case patient dropdown by recency instead of (or in addition to) alphabetical | `docs/superpowers/journeys/01-reception.md:408` |
 | 01§7.10 | Enhancement | Company → default-package mapping and batch import of agency employee lists | `docs/superpowers/journeys/01-reception.md:409` |
 | 01§7.11 | Enhancement | Fuzzy name+DOB duplicate-candidate check with a confirm step, independent of the government-ID constraint | `docs/superpowers/journeys/01-reception.md:410` |
+
+## 02 — Triage Nurse / vital signs
+
+Source: `docs/superpowers/journeys/02-triage.md`
+
+| ID | Severity | Finding (verbatim lead sentence) | Source |
+|---|---|---|---|
+| 02§6.1 | Must-fix | Vitals cannot be corrected once submitted. | `docs/superpowers/journeys/02-triage.md:326` |
+| 02§6.2 | Must-fix | Vitals submission is not atomic. | `docs/superpowers/journeys/02-triage.md:334` |
+| 02§6.3 | Should-fix | The 40-row queue cap has no visible ceiling and no filter. | `docs/superpowers/journeys/02-triage.md:346` |
+| 02§6.4 | Should-fix | The vitals drawer is too small for its own content, and the backdrop is dead space. | `docs/superpowers/journeys/02-triage.md:350` |
+| 02§6.5 | Should-fix | All three metric tiles undercount past 40 pending cases | `docs/superpowers/journeys/02-triage.md:354` |
+| 02§6.6 | Should-fix | `updateTriageCompletionAction` is unreachable dead code that would create the vitals-gap scenario if ever wired up. | `docs/superpowers/journeys/02-triage.md:356` |
+| 02§6.7 | Should-fix | The RLS asymmetry on `peme_case` and `triage_assessment` UPDATE policies | `docs/superpowers/journeys/02-triage.md:360` |
+| 02§6.8 | Nice-to-have | Vision fields are `not null` in the database but not `required` in the form. | `docs/superpowers/journeys/02-triage.md:366` |
+| 02§7.1 | Enhancement | Build a vitals-correction path (UI + server action) reusing the `UPDATE` grant already present in RLS | `docs/superpowers/journeys/02-triage.md:378` |
+| 02§7.2 | Enhancement | Wrap vitals submission (insert assessment, update case, insert audit) in a single RPC transaction, matching Reception's `bootstrap_peme_case` pattern | `docs/superpowers/journeys/02-triage.md:379` |
+| 02§7.3 | Enhancement | Add filtering, search, and real pagination with a visible total count to the queue — the specific fields (status/rush/company) are the advisor document's own proposed remedy (`advisor-review-responses-2026-09-04.md`), not an enumeration 4:15 itself makes | `docs/superpowers/journeys/02-triage.md:380` |
+| 02§7.4 | Enhancement | Redesign the vitals-entry container per OD-5 — the advisor document sketches three options (a full-page route, a two-pane split view, or a wider drawer without the backdrop) and recommends the split view (`advisor-review-responses-2026-09-04.md`); this review does not pick among them | `docs/superpowers/journeys/02-triage.md:381` |
+| 02§7.5 | Enhancement | Compute the three metric tiles from real database counts | `docs/superpowers/journeys/02-triage.md:382` |
+| 02§7.6 | Enhancement | Remove `updateTriageCompletionAction`, or redesign it to require a `triage_assessment` row before transitioning the case | `docs/superpowers/journeys/02-triage.md:383` |
+| 02§7.7 | Enhancement | Scope `triage_assessment` and `peme_case` UPDATE `WITH CHECK` clauses to case visibility, matching their `USING` clauses | `docs/superpowers/journeys/02-triage.md:384` |
+| 02§7.8 | Enhancement | Mark `vision_left`/`vision_right` `required` in the form to match the form's own default-fallback intent | `docs/superpowers/journeys/02-triage.md:385` |
