@@ -360,7 +360,7 @@ Comparing the code to `docs/superpowers/specs/2026-08-16-staff-workflow-revision
   navigates to the same page with a `triageCaseId` query param, which opens `ActionPanel`
   (`components/dashboard/staff/triage-module.tsx:186-271`). `ActionPanel` carries `role="dialog"`
   and `aria-modal="true"`, traps focus, and closes on `Escape`
-  (`components/dashboard/shared/action-panel.tsx:109-117,51-57`) — it is a modal in the ARIA/behavioral
+  (`components/dashboard/shared/action-panel.tsx:51-92,109-117`) — it is a modal in the ARIA/behavioral
   sense. Visually, though, it is rendered as a fixed right-side slide-over panel (`fixed inset-y-0
   right-0 ... w-full max-w-2xl`, `components/dashboard/shared/action-panel.tsx:111`) with a backdrop,
   not a centered dialog box. This is a naming/visual detail, not a functional contradiction of the
