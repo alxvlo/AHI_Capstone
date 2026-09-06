@@ -24,7 +24,8 @@
 | D-013 | **P2** | `features/dashboard/staff/actions.ts`; `components/dashboard/staff/department-module.tsx` | 275-289; 91-98,378-387 | `buildUnresolvedVisitReleaseMessage` (`features/dashboard/staff/actions.ts:275-289`) labels every non-`COMPLETED` visit "terminal but not COMPLETED." At the instant a case first reaches `FOR_RELEASING` this is true, but nothing keeps it true afterward: `updateDepartmentVisitStatusAction` performs no case-status check (`features/dashboard/staff/actions.ts:964-1023`), and the Department queue's Re-Queue control has no case-status filter either (`components/dashboard/staff/department-module.tsx:378-387`), so a Department Staff member can re-queue a `SKIPPED` visit on a case already at `FOR_RELEASING`, turning it back to `PENDING` — genuinely unfinished. The next release attempt then labels that same `PENDING` visit "terminal," which is false by the codebase's own definition (`supabase/migrations/20260521_terminal_visit_states_helper.sql:4-16`). Found by static code review — see `docs/superpowers/journeys/05-releasing.md:169-195` and finding F-016 in `docs/superpowers/findings/register.md`. **Not reproduced against a live database:** doing so needs moving a seeded case to `FOR_RELEASING`, re-queuing one of its `SKIPPED` visits back to `PENDING`, then attempting release and confirming the blocking message calls that visit "terminal" — a sequence of live writes the audit's zero-write budget did not permit. | The release-readiness message's wording assumes the terminal-visit invariant established when a case first reaches `FOR_RELEASING` remains true afterward; no code path re-validates or protects that invariant once other actions (Re-Queue) can change visit status post-`FOR_RELEASING`. | **OPEN — NOT REPRODUCED** | — |
 | D-014 | **P1** | `supabase/migrations/20260519_triage_patient_select_admin_update.sql` | 22-34 | The migration that grants Triage Nurse `UPDATE` on `triage_assessment` for typo correction scopes that grant by role only, in both `USING` and `WITH CHECK` — unlike the matching read-side policy on the same table, which is scoped by case visibility. At the database layer, any authenticated Triage Nurse can therefore `UPDATE` any case's vitals, not just cases they can see, via a direct Supabase client call — RLS, not the application UI, is this table's only enforcement layer. No application code exercises this path today, but the permission itself is live on any deployment with this migration applied. Found by static code review — see `docs/superpowers/journeys/02-triage.md:170-182` and finding F-023 in `docs/superpowers/findings/register.md`. Same class of gap as the already-closed D-003 (a permission wider than the role-check the product intends, live at the database layer regardless of whether application code currently exercises it). **Not reproduced against a live database:** doing so needs a Triage Nurse account issuing a direct `supabase-js` `.update()` against a `triage_assessment` row for a case outside that nurse's visibility scope and confirming it succeeds — a live write this review's zero-write budget did not permit. | `triage_assessment`'s UPDATE policy was written role-scoped only, without carrying forward the case-visibility condition already present on the table's own read policy and on other tables' write policies in the same migration set. | **OPEN — NOT REPRODUCED** | — |
 | D-015 | **P1** | `components/dashboard/staff/physician-module.tsx`; `features/dashboard/staff/actions.ts` | 471-477; 1536 | The decision-remarks `<Textarea>` — required for `UNFIT`/`FIT_WITH_RESTRICTIONS` — carries no `maxLength` and accepts unlimited typed length (`components/dashboard/staff/physician-module.tsx:471-477`), with no counter or warning anywhere near the field. The server then silently truncates it: `const remarks = normalizeText(formData.get("remarks")).slice(0, 255)` (`features/dashboard/staff/actions.ts:1536`), matching the column's `character varying(255)` width (`memory-bank/database/schema.txt:105`). A physician who types a complete clinical explanation past 255 characters has the remainder silently discarded on submit, with nothing telling them it happened. Found by static code review — see `docs/superpowers/journeys/04-physician.md:280-287` and finding F-030 in `docs/superpowers/findings/register.md`. **Not reproduced against a live database:** doing so needs submitting a decision with remarks exceeding 255 characters against a seeded case and confirming the saved row is truncated with no error or warning returned — a live write the audit's zero-write budget did not permit. | The form imposes no client-side length limit matching the column width, and the server path silently `.slice()`s to fit rather than validating and rejecting (or warning on) an over-length value. | **OPEN — NOT REPRODUCED** | — |
-| D-016 | **P2** | `components/dashboard/staff/physician-module.tsx`; `features/dashboard/staff/actions.ts` | 528-536; 1476 | The additional-tests reason field has a real client-side `maxLength={255}` that genuinely blocks further typing (`components/dashboard/staff/physician-module.tsx:528-536`) — but the value actually persisted is a 28-character prefix plus the typed reason, re-sliced to 255 total: `` remarks: `Additional test requested: ${reason}`.slice(0, 255) `` (`features/dashboard/staff/actions.ts:1476`), against a `department_visit.remarks` column also `character varying(255)` (`memory-bank/database/schema.txt:43`). A reason typed near the visible 255-character limit can still lose roughly its last 28 characters in what a Department Staff member actually reads, with no signal this second truncation exists. Found by static code review — see `docs/superpowers/journeys/04-physician.md:294-301` and finding F-031 in `docs/superpowers/findings/register.md`. **Not reproduced against a live database:** doing so needs submitting an additional-tests request with a reason at or near 255 characters against a seeded case and confirming the persisted `department_visit.remarks` value is missing the expected trailing characters — a live write the audit's zero-write budget did not permit. | The prefix is concatenated with the user's text before the length limit is applied a second time, so the client-side `maxLength` on the raw reason text does not account for the prefix added server-side. | **OPEN — NOT REPRODUCED** | — |
+| D-016 | **P1** | `components/dashboard/staff/physician-module.tsx`; `features/dashboard/staff/actions.ts` | 528-536; 1476 | The additional-tests reason field has a real client-side `maxLength={255}` that genuinely blocks further typing (`components/dashboard/staff/physician-module.tsx:528-536`) — but the value actually persisted is a 28-character prefix plus the typed reason, re-sliced to 255 total: `` remarks: `Additional test requested: ${reason}`.slice(0, 255) `` (`features/dashboard/staff/actions.ts:1476`), against a `department_visit.remarks` column also `character varying(255)` (`memory-bank/database/schema.txt:43`). A reason typed near the visible 255-character limit can still lose roughly its last 28 characters in what a Department Staff member actually reads, with no signal this second truncation exists. Found by static code review — see `docs/superpowers/journeys/04-physician.md:294-301` and finding F-031 in `docs/superpowers/findings/register.md`. **Not reproduced against a live database:** doing so needs submitting an additional-tests request with a reason at or near 255 characters against a seeded case and confirming the persisted `department_visit.remarks` value is missing the expected trailing characters — a live write the audit's zero-write budget did not permit. | The prefix is concatenated with the user's text before the length limit is applied a second time, so the client-side `maxLength` on the raw reason text does not account for the prefix added server-side. | **OPEN — NOT REPRODUCED** | — |
+| D-017 | **P1** | `features/dashboard/staff/actions.ts` | 889-950 (role gate at 898) | `updateTriageCompletionAction` has no status precondition of any kind — it never checks whether the case is `REGISTERED`, `IN_PROGRESS`, or anything else before writing `casestatuscodeid: inProgressStatusId` and `triagecompletedtimestamp: new Date().toISOString()` (`features/dashboard/staff/actions.ts:889-950`), then an audit row saying `TRIAGE_COMPLETED`. Its role gate admits `Triage Nurse` alongside `System Administrator` (`features/dashboard/staff/actions.ts:898`) — the normal, intended role for triage completion, not an edge-case admin. No component anywhere binds it to a form, link, or handler; the only references outside this file are its own tests (`tests/features/dashboard/staff/triage-completion.test.ts:39-141`). A Next.js Server Action is directly callable by anyone who can reach it regardless of whether any page renders a UI trigger for it — the identical reasoning already logged as present-day for this same function's other consequence, D-012 ("No page renders it, but it remains a live Server Action"). Calling it against a `REGISTERED` case moves that case straight to `IN_PROGRESS` with **no `triage_assessment` row ever written**, skipping vitals entirely — exactly the "case admitted with no vitals" scenario the normal flow (`submitTriageAssessmentAction`, which inserts `triage_assessment` and transitions the case together, `features/dashboard/staff/actions.ts:757-887`) and the table's own `unique (caseid)` constraint (`supabase/migrations/20260411_triage_assessment.sql:25`) are built to prevent. Originally raised as finding F-022 in `docs/superpowers/findings/register.md` and excluded as a non-defect on the reasoning that the action is "unreachable from any UI today" and "no gap exists in the product as it stands" (`docs/superpowers/journeys/02-triage.md:158-166`) — that reasoning does not hold once a Server Action's reachability is understood independent of UI wiring, which is exactly what D-012's own justification for the same function already establishes. **Not reproduced against a live database:** doing so needs calling this Server Action directly (bypassing the UI, since no page renders it) against a seeded `REGISTERED` case as a Triage Nurse account and confirming the case reaches `IN_PROGRESS` with zero `triage_assessment` rows recorded for it — a live write the audit's zero-write budget did not permit. | `updateTriageCompletionAction` writes the case-status transition unconditionally, with no read of the case's current status and no check that a `triage_assessment` row exists for it, unlike `submitTriageAssessmentAction`, which performs both writes together. | **OPEN — NOT REPRODUCED** | — |
 
 ---
 
@@ -50,16 +51,16 @@
   after. Known drift: Sydney is still `varchar(20)`; it is the two-week fallback only and is tracked
   alongside its undocumented `bootstrap_peme_case` dashboard patch.
 
-**D-005 through D-016 (batch logged 2026-09-06, all OPEN — NOT REPRODUCED)** — twelve defects
+**D-005 through D-017 (batch logged 2026-09-06, all OPEN — NOT REPRODUCED)** — thirteen defects
 surfaced by static code review during the five-journey UX audit
 (`docs/superpowers/journeys/01-reception.md` through `05-releasing.md`, deduplicated in
 `docs/superpowers/findings/register.md` as F-001 through F-045). **None of these has been watched
 failing against a live database.** The journey audit ran under a zero-write budget — no writes, no
 Supabase mutations, no live reproduction of any kind — so every one of these was found by reading the
 application code, migrations, and schema against each other, not by observing the failure happen.
-Several (D-009, D-011, D-012, D-014, D-015, D-016) can only be confirmed by a seeded dataset and a
-live write, which this audit did not have and did not attempt. That bars closing them, not logging
-them — the acceptance criteria below are written now, before any fix exists, per the team's
+Several (D-009, D-011, D-012, D-014, D-015, D-016, D-017) can only be confirmed by a seeded dataset
+and a live write, which this audit did not have and did not attempt. That bars closing them, not
+logging them — the acceptance criteria below are written now, before any fix exists, per the team's
 verification standard.
 
 - **D-005 (P1)** — Reception's, Triage's, Physician's, and Releasing's metric tiles are computed from
@@ -86,8 +87,11 @@ verification standard.
   Nurse update any case's vitals at the database layer, not just cases they can see. F-023.
 - **D-015 (P1)** — Physician decision remarks are silently truncated to 255 characters on submit with
   no client-side limit or warning, on a field required for `UNFIT`/`FIT_WITH_RESTRICTIONS`. F-030.
-- **D-016 (P2)** — The additional-tests reason field has a second, invisible truncation behind its
+- **D-016 (P1)** — The additional-tests reason field has a second, invisible truncation behind its
   visible 255-character limit, losing up to ~28 more characters. F-031.
+- **D-017 (P1)** — `updateTriageCompletionAction` has no status precondition and is reachable
+  regardless of UI, letting a case reach `IN_PROGRESS` with no `triage_assessment` row ever written.
+  F-022.
 
 ### D-003 Acceptance Criteria (written 2026-08-28, before the fix migration)
 
@@ -367,6 +371,41 @@ Must NOT happen:
   honor in full.
 - The fix must not simply raise the column width without also correcting the client-side limit to
   match — the two must be derived from, or checked against, the same number.
+
+### D-017 Acceptance Criteria (written 2026-09-06, before any fix)
+
+Must be true after the fix:
+
+1. Calling `updateTriageCompletionAction` against a case with no existing `triage_assessment` row is
+   rejected with an explicit error — no `peme_case` write occurs and no `TRIAGE_COMPLETED` audit row
+   is written. Alternatively, the action is removed from the codebase entirely, if no legitimate use
+   for it survives once D-012's fix is in place.
+2. No code path anywhere in the codebase can transition a `peme_case` row to `IN_PROGRESS` without a
+   corresponding `triage_assessment` row already existing for that case at the moment of transition —
+   this is a system-wide invariant, checked against every write path that sets `casestatuscodeid` to
+   the `IN_PROGRESS` status ID (`submitTriageAssessmentAction`, `updateTriageCompletionAction`, and any
+   future path), not verified against this one action in isolation.
+3. `submitTriageAssessmentAction`'s existing behavior — insert `triage_assessment`, then transition the
+   case to `IN_PROGRESS` — continues to succeed unmodified. Regression guard.
+4. If `updateTriageCompletionAction` is kept rather than removed, calling it against a case that does
+   have an existing `triage_assessment` row still succeeds — regression guard for whatever legitimate
+   correction use remains.
+
+Must NOT happen:
+
+- A case must never reach `IN_PROGRESS` status with zero `triage_assessment` rows recorded for it,
+  through any Server Action, RLS-permitted direct write, or future code path — not just through this
+  one action. A narrow fix that blocks only this action while leaving the invariant itself unenforced
+  elsewhere does not satisfy this criterion.
+- A fix that adds a UI button or page calling `updateTriageCompletionAction` without also adding the
+  vitals-row precondition must not be treated as complete — it would recreate the exact gap this
+  defect describes, merely giving it a visible entry point.
+- The fix must not weaken or remove `triage_assessment`'s `unique (caseid)` constraint
+  (`supabase/migrations/20260411_triage_assessment.sql:25`) as a side effect of whatever mechanism
+  enforces the invariant.
+- This criterion set does not require deciding whether `updateTriageCompletionAction` should be kept
+  for a legitimate correction use (see D-012) — only that, if kept, it can no longer bypass the
+  vitals-row requirement.
 
 ---
 
