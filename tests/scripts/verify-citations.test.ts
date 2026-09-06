@@ -7,6 +7,7 @@ import { spawnSync } from "node:child_process";
 import {
   extractCitations,
   extractExtensionWarnings,
+  extractUnparsedCitations,
   verifyCitations,
 } from "@/scripts/docs/verify-citations.mjs";
 
@@ -226,6 +227,63 @@ describe("extractExtensionWarnings", () => {
       "```",
     ].join("\n");
     expect(extractExtensionWarnings(markdown)).toEqual([]);
+  });
+});
+
+describe("extractUnparsedCitations — citation-shaped spans the grammar cannot parse", () => {
+  it("warns on a trailing comma with no range after it", () => {
+    const found = extractUnparsedCitations("see `components/thing.tsx:12,`");
+    expect(found).toHaveLength(1);
+    expect(found[0].path).toBe("components/thing.tsx");
+    expect(found[0].rest).toBe("12,");
+  });
+
+  it("warns on a non-numeric range", () => {
+    const found = extractUnparsedCitations("see `components/thing.tsx:12-abc`");
+    expect(found).toHaveLength(1);
+    expect(found[0].rest).toBe("12-abc");
+  });
+
+  it("does not warn on a plain single-line citation", () => {
+    expect(extractUnparsedCitations("see `components/thing.tsx:12`")).toHaveLength(0);
+  });
+
+  it("does not warn on a plain range citation", () => {
+    expect(extractUnparsedCitations("see `components/thing.tsx:12-18`")).toHaveLength(0);
+  });
+
+  it("does not warn on a comma-joined citation, which Task 1 made parseable", () => {
+    expect(extractUnparsedCitations("see `components/thing.tsx:12-18,30-40`")).toHaveLength(0);
+    expect(extractUnparsedCitations("see `components/thing.tsx:12-18, 30`")).toHaveLength(0);
+  });
+
+  it("does not warn on a video timestamp or a host:port string", () => {
+    expect(extractUnparsedCitations("at `1:36` the stats come up")).toHaveLength(0);
+    expect(extractUnparsedCitations("open `localhost:3000`")).toHaveLength(0);
+  });
+
+  it("ignores citation-shaped spans inside fenced code blocks", () => {
+    const fence = "`".repeat(3); // built, not literal, to avoid nesting fences
+    const markdown = [fence, "`components/fake.tsx:12,`", fence].join("\n");
+    expect(extractUnparsedCitations(markdown)).toHaveLength(0);
+  });
+});
+
+describe("CLI: unparsed-citation warnings do not change the exit code", () => {
+  it("exits 0 and warns when a citation-shaped span cannot be parsed", () => {
+    const dir = mkdtempSync(path.join(tmpdir(), "cite-cli-"));
+    mkdirSync(path.join(dir, "components"), { recursive: true });
+    writeFileSync(path.join(dir, "components", "thing.tsx"), "line 1\n");
+    const markdownFile = path.join(dir, "review.md");
+    writeFileSync(markdownFile, "see `components/thing.tsx:1,` for detail\n");
+
+    const result = spawnSync(process.execPath, [verifierScript, markdownFile], {
+      cwd: dir,
+      encoding: "utf8",
+    });
+
+    expect(result.status).toBe(0);
+    expect(result.stderr).toMatch(/could not be parsed/);
   });
 });
 

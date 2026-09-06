@@ -79,6 +79,33 @@ export function extractExtensionWarnings(markdown) {
   return warnings;
 }
 
+// Anything that LOOKS like a citation — a backticked `path.ext:` followed by
+// something — but whose range list the grammar above cannot parse. These are
+// not failures: they were never checked, so calling them bad would be a guess.
+// They are reported so that a grammar gap is loud instead of silent.
+//
+// This exists because of the 2026-09-06 defect: the grammar could not parse
+// comma-separated ranges, so 114 spans were skipped and the gate reported
+// "0 bad" over documents it had not examined. Task 1 fixed that grammar; this
+// makes the NEXT gap visible on the day it appears rather than one journey
+// later. Never let this affect the exit code — a warning that fails the build
+// gets suppressed, and a suppressed warning is the defect all over again.
+const CITATION_SHAPED = /`([A-Za-z0-9_.\-/]+\.[A-Za-z0-9]+):([^`]*)`/g;
+const PARSEABLE_RANGE_LIST = /^\d+(?:-\d+)?(?:\s*,\s*\d+(?:-\d+)?)*$/;
+
+export function extractUnparsedCitations(markdown) {
+  const unparsed = [];
+  for (const match of stripFencedCodeBlocks(markdown).matchAll(CITATION_SHAPED)) {
+    if (PARSEABLE_RANGE_LIST.test(match[2])) continue;
+    unparsed.push({
+      raw: match[0].replaceAll("`", "").replace(/\s*\n\s*/g, ""),
+      path: match[1],
+      rest: match[2],
+    });
+  }
+  return unparsed;
+}
+
 // Conventional line count (what `wc -l` reports for a newline-terminated
 // file): a single trailing newline is not itself an extra line. Without this,
 // split("\n") counts an extra phantom empty line for every file that ends in
@@ -174,6 +201,11 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.a
     for (const warning of warnings) {
       console.warn(
         `${target}: ${warning.raw} — warning: unrecognised extension ".${warning.extension}", not checked`
+      );
+    }
+    for (const unparsed of extractUnparsedCitations(markdown)) {
+      console.warn(
+        `${target}: ${unparsed.raw} — warning: could not be parsed as a citation, not checked`
       );
     }
     console.log(`${target}: ${total} citations, ${failures.length} bad`);
