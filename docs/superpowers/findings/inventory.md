@@ -13,6 +13,9 @@ edited or removed, because `register.md` cites them by ID.
 **Severity** is copied from the journey's own §6 bucket heading — `Must-fix`, `Should-fix`, or
 `Nice-to-have`. §7 enhancement rows have no severity bucket and are recorded as `Enhancement`.
 
+**Final tally, all five journeys transcribed:** 105 findings — 51 `§6` ranked gaps and 54 `§7`
+candidate enhancements, verified by exact row count and confirmed to contain zero duplicate IDs.
+
 ---
 
 ## 01 — Reception / intake
