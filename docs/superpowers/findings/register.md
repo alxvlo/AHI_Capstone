@@ -703,9 +703,9 @@ permission model, and worth either building a UI for or removing to match what a
 **Sources:** 05§6.11, 05§7.12
 
 A capped, unfiltered query behind the "Released Today" panel exists alongside the two documented
-release-checklist and visibility-management tables, and is not accounted for by either the review
-brief's original table inventory or the advisor's own comment about the screen showing "every case in
-the database."
+release-checklist and visibility-management tables, and is not accounted for anywhere — not in the
+review's own table inventory, and not in the advisor's separate observation about this screen
+(advisor 8:43).
 
 **Why it matters:** it is a third source of truth for the same kind of data the other two tables
 already show, worth folding into the same documented set or removing if it duplicates one of them.
