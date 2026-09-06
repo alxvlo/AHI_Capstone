@@ -450,7 +450,7 @@ it needs a small pre-decision before someone can start.
 | **Screens** | Reception |
 | **Files** | Reception's registration form; wherever the chosen remedy stores its evidence |
 | **Size** | Medium–Large (depends on OD-1's answer) |
-| **Blocked by** | **OD-1** — waiver: keep the checkbox, or require an uploaded signed copy, or an auditable "who ticked it, when" trail? |
+| **Blocked by** | **OD-1** — waiver: keep the checkbox, or require an uploaded signed copy, or a persisted record of who consented and when? |
 | **Status** | Not started |
 
 **What** — Consent for the Data Privacy Act waiver is stored as a single boolean with no file, no
@@ -1165,7 +1165,7 @@ not a functional blocker.
 | **Screens** | Reception |
 | **Files** | Reception's registration and case-creation flow; a new company-to-package mapping |
 | **Size** | Large |
-| **Blocked by** | Not yet an `OD-N` or `Q-NN` — this needs a fact nobody has confirmed: whether agencies actually hand AHI a pre-arrival roster of who is coming, and in what shape. Flagged as a gap in the current blocker tracking (see "Concerns" in the task report) rather than force-fit to an existing decision number. |
+| **Blocked by** | Not yet an `OD-N` or `Q-NN` — this needs a fact nobody has confirmed: whether agencies actually hand AHI a pre-arrival roster of who is coming, and in what shape. Flagged as a gap in the current blocker tracking rather than force-fit to an existing decision number. |
 | **Status** | Not started |
 
 **What** — Reception has no way to associate a company with a default package, or to batch-import an

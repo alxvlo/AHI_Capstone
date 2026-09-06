@@ -171,8 +171,8 @@ who ticked it, and no signatory captured anywhere.
 
 **Why it matters:** under RA 10173, a ticked box with nobody's name on it does not hold up as proof
 that the patient themselves consented — this is a compliance exposure the team has already flagged as
-an open decision (OD-1), independent of which remedy (upload, in-app signature, or an auditable "who
-ticked it, when" trail) is chosen.
+an open decision (OD-1), independent of which remedy (upload, in-app signature, or a persisted
+consent-event record naming who and when) is chosen.
 
 ### F-008 — Vitals cannot be corrected once submitted, though the database was built expecting they could
 
@@ -408,6 +408,11 @@ should be fixed once for the shared component rather than redesigned three separ
 An action exists that would move a case from `REGISTERED` to `IN_PROGRESS` and write a completion
 audit row without ever touching the vitals table, but nothing in the triage screen renders it —
 today it is unreachable from any UI. No gap exists in the product as it stands.
+
+**Correction, added after this finding was first written:** this conclusion does not hold — see
+`D-017` in `memory-bank/qa-runs/defect-log.md`, which determined the same function is reachable
+today regardless of UI wiring (the identical reasoning already used to justify `D-012` on this
+function) and logged this as a present-day defect, not a future-only landmine.
 
 **Why it matters:** it is a landmine sitting next to the exact write path a future vitals-correction
 feature would need to touch — if it is ever wired to a button without also requiring a vitals row, it

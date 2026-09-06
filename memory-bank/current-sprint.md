@@ -80,8 +80,8 @@ reviewer:
 - **Reception's four dashboard tiles are computed in JS from the loaded page**, not counted from the
   database — flagged as candidate **D-005**.
 
-**None of these is in `qa-runs/defect-log.md` yet.** The log still stops at D-004. Deciding which
-become `D-NNN` entries is an open item.
+**These findings are now logged.** See "The register and backlog now exist" below — 13 of them
+became `D-005` through `D-017` in `qa-runs/defect-log.md`; the rest are tracked as backlog items.
 
 **Gate defect fixed.** `scripts/docs/verify-citations.mjs` was blind to comma-joined multi-range
 citations (<code>file.tsx:40-77,118-126</code>) — they matched no branch of its regex, so a citation to a
