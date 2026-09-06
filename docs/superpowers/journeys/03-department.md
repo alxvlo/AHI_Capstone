@@ -230,7 +230,10 @@ SELECT, INSERT (where permitted), UPDATE, and DELETE, and `rls_current_departmen
 department only from the authenticated JWT's own claim, which only a System Administrator can set
 (`docs/superpowers/journeys/evidence/03-department-L1.md:346-370`, citing
 `supabase/migrations/20260324_role_scoped_rls_select_baseline.sql:6-23,364-396`,
-`supabase/migrations/20260326_role_scoped_rls_write_baseline.sql:131-244`). This RLS layer holds even
+`supabase/migrations/20260326_role_scoped_rls_write_baseline.sql:131-244`,
+`supabase/migrations/20260414_result_file_storage.sql:52-128`, the `result_file`
+SELECT/INSERT/UPDATE/DELETE policies the two baseline migrations above do not cover). This RLS
+layer holds even
 if the application-layer department checks in `saveResultItemsAction`, `verifyResultItemAction`, and
 `uploadResultFileAction` were ever bypassed — those checks are defense in depth, not the
 authoritative boundary (`docs/superpowers/journeys/evidence/03-department-L1.md:372-382`, citing

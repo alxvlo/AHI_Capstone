@@ -7,6 +7,7 @@ import { spawnSync } from "node:child_process";
 import {
   extractCitations,
   extractExtensionWarnings,
+  extractUnparsedCitations,
   verifyCitations,
 } from "@/scripts/docs/verify-citations.mjs";
 
@@ -56,6 +57,46 @@ describe("extractCitations", () => {
 
   it("ignores citations outside backticks", () => {
     expect(extractCitations("plain components/thing.tsx:12 text")).toHaveLength(0);
+  });
+
+  it("extracts every range from a comma-joined citation", () => {
+    const found = extractCitations("see `lib/email/send.ts:17-40,51-56`");
+    expect(found).toHaveLength(2);
+    expect(found[0].path).toBe("lib/email/send.ts");
+    expect(found[0].start).toBe(17);
+    expect(found[0].end).toBe(40);
+    expect(found[1].start).toBe(51);
+    expect(found[1].end).toBe(56);
+  });
+
+  it("gives every range of one span the same raw text, so a failure names the whole span", () => {
+    const found = extractCitations("see `lib/email/send.ts:17-40,51-56`");
+    expect(found[0].raw).toBe("lib/email/send.ts:17-40,51-56");
+    expect(found[1].raw).toBe("lib/email/send.ts:17-40,51-56");
+  });
+
+  it("mixes single lines and ranges in one comma-joined citation", () => {
+    const found = extractCitations("see `features/dashboard/staff/actions.ts:179,190-203,1662`");
+    expect(found).toHaveLength(3);
+    expect(found[0].start).toBe(179);
+    expect(found[0].end).toBeNull();
+    expect(found[1].start).toBe(190);
+    expect(found[1].end).toBe(203);
+    expect(found[2].start).toBe(1662);
+    expect(found[2].end).toBeNull();
+  });
+
+  it("tolerates whitespace after the comma", () => {
+    const found = extractCitations("see `components/thing.tsx:205-209, 225`");
+    expect(found).toHaveLength(2);
+    expect(found[1].start).toBe(225);
+  });
+
+  it("tolerates a citation wrapped across a line break", () => {
+    const found = extractCitations("see `components/thing.tsx:42-76,\n188-195` for detail");
+    expect(found).toHaveLength(2);
+    expect(found[0].start).toBe(42);
+    expect(found[1].start).toBe(188);
   });
 });
 
@@ -132,6 +173,26 @@ describe("verifyCitations", () => {
       expect(failures[0].reason).not.toMatch(/^$/);
     });
   });
+
+  it("rejects a comma-joined citation whose SECOND range exceeds the file length", () => {
+    const root = makeRepo(); // components/thing.tsx has 20 real lines
+    const failures = verifyCitations("see `components/thing.tsx:5-10,40-45`", root);
+    expect(failures).toHaveLength(1);
+    expect(failures[0].reason).toMatch(/has only 20 lines/);
+    expect(failures[0].raw).toBe("components/thing.tsx:5-10,40-45");
+  });
+
+  it("accepts a comma-joined citation whose ranges are all within the file", () => {
+    const root = makeRepo();
+    expect(verifyCitations("see `components/thing.tsx:2-4,10,15-20`", root)).toHaveLength(0);
+  });
+
+  it("rejects a comma-joined citation to a file that does not exist", () => {
+    const root = makeRepo();
+    const failures = verifyCitations("see `components/ghost.tsx:1-5,9-12`", root);
+    expect(failures.length).toBeGreaterThan(0);
+    expect(failures[0].reason).toMatch(/file not found/);
+  });
 });
 
 describe("extractExtensionWarnings", () => {
@@ -166,6 +227,63 @@ describe("extractExtensionWarnings", () => {
       "```",
     ].join("\n");
     expect(extractExtensionWarnings(markdown)).toEqual([]);
+  });
+});
+
+describe("extractUnparsedCitations — citation-shaped spans the grammar cannot parse", () => {
+  it("warns on a trailing comma with no range after it", () => {
+    const found = extractUnparsedCitations("see `components/thing.tsx:12,`");
+    expect(found).toHaveLength(1);
+    expect(found[0].path).toBe("components/thing.tsx");
+    expect(found[0].rest).toBe("12,");
+  });
+
+  it("warns on a non-numeric range", () => {
+    const found = extractUnparsedCitations("see `components/thing.tsx:12-abc`");
+    expect(found).toHaveLength(1);
+    expect(found[0].rest).toBe("12-abc");
+  });
+
+  it("does not warn on a plain single-line citation", () => {
+    expect(extractUnparsedCitations("see `components/thing.tsx:12`")).toHaveLength(0);
+  });
+
+  it("does not warn on a plain range citation", () => {
+    expect(extractUnparsedCitations("see `components/thing.tsx:12-18`")).toHaveLength(0);
+  });
+
+  it("does not warn on a comma-joined citation, which Task 1 made parseable", () => {
+    expect(extractUnparsedCitations("see `components/thing.tsx:12-18,30-40`")).toHaveLength(0);
+    expect(extractUnparsedCitations("see `components/thing.tsx:12-18, 30`")).toHaveLength(0);
+  });
+
+  it("does not warn on a video timestamp or a host:port string", () => {
+    expect(extractUnparsedCitations("at `1:36` the stats come up")).toHaveLength(0);
+    expect(extractUnparsedCitations("open `localhost:3000`")).toHaveLength(0);
+  });
+
+  it("ignores citation-shaped spans inside fenced code blocks", () => {
+    const fence = "`".repeat(3); // built, not literal, to avoid nesting fences
+    const markdown = [fence, "`components/fake.tsx:12,`", fence].join("\n");
+    expect(extractUnparsedCitations(markdown)).toHaveLength(0);
+  });
+});
+
+describe("CLI: unparsed-citation warnings do not change the exit code", () => {
+  it("exits 0 and warns when a citation-shaped span cannot be parsed", () => {
+    const dir = mkdtempSync(path.join(tmpdir(), "cite-cli-"));
+    mkdirSync(path.join(dir, "components"), { recursive: true });
+    writeFileSync(path.join(dir, "components", "thing.tsx"), "line 1\n");
+    const markdownFile = path.join(dir, "review.md");
+    writeFileSync(markdownFile, "see `components/thing.tsx:1,` for detail\n");
+
+    const result = spawnSync(process.execPath, [verifierScript, markdownFile], {
+      cwd: dir,
+      encoding: "utf8",
+    });
+
+    expect(result.status).toBe(0);
+    expect(result.stderr).toMatch(/could not be parsed/);
   });
 });
 

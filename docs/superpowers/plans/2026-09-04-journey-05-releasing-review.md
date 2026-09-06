@@ -561,12 +561,12 @@ Three of the criteria above did not survive the final whole-branch review unchan
 
 **Criterion 2 is weaker than it reads, and was weaker throughout this journey.**
 `scripts/docs/verify-citations.mjs` does not recognize comma-joined multi-range citations such as
-`` `file.tsx:40-77,118-126` `` — its regex matches no branch for them, so they are neither counted
+<code>file.tsx:40-77,118-126</code> — its regex matches no branch for them, so they are neither counted
 nor flagged, and a citation to a nonexistent file in that form returns `0 citations, 0 bad`. Ten
 such citations existed in this journey's evidence files (nine in L1, one in L2). "0 bad" therefore
 certified 134 citations while silently skipping ten of them. All ten were hand-verified by the final
-reviewer; two were wrong (`data-table-container.tsx:16,30`, off by one, and
-`actions.ts:179,190,203,1662,1798,1887`, which listed a filter as a write). Both are fixed. The
+reviewer; two were wrong (<code>data-table-container.tsx:16,30</code>, off by one, and
+<code>actions.ts:179,190,203,1662,1798,1887</code>, which listed a filter as a write). Both are fixed. The
 verifier's own defect is separate work, ruled to start immediately after this journey merges, and is
 not fixed here.
 

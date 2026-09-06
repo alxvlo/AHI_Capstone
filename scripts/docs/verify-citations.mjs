@@ -3,21 +3,34 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 // A citation is a backtick-quoted repo-relative path with a file extension we
-// recognise, followed by :line or :start-end. Requiring the extension is what
-// keeps video timestamps (`1:36`) and host:port strings (`localhost:3000`) out.
+// recognise, followed by a range list: `:NN`, `:NN-MM`, or several of those
+// comma-separated (`:17-40,51-56`). Requiring the extension is what keeps
+// video timestamps (`1:36`) and host:port strings (`localhost:3000`) out.
+//
+// The comma-separated form was silently unmatched until 2026-09-06: the old
+// pattern demanded a closing backtick straight after the first range, so a
+// span like `lib/email/send.ts:17-40,51-56` matched nothing at all and was
+// neither counted nor checked. 114 spans across the tracked corpus — 269 line
+// ranges — had never been examined. Whitespace (including a line break, for
+// citations the author's editor wrapped) is allowed around the commas because
+// the corpus contains both forms.
 const KNOWN_EXTENSIONS = "tsx?|jsx?|mjs|cjs|mts|cts|sql|md|txt|json|css|ya?ml|py|sh|html";
+const RANGE_LIST = "(\\d+(?:-\\d+)?(?:\\s*,\\s*\\d+(?:-\\d+)?)*)";
 const CITATION = new RegExp(
-  "`([A-Za-z0-9_.\\-/]+\\.(?:" + KNOWN_EXTENSIONS + ")):(\\d+)(?:-(\\d+))?`",
+  "`([A-Za-z0-9_.\\-/]+\\.(?:" + KNOWN_EXTENSIONS + ")):" + RANGE_LIST + "`",
   "g"
 );
 
-// A broader pattern that matches a backtick-quoted `path.ext:NN` (or
-// `path.ext:NN-MM`) citation for ANY extension, not just the ones `CITATION`
-// above recognises. Used only to detect citations whose extension we don't
-// check — so a gap in the recognised-extension list surfaces as a warning
-// instead of the citation being silently skipped (a false negative in a
-// quality gate).
-const ANY_EXTENSION_CITATION = /`([A-Za-z0-9_.\-/]+\.([A-Za-z0-9]+)):(\d+)(?:-(\d+))?`/g;
+// A broader pattern that matches a backtick-quoted citation for ANY extension,
+// not just the ones `CITATION` above recognises. Used only to detect citations
+// whose extension we don't check — so a gap in the recognised-extension list
+// surfaces as a warning instead of the citation being silently skipped (a
+// false negative in a quality gate). Group 2 is the extension; the range list
+// is group 3 and is not read here.
+const ANY_EXTENSION_CITATION = new RegExp(
+  "`([A-Za-z0-9_.\\-/]+\\.([A-Za-z0-9]+)):" + RANGE_LIST + "`",
+  "g"
+);
 const KNOWN_EXTENSION_SET = new Set(
   "tsx,ts,jsx,js,mjs,cjs,mts,cts,sql,md,txt,json,css,yaml,yml,py,sh,html".split(",")
 );
@@ -35,12 +48,18 @@ function stripFencedCodeBlocks(markdown) {
 export function extractCitations(markdown) {
   const found = [];
   for (const match of stripFencedCodeBlocks(markdown).matchAll(CITATION)) {
-    found.push({
-      raw: match[0].replaceAll("`", ""),
-      path: match[1],
-      start: Number(match[2]),
-      end: match[3] === undefined ? null : Number(match[3]),
-    });
+    // One entry per range, all sharing the span's raw text so a failure
+    // message points at the whole span the author has to go and find.
+    const raw = match[0].replaceAll("`", "").replace(/\s*\n\s*/g, "");
+    for (const segment of match[2].split(",")) {
+      const [startText, endText] = segment.trim().split("-");
+      found.push({
+        raw,
+        path: match[1],
+        start: Number(startText),
+        end: endText === undefined ? null : Number(endText),
+      });
+    }
   }
   return found;
 }
@@ -58,6 +77,33 @@ export function extractExtensionWarnings(markdown) {
     }
   }
   return warnings;
+}
+
+// Anything that LOOKS like a citation — a backticked `path.ext:` followed by
+// something — but whose range list the grammar above cannot parse. These are
+// not failures: they were never checked, so calling them bad would be a guess.
+// They are reported so that a grammar gap is loud instead of silent.
+//
+// This exists because of the 2026-09-06 defect: the grammar could not parse
+// comma-separated ranges, so 114 spans were skipped and the gate reported
+// "0 bad" over documents it had not examined. Task 1 fixed that grammar; this
+// makes the NEXT gap visible on the day it appears rather than one journey
+// later. Never let this affect the exit code — a warning that fails the build
+// gets suppressed, and a suppressed warning is the defect all over again.
+const CITATION_SHAPED = /`([A-Za-z0-9_.\-/]+\.[A-Za-z0-9]+):([^`]*)`/g;
+const PARSEABLE_RANGE_LIST = /^\d+(?:-\d+)?(?:\s*,\s*\d+(?:-\d+)?)*$/;
+
+export function extractUnparsedCitations(markdown) {
+  const unparsed = [];
+  for (const match of stripFencedCodeBlocks(markdown).matchAll(CITATION_SHAPED)) {
+    if (PARSEABLE_RANGE_LIST.test(match[2])) continue;
+    unparsed.push({
+      raw: match[0].replaceAll("`", "").replace(/\s*\n\s*/g, ""),
+      path: match[1],
+      rest: match[2],
+    });
+  }
+  return unparsed;
 }
 
 // Conventional line count (what `wc -l` reports for a newline-terminated
@@ -155,6 +201,11 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.a
     for (const warning of warnings) {
       console.warn(
         `${target}: ${warning.raw} — warning: unrecognised extension ".${warning.extension}", not checked`
+      );
+    }
+    for (const unparsed of extractUnparsedCitations(markdown)) {
+      console.warn(
+        `${target}: ${unparsed.raw} — warning: could not be parsed as a citation, not checked`
       );
     }
     console.log(`${target}: ${total} citations, ${failures.length} bad`);

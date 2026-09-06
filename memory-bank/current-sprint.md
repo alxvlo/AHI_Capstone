@@ -83,11 +83,27 @@ reviewer:
 **None of these is in `qa-runs/defect-log.md` yet.** The log still stops at D-004. Deciding which
 become `D-NNN` entries is an open item.
 
-**Known gate defect:** `scripts/docs/verify-citations.mjs` is blind to comma-joined multi-range
-citations (`` `file.tsx:40-77,118-126` ``) — they match no branch of its regex, so a citation to a
-nonexistent file in that form reports `0 citations, 0 bad`. 89 citations across five journeys were
-never checked by it. Journey 05's ten were hand-verified and two were wrong. Fixing the script,
-tests-first, is the next piece of work.
+**Gate defect fixed.** `scripts/docs/verify-citations.mjs` was blind to comma-joined multi-range
+citations (<code>file.tsx:40-77,118-126</code>) — they matched no branch of its regex, so a citation to a
+nonexistent file in that form reported `0 citations, 0 bad`. `docs/superpowers/plans/2026-09-06-citation-gate-repair.md`
+fixed this: the grammar now parses comma-joined ranges, and a new warning flags anything still
+unparseable. Its repair pass then read 101 of the ~114 originally-invisible spans against source —
+the five journey review docs (`01-reception.md` through `05-releasing.md`) and their evidence files,
+worst-first (05, 04, 03, 02, 01); the remaining spans, outside those five journeys, pass the bounds
+check but were not exhaustively hand-read against source, so this is not full coverage. Of the 101,
+one was incomplete rather than wrong — `docs/superpowers/journeys/03-department.md`'s `result_file`
+RLS claim cited two migrations that hold no such policy and was missing the third, which now added
+it — and zero were found factually wrong. Separately, one bare-filename citation missing a path
+prefix was fixed in `docs/superpowers/journeys/evidence/01-reception-L3.md`, and two files with
+illustrative/historical-quote examples were de-formatted so the gate stops treating them as
+citations. Six other tracked files (`.claude/commands/brief.md`,
+`docs/superpowers/plans/2026-09-04-journey-03-department-review.md`,
+`docs/superpowers/specs/2026-08-16-staff-workflow-revision-design.md`,
+`docs/superpowers/specs/2026-08-30-phase-3-singapore-cutover-demo-readiness-design.md`,
+`docs/superpowers/specs/2026-08-31-d004-fitness-status-column-width-design.md`,
+`memory-bank/qa-runs/defect-log.md`) still fail the gate under both the old and new grammar — a
+different, pre-existing, un-fixed defect (missing path prefixes, one command-template placeholder),
+not covered by this fix.
 
 **Not yet done, and the reason the programme is 100% discovery:** no findings register and no
 remediation backlog exist. Ten journeys will produce roughly eighty ranked gaps that deduplicate —

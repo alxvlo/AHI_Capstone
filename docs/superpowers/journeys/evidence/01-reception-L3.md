@@ -82,7 +82,7 @@ filtered by `patientLookup` (`components/dashboard/staff/reception-module.tsx:98
 alphabetically by full name, not by recency. Immediately after registering "L3 Probe Reception
 Walkthrough," the default (unfiltered) top-12 list was still the 12 alphabetically-first patients
 (all named "Demo Patient …", which sort before "L3…") — the new patient was **not** in the Patient
-dropdown until the operator searched for them by name/ID (`reception-module.tsx:245-251,
+dropdown until the operator searched for them by name/ID (`components/dashboard/staff/reception-module.tsx:245-251,
 399-412`). This is a real, unavoidable step for a brand-new walk-in, not an artifact of this
 measurement.
 

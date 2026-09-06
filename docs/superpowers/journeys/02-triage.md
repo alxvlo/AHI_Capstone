@@ -94,7 +94,7 @@ undercount past 40 pending cases, since none of them is a real count of the unde
 `ActionPanel` — a component with `role="dialog"`, `aria-modal="true"`, focus trap, and Escape-to-close
 (ARIA-modal), rendered visually as a fixed right-side slide-over, not a centered dialog box
 (`docs/superpowers/journeys/evidence/02-triage-L1.md:350-386`, citing
-`components/dashboard/shared/action-panel.tsx:51-57,105-117`). L2 measured the panel directly at
+`components/dashboard/shared/action-panel.tsx:51-92,109-117`). L2 measured the panel directly at
 1440×900: `width=672px`, exactly Tailwind's `max-w-2xl` (42rem) — **46.7% of the 1440px viewport**
 — with no scaling mismatch between the class name and the render
 (`docs/superpowers/journeys/evidence/02-triage-L2.md:78-88`). The remaining 53.3% (768px) is a
