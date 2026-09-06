@@ -3,21 +3,34 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 // A citation is a backtick-quoted repo-relative path with a file extension we
-// recognise, followed by :line or :start-end. Requiring the extension is what
-// keeps video timestamps (`1:36`) and host:port strings (`localhost:3000`) out.
+// recognise, followed by a range list: `:NN`, `:NN-MM`, or several of those
+// comma-separated (`:17-40,51-56`). Requiring the extension is what keeps
+// video timestamps (`1:36`) and host:port strings (`localhost:3000`) out.
+//
+// The comma-separated form was silently unmatched until 2026-09-06: the old
+// pattern demanded a closing backtick straight after the first range, so a
+// span like `lib/email/send.ts:17-40,51-56` matched nothing at all and was
+// neither counted nor checked. 114 spans across the tracked corpus — 269 line
+// ranges — had never been examined. Whitespace (including a line break, for
+// citations the author's editor wrapped) is allowed around the commas because
+// the corpus contains both forms.
 const KNOWN_EXTENSIONS = "tsx?|jsx?|mjs|cjs|mts|cts|sql|md|txt|json|css|ya?ml|py|sh|html";
+const RANGE_LIST = "(\\d+(?:-\\d+)?(?:\\s*,\\s*\\d+(?:-\\d+)?)*)";
 const CITATION = new RegExp(
-  "`([A-Za-z0-9_.\\-/]+\\.(?:" + KNOWN_EXTENSIONS + ")):(\\d+)(?:-(\\d+))?`",
+  "`([A-Za-z0-9_.\\-/]+\\.(?:" + KNOWN_EXTENSIONS + ")):" + RANGE_LIST + "`",
   "g"
 );
 
-// A broader pattern that matches a backtick-quoted `path.ext:NN` (or
-// `path.ext:NN-MM`) citation for ANY extension, not just the ones `CITATION`
-// above recognises. Used only to detect citations whose extension we don't
-// check — so a gap in the recognised-extension list surfaces as a warning
-// instead of the citation being silently skipped (a false negative in a
-// quality gate).
-const ANY_EXTENSION_CITATION = /`([A-Za-z0-9_.\-/]+\.([A-Za-z0-9]+)):(\d+)(?:-(\d+))?`/g;
+// A broader pattern that matches a backtick-quoted citation for ANY extension,
+// not just the ones `CITATION` above recognises. Used only to detect citations
+// whose extension we don't check — so a gap in the recognised-extension list
+// surfaces as a warning instead of the citation being silently skipped (a
+// false negative in a quality gate). Group 2 is the extension; the range list
+// is group 3 and is not read here.
+const ANY_EXTENSION_CITATION = new RegExp(
+  "`([A-Za-z0-9_.\\-/]+\\.([A-Za-z0-9]+)):" + RANGE_LIST + "`",
+  "g"
+);
 const KNOWN_EXTENSION_SET = new Set(
   "tsx,ts,jsx,js,mjs,cjs,mts,cts,sql,md,txt,json,css,yaml,yml,py,sh,html".split(",")
 );
@@ -35,12 +48,18 @@ function stripFencedCodeBlocks(markdown) {
 export function extractCitations(markdown) {
   const found = [];
   for (const match of stripFencedCodeBlocks(markdown).matchAll(CITATION)) {
-    found.push({
-      raw: match[0].replaceAll("`", ""),
-      path: match[1],
-      start: Number(match[2]),
-      end: match[3] === undefined ? null : Number(match[3]),
-    });
+    // One entry per range, all sharing the span's raw text so a failure
+    // message points at the whole span the author has to go and find.
+    const raw = match[0].replaceAll("`", "").replace(/\s*\n\s*/g, "");
+    for (const segment of match[2].split(",")) {
+      const [startText, endText] = segment.trim().split("-");
+      found.push({
+        raw,
+        path: match[1],
+        start: Number(startText),
+        end: endText === undefined ? null : Number(endText),
+      });
+    }
   }
   return found;
 }
