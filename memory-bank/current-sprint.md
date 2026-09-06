@@ -105,10 +105,16 @@ citations. Six other tracked files (`.claude/commands/brief.md`,
 different, pre-existing, un-fixed defect (missing path prefixes, one command-template placeholder),
 not covered by this fix.
 
-**Not yet done, and the reason the programme is 100% discovery:** no findings register and no
-remediation backlog exist. Ten journeys will produce roughly eighty ranked gaps that deduplicate —
-by root cause, not by journey — to perhaps twenty-five real work items. Until that layer is written
-in the team's own voice, there is nothing here a teammate can pick up and build.
+**The register and backlog now exist.** `docs/superpowers/findings/register.md` deduplicates the
+105 raw inventory rows from the five reviewed journeys down to 45 distinct findings, grouped by root
+cause. `memory-bank/qa-runs/defect-log.md` carries 13 of those forward as logged defects (D-005
+through D-017, all `OPEN — NOT REPRODUCED`). `memory-bank/ux-remediation-backlog.md` turns the 45
+findings into 36 ranked `W-NNN` work items, several blocked on Q-07, Q-09, or the OD-1–OD-7 register
+and named as such rather than hidden. The top-ranked item, **W-001**, guards three Server Actions
+that currently allow an unsafe status transition with no precondition check — including the one path
+that can revert a `RELEASED` case. Ten journeys will eventually produce more gaps than these 45; the
+backlog documents what it does not yet cover (journeys 06-10) rather than implying it is the whole
+picture.
 
 ---
 
