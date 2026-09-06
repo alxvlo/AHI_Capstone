@@ -656,7 +656,7 @@ it is reusable and worth not repeating.
   `:1798` is `releaseCaseAction`'s own transition *into* `RELEASED`, which requires `FOR_RELEASING`
   (`:1735`). `:862` is `submitTriageAssessmentAction`, which refuses any case that already carries a
   `triagecompletedtimestamp` (`:827-832`) — a released case always does.
-- **The ninth is unguarded: `updateTriageCompletionAction` (`:889-944`) can move a `RELEASED` case
+- **The ninth is unguarded: `updateTriageCompletionAction` (`:889-950`) can move a `RELEASED` case
   back to `IN_PROGRESS`.** It loads the case selecting only `caseid, casenumber` (`:909-913`) — it
   never reads `casestatuscodeid` and never reads `triagecompletedtimestamp` — then writes
   `casestatuscodeid: inProgressStatusId` plus a fresh `triagecompletedtimestamp` (`:922-928`)

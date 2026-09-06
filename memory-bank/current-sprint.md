@@ -6,9 +6,20 @@
 > because they are an accurate record; they are not live references. See
 > `guides/workflow-policy.md`.
 
-**Last Updated:** 2026-08-31 (D-004 fix + Phase 3 branch consolidation)
+**Last Updated:** 2026-09-06 (checkpoint corrected; UX journey programme recorded)
 **Phase:** Phase 5 - QA hardening, risk closure, and coverage stabilization
-**Current Checkpoint:** Feature branch `worktree-d004-fitness-status-column-width` — carries the Phase 3 groundwork merge and the D-004 fitness status column width fix. Not yet merged to `main` (local `main` is at a different, earlier commit). This line will be corrected to name the merge commit once merged. Working tree clean.
+**Current Checkpoint:** `2733e52` on `main` — "Merge pull request #68 from
+alxvlo/worktree-d004-fitness-status-column-width", merged 2026-08-31. Carries the Phase 3 groundwork
+merge and the D-004 fitness status column width fix. This is also `origin/main`, so it is pushed.
+
+Local `main` is **one commit ahead** at `279ea09` (the UX programme overview doc, 2026-09-04),
+unpushed. The 2026-08-31 version of this line named the feature branch
+`worktree-d004-fitness-status-column-width` and said it was "not yet merged to `main`" — that was
+true when written, PR #68 merged it the same day, and the branch was deleted afterward, which is why
+git no longer recognizes the name. Corrected 2026-09-06.
+
+**Active branch:** `ux-journey-reviews`, 47 commits ahead of `main`, **nothing pushed** — see
+"UX journey review programme" below.
 
 ---
 
@@ -29,6 +40,59 @@ Local verification on 2026-08-22 (`npm run qa:local` at `d47e19b`):
 No Supabase linked commands, migrations, seed scripts, cleanup scripts, or Auth email flows were
 run during this reconciliation. `qa:supabase` and Playwright E2E have not been re-run since the
 2026-05-20 baseline — that gap is unchecked, not green.
+
+**`qa:local` re-run 2026-09-06** on `ux-journey-reviews` at `843e4d8`: lint 0 errors + 2 warnings
+(`lib/supabase/client.ts:7` as above, plus `scripts/supabase/seed-demo-data.mjs:125`), typecheck
+clean, **326 passed / 0 skipped across 55 files**. The 272/51 figures in the table above are the
+2026-08-22 measurement and are kept as the historical record, not the current baseline.
+
+---
+
+## UX journey review programme
+
+Running since 2026-09-04 on branch **`ux-journey-reviews`** (47 commits ahead of `main`,
+**nothing pushed**). An evidence-backed UX audit of all ten user journeys, so the team can answer the
+capstone advisor's post-demo comments with citations rather than recollection. Governed by
+`docs/superpowers/specs/2026-09-04-ux-programme-overview.md`, which is the authority on unit status,
+root causes RC-1–RC-4, the S0 quick wins, and the OD-1–OD-7 decisions register.
+
+**Five of ten journeys reviewed and merged:** 01 Reception, 02 Triage, 03 Department stations,
+04 Physician, 05 Releasing. Journeys 06-10 not started.
+
+The branch adds 58 files — 5 reviews, 11 evidence documents, 30 screenshots, 5 plans, the two
+`scripts/docs/` gate scripts and their tests — and modifies one, the programme overview.
+**No application code is touched by any of it.**
+
+Findings that carry into this sprint's work, each verified against source by an independent
+reviewer:
+
+- **`portalvisible` does not gate the patient portal**, only the client/agency portal. Confirmed at
+  four layers including the storage RLS policy. Both drafted advisor-answer documents state the
+  opposite and must be corrected before either is sent.
+- **A System Administrator can revert a released case.** `updateTriageCompletionAction`
+  (`features/dashboard/staff/actions.ts:889-950`) writes `casestatuscodeid` without reading the
+  case's current status; its role gate admits System Administrator; no page renders it; RLS does not
+  stop it. Trivial to guard.
+- **The release-block message can be literally false** — a Department Staff Re-Queue on a case
+  already at `FOR_RELEASING` leaves a `PENDING` visit the message calls terminal.
+- **A case blocked by a `CANCELLED` visit has no way forward** through any screen.
+- **A physician who requests additional tests loses query access to that case** (journey 04).
+- **Reception's four dashboard tiles are computed in JS from the loaded page**, not counted from the
+  database — flagged as candidate **D-005**.
+
+**None of these is in `qa-runs/defect-log.md` yet.** The log still stops at D-004. Deciding which
+become `D-NNN` entries is an open item.
+
+**Known gate defect:** `scripts/docs/verify-citations.mjs` is blind to comma-joined multi-range
+citations (`` `file.tsx:40-77,118-126` ``) — they match no branch of its regex, so a citation to a
+nonexistent file in that form reports `0 citations, 0 bad`. 89 citations across five journeys were
+never checked by it. Journey 05's ten were hand-verified and two were wrong. Fixing the script,
+tests-first, is the next piece of work.
+
+**Not yet done, and the reason the programme is 100% discovery:** no findings register and no
+remediation backlog exist. Ten journeys will produce roughly eighty ranked gaps that deduplicate —
+by root cause, not by journey — to perhaps twenty-five real work items. Until that layer is written
+in the team's own voice, there is nothing here a teammate can pick up and build.
 
 ---
 

@@ -61,3 +61,17 @@ qa-visual-dashboard-staff.png
 .claude/worktrees/
 .vercel
 .env*.local
+
+# Advisor working documents — MUST NOT be committed.
+# This repo is public and these files quote the capstone advisor verbatim by name,
+# alongside the team's own drafted answers. Root-anchored so the pattern cannot match
+# a nested directory (see the 2026-08-15 note in memory-bank/current-sprint.md about
+# bare patterns silently ignoring docs/superpowers/plans/).
+# If one ever genuinely needs tracking, that is a deliberate `git add -f`, not an accident.
+/advisor-*.md
+
+# Agent tooling installed per-machine, not app runtime.
+# (`.agent/` singular is already ignored above; `.agents/` plural is a different directory.)
+/.agents/
+/.claude/skills/
+/skills-lock.json

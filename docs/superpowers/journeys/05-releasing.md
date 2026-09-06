@@ -290,7 +290,7 @@ action reaching `ARCHIVED`) explicitly forbids `RELEASED` as a source
 `features/dashboard/staff/actions.ts:82-86` and `:533-541`).
 
 **The ninth is not guarded, and it means a System Administrator can revert a release.**
-`updateTriageCompletionAction` (`features/dashboard/staff/actions.ts:889-944`) writes
+`updateTriageCompletionAction` (`features/dashboard/staff/actions.ts:889-950`) writes
 `casestatuscodeid: inProgressStatusId` without ever reading the case's current status, and its role
 gate admits `System Administrator` alongside `Triage Nurse` (`:898`). No page renders it — a
 repo-wide search finds only its own test — so it is unreachable from the UI, but it remains a live
