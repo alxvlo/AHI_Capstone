@@ -124,3 +124,33 @@ Source: `docs/superpowers/journeys/04-physician.md`
 | 04§7.11 | Enhancement | Human-readable copy for the fitness-code options | `docs/superpowers/journeys/04-physician.md:438` |
 | 04§7.12 | Enhancement | Point the "Decisions" nav item at something that actually changes state, or remove the dead `?view=decisions` param | `docs/superpowers/journeys/04-physician.md:439` |
 | 04§7.13 | Enhancement | Audit rows for automatic case-status transitions and additional-test visit creation | `docs/superpowers/journeys/04-physician.md:440` |
+
+## 05 — Releasing Staff / case release and portal access
+
+Source: `docs/superpowers/journeys/05-releasing.md`
+
+| ID | Severity | Finding (verbatim lead sentence) | Source |
+|---|---|---|---|
+| 05§6.1 | Must-fix | A release cannot be undone through any screen in the product, and both notification emails have already been dispatched by the time a mistake could be noticed. | `docs/superpowers/journeys/05-releasing.md:384` |
+| 05§6.2 | Must-fix | A case blocked by a `CANCELLED` visit has no way forward at all | `docs/superpowers/journeys/05-releasing.md:395` |
+| 05§6.3 | Must-fix | The release gate's blocking message can describe an actively-unfinished `PENDING` visit as "terminal," | `docs/superpowers/journeys/05-releasing.md:398` |
+| 05§6.4 | Must-fix | Both drafted advisor answers, and by extension anyone relying on them, are wrong about what the portal-visibility toggle affects | `docs/superpowers/journeys/05-releasing.md:402` |
+| 05§6.5 | Should-fix | A releaser cannot tell why a case is blocked until after clicking | `docs/superpowers/journeys/05-releasing.md:409` |
+| 05§6.6 | Should-fix | Audit coverage has real holes | `docs/superpowers/journeys/05-releasing.md:412` |
+| 05§6.7 | Should-fix | Both notification emails are fire-and-forget with zero delivery status shown to the releasing staff member | `docs/superpowers/journeys/05-releasing.md:415` |
+| 05§6.8 | Should-fix | All three metric tiles and both tables are capped-array-derived, with no total count, filter, search, sort, or pagination on either table | `docs/superpowers/journeys/05-releasing.md:418` |
+| 05§6.9 | Should-fix | Once a released case ages past the 20-row Portal Visibility Management window, there is no UI path anywhere in this codebase to ever toggle its `portalvisible` flag again | `docs/superpowers/journeys/05-releasing.md:422` |
+| 05§6.10 | Nice-to-have | Admin has the same release/toggle permission as Releasing Staff at the server-action layer, but no admin-side UI anywhere in the app renders either form | `docs/superpowers/journeys/05-releasing.md:427` |
+| 05§6.11 | Nice-to-have | A third, uncited `peme_case` query drives the "Released Today" panel | `docs/superpowers/journeys/05-releasing.md:430` |
+| 05§7.1 | Enhancement | Guard `updateTriageCompletionAction` against cases past triage — a status check, or removing an action nothing renders | `docs/superpowers/journeys/05-releasing.md:441` |
+| 05§7.2 | Enhancement | Decide whether a released case should ever be recoverable by an authorized role, and if so, design that path (see OD-6, §8) | `docs/superpowers/journeys/05-releasing.md:442` |
+| 05§7.3 | Enhancement | Add a UI path (or extend `updateDepartmentVisitStatusAction`'s allowed transitions) so a `CANCELLED` visit blocking a `FOR_RELEASING` case is not a permanent dead end | `docs/superpowers/journeys/05-releasing.md:443` |
+| 05§7.4 | Enhancement | Gate `syncCaseWorkflowStatusAfterVisitUpdate` / the Department Staff Re-Queue control against `FOR_RELEASING` cases, or re-check visit status inside `releaseCaseAction` against a live, per-status message | `docs/superpowers/journeys/05-releasing.md:444` |
+| 05§7.5 | Enhancement | Name the affected portal explicitly in the toggle's label and description, and correct the drafted advisor answer before it goes out | `docs/superpowers/journeys/05-releasing.md:445` |
+| 05§7.6 | Enhancement | Show the specific blocking reason inline (per visit) before the release button is clicked, not only as a post-submission message | `docs/superpowers/journeys/05-releasing.md:446` |
+| 05§7.7 | Enhancement | Check the `audit_log` insert's result and surface a retry/alert on failure; write an audit row for blocked attempts | `docs/superpowers/journeys/05-releasing.md:447` |
+| 05§7.8 | Enhancement | Surface email delivery status to the releasing staff member, or at minimum a "pending"/"failed" indicator sourced from the audit row | `docs/superpowers/journeys/05-releasing.md:448` |
+| 05§7.9 | Enhancement | Replace the client-side capped-array tiles with real database counts; add filter/search/pagination to both tables | `docs/superpowers/journeys/05-releasing.md:449` |
+| 05§7.10 | Enhancement | Add a dedicated view (outside the 20-row window) for toggling `portalvisible` on any `RELEASED` case | `docs/superpowers/journeys/05-releasing.md:450` |
+| 05§7.11 | Enhancement | Either wire an admin-side UI to the existing `ADMIN_ROLE` permission, or drop it from the allow-list to match what actually exists | `docs/superpowers/journeys/05-releasing.md:451` |
+| 05§7.12 | Enhancement | Fold the "Released Today" query into the same documented table set, or remove it if redundant with Table 2 | `docs/superpowers/journeys/05-releasing.md:452` |
