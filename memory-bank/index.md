@@ -20,6 +20,7 @@ this table is the map. Read the roles, not the filenames.
 | **Live state — what's in flight** | `current-sprint.md` |
 | Completed work log | `slice-progress.md` |
 | Locked decisions, dated | `decisions.md` |
+| Ranked UX remediation backlog | `ux-remediation-backlog.md` |
 
 ## Reading Order For New Sessions
 

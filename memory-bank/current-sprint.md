@@ -80,8 +80,8 @@ reviewer:
 - **Reception's four dashboard tiles are computed in JS from the loaded page**, not counted from the
   database — flagged as candidate **D-005**.
 
-**None of these is in `qa-runs/defect-log.md` yet.** The log still stops at D-004. Deciding which
-become `D-NNN` entries is an open item.
+**These findings are now logged.** See "The register and backlog now exist" below — 13 of them
+became `D-005` through `D-017` in `qa-runs/defect-log.md`; the rest are tracked as backlog items.
 
 **Gate defect fixed.** `scripts/docs/verify-citations.mjs` was blind to comma-joined multi-range
 citations (<code>file.tsx:40-77,118-126</code>) — they matched no branch of its regex, so a citation to a
@@ -105,10 +105,18 @@ citations. Six other tracked files (`.claude/commands/brief.md`,
 different, pre-existing, un-fixed defect (missing path prefixes, one command-template placeholder),
 not covered by this fix.
 
-**Not yet done, and the reason the programme is 100% discovery:** no findings register and no
-remediation backlog exist. Ten journeys will produce roughly eighty ranked gaps that deduplicate —
-by root cause, not by journey — to perhaps twenty-five real work items. Until that layer is written
-in the team's own voice, there is nothing here a teammate can pick up and build.
+**The register and backlog now exist.** `docs/superpowers/findings/register.md` deduplicates the
+105 raw inventory rows from the five reviewed journeys down to 45 distinct findings, grouped by root
+cause. `memory-bank/qa-runs/defect-log.md` carries 13 of those forward as logged defects (D-005
+through D-017, all `OPEN — NOT REPRODUCED`). `memory-bank/ux-remediation-backlog.md` turns the 45
+findings into 37 ranked `W-NNN` work items, several blocked on Q-07, Q-09, or the OD-1–OD-7 register
+and named as such rather than hidden. The top-ranked item, **W-001**, guards `updateTriageCompletionAction`
+against the two defects that let it silently revert a released case or skip vitals entirely with no
+precondition check. A second item, **W-037**, closes the same class of gap in a different action
+(`updateDepartmentVisitStatusAction`'s Re-Queue path) and corrects a release-blocking message that
+can call an unfinished visit "terminal." Ten journeys will eventually produce more gaps than these
+45; the backlog documents what it does not yet cover (journeys 06-10) rather than implying it is the
+whole picture.
 
 ---
 

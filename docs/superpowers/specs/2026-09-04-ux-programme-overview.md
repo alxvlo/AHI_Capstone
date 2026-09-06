@@ -114,6 +114,9 @@ twenty separate mistakes. Naming them keeps the reviews from repeating each othe
 | **RC-3** | Metrics computed in JS from the loaded page, not from the database | 01, 02, 08 |
 | **RC-4** | No queue model at all — `queuenumber` is read in four places and never written | 02, 03, 06, 10 |
 
+Findings for each root cause, grouped and deduplicated from the five journeys reviewed so far, are
+collected in `docs/superpowers/findings/register.md`.
+
 ---
 
 ## S0 — Quick wins
