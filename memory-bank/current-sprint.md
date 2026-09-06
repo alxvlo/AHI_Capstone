@@ -84,7 +84,7 @@ reviewer:
 become `D-NNN` entries is an open item.
 
 **Known gate defect:** `scripts/docs/verify-citations.mjs` is blind to comma-joined multi-range
-citations (`` `file.tsx:40-77,118-126` ``) — they match no branch of its regex, so a citation to a
+citations (<code>file.tsx:40-77,118-126</code>) — they match no branch of its regex, so a citation to a
 nonexistent file in that form reports `0 citations, 0 bad`. 89 citations across five journeys were
 never checked by it. Journey 05's ten were hand-verified and two were wrong. Fixing the script,
 tests-first, is the next piece of work.
