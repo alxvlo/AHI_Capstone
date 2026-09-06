@@ -39,29 +39,28 @@ a fix genuinely cannot be scoped without a design decision, the item says so ins
 | | |
 |---|---|
 | **ID** | W-001 |
-| **Closes** | F-014 (guard portion only), F-016, F-022 · D-012, D-013, D-017 |
+| **Closes** | F-014 (guard portion only), F-022 · D-012, D-017 |
 | **Root cause** | No shared root cause |
-| **Screens** | Triage, Department, Releasing |
-| **Files** | `features/dashboard/staff/actions.ts` (`updateTriageCompletionAction`, `updateDepartmentVisitStatusAction`) |
+| **Screens** | Triage, Releasing |
+| **Files** | `features/dashboard/staff/actions.ts` (`updateTriageCompletionAction`) |
 | **Size** | Medium |
 | **Blocked by** | — |
 | **Status** | Not started |
 
-**What** — Two Server Actions currently write a case- or visit-status transition with no
-precondition check on the record's current state, and both are reachable even though no page
-renders a UI trigger for either path (a Next.js Server Action is callable directly regardless of
-whether a component ever links to it). `updateTriageCompletionAction` can revert a `RELEASED` case
-to `IN_PROGRESS` (D-012) and can also move a `REGISTERED` case straight to `IN_PROGRESS` with zero
-vitals ever recorded (D-017, the same "case admitted with no vitals" gap the rest of the system is
-built to prevent). `updateDepartmentVisitStatusAction`'s Re-Queue path can turn a visit back to
-`PENDING` on a case already at `FOR_RELEASING`, after which the release-blocking message calls that
-same visit "terminal" (D-013). All three are the same shape of gap: a status-writing action missing
-a precondition on the record it is about to change. Add the missing precondition to each.
+**What** — `updateTriageCompletionAction` currently writes a case-status transition with no
+precondition check on the case's current state, and is reachable even though no page renders a UI
+trigger for it (a Next.js Server Action is callable directly regardless of whether a component ever
+links to it). It can revert a `RELEASED` case to `IN_PROGRESS` (D-012) and can also move a
+`REGISTERED` case straight to `IN_PROGRESS` with zero vitals ever recorded (D-017, the same "case
+admitted with no vitals" gap the rest of the system is built to prevent). Both are the same shape of
+gap: a status-writing action missing a precondition on the record it is about to change. Add the
+missing precondition. See also **W-037**, split from this item, which covers a different unguarded
+action (`updateDepartmentVisitStatusAction`) with its own, unrelated fix.
 
-**Why this rank** — these are the only three defects in this backlog that are live, reachable today,
+**Why this rank** — these are the only two defects in this backlog that are live, reachable today,
 and can silently corrupt a record that downstream roles (and, for D-012, AHI-facing release status)
-already treat as final. Fixing them is a guard added to two existing functions, not a new feature,
-and needs no design decision — the correct precondition is stated by each function's own existing
+already treat as final. Fixing them is a guard added to one existing function, not a new feature,
+and needs no design decision — the correct precondition is stated by the function's own existing
 logic elsewhere in the codebase.
 
 **Acceptance criteria**
@@ -70,11 +69,9 @@ logic elsewhere in the codebase.
    target case's current status is not the one status this action is meant to transition from.
 2. `updateTriageCompletionAction` rejects any call for a case with no existing `triage_assessment`
    row, so it can no longer be the sole path that reaches `IN_PROGRESS` with zero vitals recorded.
-3. `updateDepartmentVisitStatusAction`'s Re-Queue path rejects re-queuing a visit whose case has
-   already reached `FOR_RELEASING` or later.
-4. **Must NOT happen:** a case status must never move backward (e.g. `RELEASED` → `IN_PROGRESS`) as
-   a side effect of any of these three actions after the fix ships.
-5. Whether releases should ever be reversible **by design** is explicitly out of scope for this item
+3. **Must NOT happen:** a case status must never move backward (e.g. `RELEASED` → `IN_PROGRESS`) as
+   a side effect of `updateTriageCompletionAction` after the fix ships.
+4. Whether releases should ever be reversible **by design** is explicitly out of scope for this item
    (that is OD-6, unresolved) — this item closes only the accidental, unguarded path.
 
 ---
@@ -1216,6 +1213,50 @@ building fuzzy matching well is a nontrivial, error-prone undertaking on its own
 2. **Must NOT happen:** a fuzzy match must not block registration outright — it must surface as a
    confirmable warning, since a false positive here would stop a legitimate new patient from being
    registered at all.
+
+---
+
+| | |
+|---|---|
+| **ID** | W-037 |
+| **Closes** | F-016 · D-013 |
+| **Root cause** | No shared root cause |
+| **Screens** | Department, Releasing |
+| **Files** | `features/dashboard/staff/actions.ts` (`updateDepartmentVisitStatusAction`, `buildUnresolvedVisitReleaseMessage`), `components/dashboard/staff/department-module.tsx` |
+| **Size** | Small |
+| **Blocked by** | — |
+| **Status** | Not started |
+
+**What** — Split from **W-001**: a different, unguarded action with its own fix. The Department
+queue's Re-Queue control can turn a `SKIPPED` visit back to `PENDING` on a case already at
+`FOR_RELEASING`, with no case-status check anywhere in `updateDepartmentVisitStatusAction`. The next
+release attempt's blocking message then calls that same `PENDING` visit "terminal," which is false —
+`buildUnresolvedVisitReleaseMessage` labels every non-`COMPLETED` visit "terminal but not COMPLETED"
+regardless of what its status actually is at the moment the message is built.
+
+**Why this rank** — Despite its position at the end of this numbered list (a consequence of being
+split off from W-001 late, not a reflection of its priority), this is ranked with the same urgency as
+W-001: it is live, reachable today through the normal Department Re-Queue control (no special
+privilege needed), and produces a message an operator will act on that is actively false. Should be
+picked up alongside or immediately after W-001, not deferred to the numeric end of this list.
+
+**Acceptance criteria**
+
+1. The release-blocking message never labels a visit "terminal" unless that visit's status is
+   genuinely one of the terminal statuses (`COMPLETED`, `CANCELLED`, `SKIPPED`) at the moment the
+   message is built — not merely "not `COMPLETED`."
+2. Re-queuing a `SKIPPED` visit on a case already at `FOR_RELEASING` is either (a) prevented outright
+   with an explicit error naming the case's current status, or (b) allowed, but the case's own
+   readiness state is corrected at the same time so the next release attempt's message reflects the
+   true, current visit status.
+
+**Must NOT happen**
+
+- The blocking message must never describe a `PENDING` or `IN_PROGRESS` visit as "terminal" under any
+  sequence of actions.
+- A fix that only changes the message's wording without also closing the Re-Queue path (or correcting
+  case readiness when it fires) does not satisfy this criterion — the message must be truthful given
+  the actual, current visit-status data, not merely reworded to sound more hedged.
 
 ---
 
