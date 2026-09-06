@@ -268,11 +268,11 @@ describe("CLI: node scripts/docs/check-advisor-leakage.mjs", () => {
   });
 });
 
-describe("findLeakage — '## 3. What Sir Ng said' section exclusion (FIX 3a)", () => {
+describe("findLeakage — '## 3. What the Capstone Advisor said' section exclusion (FIX 3a)", () => {
   it("does not flag verbatim advisor text quoted inside the mandated §3 section", () => {
     const lift = "so the queue should filter by status rush and company";
     const review = [
-      "## 3. What Sir Ng said",
+      "## 3. What the Capstone Advisor said",
       "",
       `**1:10** — "${lift} for busy days."`,
       "",
@@ -295,7 +295,7 @@ describe("findLeakage — '## 3. What Sir Ng said' section exclusion (FIX 3a)", 
   it("still flags an unattributed lift appearing after §3, in a later section", () => {
     const lift = "so the queue should filter by status rush and company";
     const review = [
-      "## 3. What Sir Ng said",
+      "## 3. What the Capstone Advisor said",
       "",
       `**1:10** — "${lift} for busy days."`,
       "",

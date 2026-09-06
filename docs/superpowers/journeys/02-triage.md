@@ -201,7 +201,7 @@ rendered form exactly
 a bug in the code doing something other than what it says — it is that the code, rendering precisely
 as written, produces the cramped layout and silent 40-row cap the advisor is objecting to.
 
-## 3. What Sir Ng said
+## 3. What the Capstone Advisor said
 
 Quoted verbatim from `advisor-review-responses-2026-09-04.md` — an untracked working document at the
 repo root, referenced throughout this section by name only (not by line number, since it is not

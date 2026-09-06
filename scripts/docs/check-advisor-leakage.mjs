@@ -73,7 +73,7 @@ import { fileURLToPath } from "node:url";
 // Excluding the mandated verbatim-quote section:
 // ------------------------------------------------
 // Every journey review has a section with the exact heading
-// `## 3. What Sir Ng said`, whose entire purpose is to quote advisor
+// `## 3. What the Capstone Advisor said`, whose entire purpose is to quote advisor
 // comments verbatim — the template *requires* this. Narrowing the
 // attribution exclusion to sentence scope (above) closed a real gap
 // (an unattributed lift hiding in an attributed paragraph) but opened a
@@ -89,7 +89,7 @@ import { fileURLToPath } from "node:url";
 // a per-sentence filename check is a poor tool for policing at all: this is
 // *supposed* to be verbatim). Rather than trying to make sentence-level
 // attribution smarter, §3 is excluded wholesale: `stripAdvisorQuoteSection`
-// blanks every line from the `## 3. What Sir Ng said` heading up to (not
+// blanks every line from the `## 3. What the Capstone Advisor said` heading up to (not
 // including) the next `## `-level heading, before block-splitting. This
 // only touches the review's own §3 — later sections (§4 onward) are
 // unaffected and still get full sentence-scoped scanning, so an
@@ -153,14 +153,14 @@ export function stripFencedCodeBlocks(markdown) {
   return markdown.replace(/```[\s\S]*?```/g, (block) => block.replace(/[^\n]/g, " "));
 }
 
-// Blanks the mandated `## 3. What Sir Ng said` section wholesale — from that
+// Blanks the mandated `## 3. What the Capstone Advisor said` section wholesale — from that
 // exact heading line up to (not including) the next `## `-level heading, or
 // end of file if it is the last section. See the header comment above for
 // why this section is excluded entirely rather than sentence-scoped like
 // the rest of the document. Line-based rather than a single regex so
 // heading detection isn't tangled up with a multi-line `$` anchor.
 export function stripAdvisorQuoteSection(markdown) {
-  const heading = "## 3. What Sir Ng said";
+  const heading = "## 3. What the Capstone Advisor said";
   const lines = markdown.split("\n");
   const start = lines.findIndex((line) => line.trim() === heading);
   if (start === -1) return markdown;

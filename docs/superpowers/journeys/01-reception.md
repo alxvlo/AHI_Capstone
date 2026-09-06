@@ -202,7 +202,7 @@ the tiles do not react to a Patient Lookup search, which is expected given none 
 match the `patientLookup` parameter that search sets
 (`docs/superpowers/journeys/evidence/01-reception-L2.md:174-184`).
 
-## 3. What Sir Ng said
+## 3. What the Capstone Advisor said
 
 Quoted verbatim from `advisor-review-responses-2026-09-04.md` — an untracked working document at
 the repo root, referenced throughout this section by name only (not by line number, since it is not
@@ -240,7 +240,7 @@ Every one of these was independently reachable from this journey's own evidence 
 (1:44, 1:53), the scroll depth to the create-case package field (3:44), the re-selection of the same
 patient (2:41), the sequential un-parallelized query chain and unindexed search (2:35), and the
 page-scoped, structurally-broken metric tiles (1:36) are all confirmed above in §2, independently of
-the advisor's own diagnosis. See §4 for what is not already covered by his comments, and §6 for how
+the advisor's own diagnosis. See §4 for what is not already covered by their comments, and §6 for how
 each is ranked.
 
 ## 4. What we found ourselves
@@ -250,8 +250,8 @@ evidence files:
 
 **The two-column layout defect (§2 above) is not something the advisor's comments describe.** He
 experienced its consequence — everything stacked in one long scroll (1:44, 1:53, 2:41, 3:44) — but
-nothing in his review names a CSS authoring bug as the cause. It is the mechanical explanation for
-his scroll-depth complaints: the page was designed as two columns and never rendered as two columns,
+nothing in their review names a CSS authoring bug as the cause. It is the mechanical explanation for
+their scroll-depth complaints: the page was designed as two columns and never rendered as two columns,
 at any viewport, since the line was written
 (`docs/superpowers/journeys/evidence/01-reception-L2.md:68-105, 211-226`).
 

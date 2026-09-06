@@ -157,7 +157,7 @@ Each item has a **default** used if unanswered. Please answer with "default OK" 
 
 ## 9. Post-Review Addendum (added 2026-09-04)
 
-**Added by:** Keith, following the 2026-09-03 advisor walkthrough with Sir Ng.
+**Added by:** Keith, following the 2026-09-03 advisor walkthrough with the Capstone Advisor.
 **Nature of this change:** Purely additive. Sections 1–8 are Lex's and are **unchanged** — no
 sentence above this line has been edited. This section records what the advisor review added, what
 it contradicts, and what it left untouched.

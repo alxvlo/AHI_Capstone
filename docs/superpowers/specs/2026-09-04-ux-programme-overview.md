@@ -24,7 +24,7 @@ Read this first. Then read the journey review for whatever you're picking up.
 
 | Source | What it is | Where |
 |---|---|---|
-| **Advisor review** | Sir Ng's 37 comments on the 2026-09-03 demo walkthrough | `advisor-review-responses-2026-09-04.md` (detailed) · `advisor-answers-simple-2026-09-04.md` (plain) |
+| **Advisor review** | the Capstone Advisor's 37 comments on the 2026-09-03 demo walkthrough | `advisor-review-responses-2026-09-04.md` (detailed) · `advisor-answers-simple-2026-09-04.md` (plain) |
 | **Lex's staff workflow spec** | Independent audit + proposed flow, written 2026-08-16, two weeks *before* the review | `docs/superpowers/specs/2026-08-16-staff-workflow-revision-design.md` |
 | **Our own code audit** | Defects and gaps found by reading the code, some of which the advisor did not see | Recorded per journey in `docs/superpowers/journeys/` |
 | **Sept 2 site visit** | Observed AHI process — **NOT YET WRITTEN UP** | ⚠️ Missing. See Inputs Needed. |
@@ -53,8 +53,8 @@ Every journey review has the same eight sections:
 
 1. **Who and what** — the role, their goal, the pressure they're under
 2. **Flow as built today** — step by step, verified against code, with `file:line` references
-3. **What Sir Ng said** — his comments, verbatim
-4. **What we found ourselves** — including what he did not see
+3. **What the Capstone Advisor said** — their comments, verbatim
+4. **What we found ourselves** — including what they did not see
 5. **Blocked on input** — which AHI questions or Sept 2 findings this needs
 6. **Gaps ranked** — must-fix / should-fix / nice-to-have
 7. **Candidate enhancements** — with rough effort

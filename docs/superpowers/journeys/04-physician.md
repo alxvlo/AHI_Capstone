@@ -174,7 +174,7 @@ shared staff header, not specific to this screen
 `components/dashboard/staff/physician-module.tsx:192`, `app/dashboard/staff/page.tsx:82-86`) — both
 are analyzed further in §4 and §8.
 
-## 3. What Sir Ng said
+## 3. What the Capstone Advisor said
 
 Quoted verbatim from `advisor-review-responses-2026-09-04.md` — an untracked working document at the
 repo root, referenced by name only, not by line number, since it is not committed to this branch

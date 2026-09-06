@@ -1,4 +1,4 @@
-# Action Plan — post-kickoff with Sir Ng (2026-08-26)
+# Action Plan — post-kickoff with the Capstone Advisor (2026-08-26)
 
 **Horizon:** 12 weeks. Panel defense Nov 21. Mock defense ~Nov 4–11.
 **Status of this doc:** proposal for team agreement, then for the Wednesday check-in.
@@ -182,7 +182,7 @@ cannot be regenerated in the time remaining.
 which lands on top of the mock defense — for a system that ends up at feature
 parity at best.
 
-**What Sir Ng said:** a full rewrite "would not graduate." Whatever the
+**What the Capstone Advisor said:** a full rewrite "would not graduate." Whatever the
 engineering merits, this is a stated position from the person evaluating the
 work, recorded in the kickoff. Overriding it requires a much stronger case
 than the performance data supports.
@@ -579,7 +579,7 @@ Estimate: one day including triage.
 
 ### Task T6 — Data Privacy Act compliance
 
-Sir Ng rejected "Supabase RLS = compliance," correctly: RLS is access control,
+The Capstone Advisor rejected "Supabase RLS = compliance," correctly: RLS is access control,
 which is one control among many under RA 10173. One member owns this end to
 end. Deliverable is a gap analysis mapping each NPC requirement to evidence
 in this repo — or to a gap:
@@ -694,7 +694,7 @@ data from real users.
    lead. Name a date. A specific ask converts far better than "can we visit
    sometime." The COO handed over the operations manual, so the relationship
    is warm — use it.
-3. **If both go quiet by Friday, escalate to Sir Ng.** An adviser email to the
+3. **If both go quiet by Friday, escalate to the Capstone Advisor.** An adviser email to the
    COO carries institutional weight that a student email does not. Ask for it
    at the Sep 2 check-in rather than waiting.
 
@@ -743,7 +743,7 @@ Two process fixes, both cheap:
 
 - **Make work visible.** The repo is the board by design
   (`memory-bank/current-sprint.md` is normative and there is no Jira), but the
-  adviser cannot see it. Either give him repo access or paste the standup brief
+  adviser cannot see it. Either give them repo access or paste the standup brief
   into the Wednesday chat — `.claude/commands/brief.md` already generates one
   from project state.
 - **Every member commits.** Three names in `git log` each week is the simplest

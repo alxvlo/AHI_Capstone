@@ -120,7 +120,7 @@ Leakage counts so far: 1 in journey 01, 7 in journey 02, 9 in journey 03. Run th
       --evidence docs/superpowers/journeys/evidence/04-physician-L1.md docs/superpowers/journeys/evidence/04-physician-L2.md \
       --advisor advisor-review-responses-2026-09-04.md advisor-answers-simple-2026-09-04.md
 
-**Exit 1 means "read these", not "these are defects".** The checker excludes `## 3. What Sir Ng
+**Exit 1 means "read these", not "these are defects".** The checker excludes `## 3. What the Capstone Advisor
 said` and attributed sentences, but a legitimate advisor requote elsewhere still trips it.
 Adjudicate by reading each finding; fix genuine lifts, and record in your report why any remaining
 finding is legitimate. Do not edit a document merely to reach exit 0, and never weaken the checker.
@@ -403,7 +403,7 @@ heading text, same ordering. Read it before writing.
 
 1. Who and what
 2. Flow as built today
-3. What Sir Ng said
+3. What the Capstone Advisor said
 4. What we found ourselves
 5. Blocked on input
 6. Gaps ranked

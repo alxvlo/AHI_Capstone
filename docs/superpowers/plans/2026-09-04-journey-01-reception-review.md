@@ -728,7 +728,7 @@ Use all eight, in order, with these exact headings:
 
 1. `## 1. Who and what`
 2. `## 2. Flow as built today`
-3. `## 3. What Sir Ng said`
+3. `## 3. What the Capstone Advisor said`
 4. `## 4. What we found ourselves`
 5. `## 5. Blocked on input`
 6. `## 6. Gaps ranked`

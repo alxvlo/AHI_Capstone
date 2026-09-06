@@ -332,7 +332,7 @@ for Skip; Re-Queue is a stronger form of the same problem — it carries no reas
 1517-1523`). All rows use the acting caller's own `userId`, with no verification the insert succeeded
 before the primary action proceeds (§ above on non-atomicity).
 
-## 3. What Sir Ng said
+## 3. What the Capstone Advisor said
 
 Quoted verbatim from `advisor-review-responses-2026-09-04.md` — an untracked working document at the
 repo root, referenced throughout this section by name only, not by line number, since it is not

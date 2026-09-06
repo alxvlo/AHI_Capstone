@@ -142,7 +142,7 @@ card, 24px apart, 912px wide inside a 964px card — visually separated, not one
 not render at all in this run because zero cases had `releasedtimestamp` today
 (`docs/superpowers/journeys/evidence/05-releasing-L2.md:12-16`).
 
-## 3. What Sir Ng said
+## 3. What the Capstone Advisor said
 
 Quoted verbatim from `advisor-review-responses-2026-09-04.md` — an untracked working document at
 the repo root, referenced by name only, not by line number, since it is not committed to this
