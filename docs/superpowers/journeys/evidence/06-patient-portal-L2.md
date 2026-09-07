@@ -24,13 +24,14 @@ released state consistently (Current Status: "Released"; Result Access: "Availab
 Signed" and "Portal Visible," both positive tone).
 
 **This contradicts the premise Task 1's L1 file and the brief for this task were both written
-against.** `docs/superpowers/specs/2026-09-04-ux-programme-overview.md:216` lists "Demo case release
-status" as a blocked input with status "Pending," and this task's own brief (Step 5) instructs
-recording the released-state surfaces as unobservable "because no case in `RELEASED` state exists in
-the demo project for this account." That is no longer true for this account as of this run — the
-seed data changed, was released, or was always released and the doc's "Pending" note was stale; this
-task cannot determine which. What follows takes the actual live rendering as ground truth over the
-older doc note.
+against.** `docs/superpowers/specs/2026-09-04-ux-programme-overview.md:217` (the row read "Demo case
+release status … Pending" when this observation was made; the row has since been corrected by this
+journey to name the narrower remaining blocker) listed "Demo case release status" as a blocked input
+with status "Pending," and this task's own brief (Step 5) instructs recording the released-state
+surfaces as unobservable "because no case in `RELEASED` state exists in the demo project for this
+account." That is no longer true for this account as of this run — the seed data changed, was
+released, or was always released and the doc's "Pending" note was stale; this task cannot determine
+which. What follows takes the actual live rendering as ground truth over the older doc note.
 
 **Consequence for coverage:** the `ResultSummary`, `CertificateDownload`, and `ResultFiles`
 containers all render in their released (non-early-return) branch — this is a stronger observation
@@ -208,10 +209,10 @@ is not observable from this account. L1 Q8/Q9's code-level description of what t
 show if populated is the only evidence for that, and remains the reference for it.
 
 The blocked-input citation the brief pointed at
-(`docs/superpowers/specs/2026-08-16-staff-workflow-revision-design.md` — actually
-`docs/superpowers/specs/2026-09-04-ux-programme-overview.md:216`, "Demo case release status ... 
-Pending") is recorded above in "Seeded data" as stale relative to this run's live observation, not
-silently dropped.
+(`docs/superpowers/specs/2026-09-04-ux-programme-overview.md:217` — the row read "Demo case release
+status … Pending" when this observation was made; the row has since been corrected by this journey
+to name the narrower remaining blocker) is recorded above in "Seeded data" as stale relative to this
+run's live observation, not silently dropped.
 
 ---
 
@@ -295,8 +296,9 @@ exactly, with no contradicting rendered value.
 **One factual premise external to L1's own citations turned out stale, and is called out on its own
 terms above rather than folded into a false "no divergence" claim:** the brief (Task 2, Step 5) and
 the input-tracking table it cites
-(`docs/superpowers/specs/2026-09-04-ux-programme-overview.md:216`) both expected this account to
-have no `RELEASED` case. L1 itself did not make this claim — L1 correctly marked the demoed case's
+(`docs/superpowers/specs/2026-09-04-ux-programme-overview.md:217` — the row read "Demo case release
+status … Pending" when this observation was made; the row has since been corrected by this journey
+to name the narrower remaining blocker) both expected this account to have no `RELEASED` case. L1 itself did not make this claim — L1 correctly marked the demoed case's
 actual status `[UNVERIFIED]` in its Advisor draft comparison section, precisely because a static
 code read cannot know a live row's status. This run resolves that specific `[UNVERIFIED]` by direct
 observation: the account's one case *is* `RELEASED`. This is not a contradiction of anything L1

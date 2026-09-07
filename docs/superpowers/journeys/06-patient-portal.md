@@ -15,7 +15,9 @@ work was scoped — so the released, non-early-return branch of the results/cert
 sections was directly observed. That account's `result_item` and `result_file` tables are both
 empty, though, so only the released-and-empty branch of those two sections was observed; the
 released-and-*populated* branch (an actual result row, an actual file row) rests on L1 alone. See
-§4 and §5.
+§4 and §5. This journey also captures screenshots at 390×844 and 360×800 in place of the 1280×720
+"realistic clinic viewport" journeys 01–05 used, because unit 06 is mobile-first and has no clinic
+desktop; the L2 evidence file's header explains the substitution in full.
 
 ---
 

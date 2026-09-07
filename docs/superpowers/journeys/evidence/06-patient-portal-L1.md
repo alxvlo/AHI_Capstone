@@ -472,7 +472,7 @@ validating the `caseId` (`:330-334`), the session and role (`:336-347`), the lin
 thing it does on success is call `redirectWithNotice` with a message stating the certificate
 entrypoint was "validated" and that "PDF template/signature configuration is still pending AHI
 final requirements" (`:415-418`) — no row is inserted, updated, or deleted anywhere in this
-function, on the success path or any of its five error-redirect paths (`:333`, `:343-346`,
+function, on the success path or any of its seven error-redirect paths (`:333`, `:343-346`,
 `:356-359`, `:368-371`, `:381-386`, `:400-403`, `:409-412`).
 
 So, exhaustively: **the one form a patient can submit on this route performs validation and a

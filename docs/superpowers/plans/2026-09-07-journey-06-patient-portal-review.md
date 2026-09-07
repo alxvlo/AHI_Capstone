@@ -374,7 +374,7 @@ Screenshot: `06-patient-portal-390x844-exam-progress.png`. Record the visits in 
 
 Screenshot: `06-patient-portal-390x844-pending-release.png` — the pending state as actually rendered.
 
-State plainly, in its own subsection, that the result summary, certificate download, and result-files surfaces **could not be observed** because no case in `RELEASED` state exists in the demo project for this account, cite the blocked input (`docs/superpowers/specs/2026-09-04-ux-programme-overview.md:216`), and mark every claim about those three surfaces `[UNVERIFIED]` at this level, pointing to L1 questions 8 and 9 as the only evidence. Do not create a released case.
+State plainly, in its own subsection, that the result summary, certificate download, and result-files surfaces **could not be observed** because no case in `RELEASED` state exists in the demo project for this account, cite the blocked input (`docs/superpowers/specs/2026-09-04-ux-programme-overview.md:216`, now `:217` and reworded after this step's own finding — see the addendum above), and mark every claim about those three surfaces `[UNVERIFIED]` at this level, pointing to L1 questions 8 and 9 as the only evidence. Do not create a released case.
 
 - [ ] **Step 6: Repeat at 360×800**
 
@@ -519,20 +519,20 @@ git commit   # docs(journey-06): patient portal journey review
 4. The leakage gate has been run with all three documents, and every finding is adjudicated in writing — not silenced by editing.
 5. All four routed items appear in §3 — two timestamped, two un-timestamped, the held one presented as held.
 6. Question 3 (`portalvisible`) is answered from all four layers with citations, and §4 states the answer whichever way it fell.
-7. Every claim about the result summary, certificate download, and result files is traceable to L1, and marked as unobserved at L2.
+7. Every claim about the result summary, certificate download, and result files is traceable to L1, and marked as unobserved at L2. **Superseded 2026-09-07, after Task 2's finding:** L2 in fact observed the released-container branch of all three surfaces (the probe account's case turned out to be `RELEASED`); what remains unobserved is populated-table *content* (an actual `result_item`/`result_file` row), not the released branch itself. See the addendum after "Why this journey inverts the pattern."
 8. Screenshots exist at 390×844, 360×800, and 1440×900, named `06-patient-portal-<W>x<H>-<view>.png`, and every filename referenced in a document exists on disk.
 9. Unit 06's status cell in the overview reads **Reviewed**.
 10. `memory-bank/current-sprint.md` no longer describes `ux-journey-reviews` as an active unmerged branch.
 
 **What must NOT happen:**
 
-No `INSERT`, `UPDATE`, or `DELETE` reaches the Singapore project by any path. No demo case is created, released, or torn down. No email flow is triggered. No file under `docs/superpowers/journeys/` for journeys 01–05, and no file under `docs/superpowers/findings/`, is modified — this journey adds, it does not revise its predecessors. No edit to `docs/superpowers/specs/2026-09-04-ux-programme-overview.md` by Task 3 beyond unit 06's status cell and a minted OD row — the Inputs-needed row correction (`:216`) was made once, directly, by the controller after Task 2's finding, and is not Task 3's to repeat or extend. Neither `advisor-*-2026-09-04.md` file is ever staged. Neither gate script is weakened to reach a green result.
+No `INSERT`, `UPDATE`, or `DELETE` reaches the Singapore project by any path. No demo case is created, released, or torn down. No email flow is triggered. No file under `docs/superpowers/journeys/` for journeys 01–05, and no file under `docs/superpowers/findings/`, is modified — this journey adds, it does not revise its predecessors. No edit to `docs/superpowers/specs/2026-09-04-ux-programme-overview.md` by Task 3 beyond unit 06's status cell and a minted OD row — the Inputs-needed row correction (`:216` at the time, `:217` after Task 3 minted OD-8 and shifted the table) was made once, directly, by the controller after Task 2's finding, and is not Task 3's to repeat or extend. Neither `advisor-*-2026-09-04.md` file is ever staged. Neither gate script is weakened to reach a green result.
 
 ---
 
 ## Self-Review
 
-**Spec coverage.** The overview's requirements for unit 06 map as follows: the eight-section template → Task 3's per-section steps; the three verification levels → Tasks 1 and 2, with L3's absence recorded rather than skipped silently; the four routed comments (`:159`, `:180-182`) → Task 3 Step 2, answered in Step 3; the unit-10 dependency (`:97-99`) → L1 question 5, L2 Step 4, and §8; the blocked input (`:216`) → the pre-work ruling, L2 Step 5, and §5; the status transition → Task 3 Step 8.
+**Spec coverage.** The overview's requirements for unit 06 map as follows: the eight-section template → Task 3's per-section steps; the three verification levels → Tasks 1 and 2, with L3's absence recorded rather than skipped silently; the four routed comments (`:159`, `:180-182`) → Task 3 Step 2, answered in Step 3; the unit-10 dependency (`:97-99`) → L1 question 5, L2 Step 4, and §8; the blocked input (`:216` at plan-writing time, corrected in place and now `:217`) → the pre-work ruling, L2 Step 5, and §5; the status transition → Task 3 Step 8.
 
 **Placeholder scan.** No "TBD", no "handle edge cases", no "similar to Task N". The twelve L1 questions are written out in full; the eight review headings are given verbatim; every gate command is complete and runnable. The deliberately open values are the *answers* — which is the point of a discovery pass — and the screenshot count, which depends on how many views actually differ between viewports.
 
