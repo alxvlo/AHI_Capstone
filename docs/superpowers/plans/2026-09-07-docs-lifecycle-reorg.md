@@ -563,20 +563,36 @@ Expected: only `Chapter-4.md` and `Chapter-4-changelog.md` remain loose in `docs
 node scripts/docs/verify-doc-links.mjs $(git ls-files '*.md') ; echo "exit=$?"
 ```
 
-Expected: `exit=1`, listing exactly these eight dangling references:
+Expected: `exit=1`, listing exactly these eight dangling references. Paths written as `<code>`, not
+backticks, because once this step runs they describe pre-move history that will never resolve
+again — live backticks would make this table itself a permanent source of checker noise:
 
 | File | Dead path |
 |---|---|
-| `memory-bank/slice-progress.md` | `docs/superpowers/plans/2026-08-15-ponytail-audit-findings.md` |
-| `memory-bank/slice-progress.md` | `docs/superpowers/plans/2026-08-15-ponytail-cleanup.md` |
-| `memory-bank/ux-remediation-backlog.md` | `docs/superpowers/plans/2026-09-04-journey-03-department-review.md` |
-| `memory-bank/current-sprint.md` | `docs/superpowers/plans/2026-09-06-citation-gate-repair.md` |
-| `memory-bank/current-sprint.md` | `docs/superpowers/plans/2026-09-04-journey-03-department-review.md` |
-| `memory-bank/current-sprint.md` | `docs/2026-08-26-kickoff-action-plan.md` |
-| `memory-bank/guides/workflow-policy.md` | `docs/superpowers/plans/2026-08-15-ponytail-cleanup.md` |
+| `memory-bank/slice-progress.md` | <code>docs/superpowers/plans/2026-08-15-ponytail-audit-findings.md</code> |
+| `memory-bank/slice-progress.md` | <code>docs/superpowers/plans/2026-08-15-ponytail-cleanup.md</code> |
+| `memory-bank/ux-remediation-backlog.md` | <code>docs/superpowers/plans/2026-09-04-journey-03-department-review.md</code> |
+| `memory-bank/current-sprint.md` | <code>docs/superpowers/plans/2026-09-06-citation-gate-repair.md</code> |
+| `memory-bank/current-sprint.md` | <code>docs/superpowers/plans/2026-09-04-journey-03-department-review.md</code> |
+| `memory-bank/current-sprint.md` | <code>docs/2026-08-26-kickoff-action-plan.md</code> |
+| `memory-bank/guides/workflow-policy.md` | <code>docs/superpowers/plans/2026-08-15-ponytail-cleanup.md</code> |
 | `docs/superpowers/archive/plans/2026-08-26-kickoff-action-plan.md` | *(any self-relative refs — record what appears)* |
 
 This is the check doing its job. **Record the actual list** — if it differs from the table, the difference is real information; report it rather than adjusting the table to match.
+
+> **Addendum, recorded after Task 2 ran.** The actual Step 3 list was 17 dangling references, not
+> 8: the 6 `memory-bank/`-adjacent rows above (the workflow-policy.md row's underlying path is
+> real but sits inside a fenced code block, so the checker doesn't count it as a live reference —
+> repaired anyway since the stale text exists regardless of fencing) plus the kickoff-plan row, and
+> 10 more the prediction didn't anticipate: 4 were **this task's own move breaking cross-references
+> between sibling plans that both moved together** (e.g. `2026-08-15-ponytail-cleanup.md` citing
+> `2026-08-15-ponytail-audit-findings.md` by its pre-move path) — genuine new breakage, not
+> baseline noise, since both files' cross-reference was valid immediately before this task ran.
+> Fixed in a follow-up commit (`4efd114`) using the same substitution pattern, scoped to
+> `docs/superpowers/archive/plans/*.md`. The remaining 6 are this plan's own forward-references
+> (to `docs/superpowers/archive/README.md`, created by Task 4) and this document's own Step 3
+> table above — both already `<code>`-guarded or otherwise expected, not defects. Full detail:
+> `.superpowers/sdd/2026-09-07-docs-lifecycle-reorg/task-2-report.md`.
 
 - [ ] **Step 4: Repair the references**
 
