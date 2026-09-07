@@ -8,7 +8,7 @@
 
 **Tech Stack:** Next.js 15 App Router, React 19, TypeScript strict, Tailwind 4, Supabase, Vitest + Testing Library.
 
-**Spec:** This plan implements the findings of the `ponytail-audit` run recorded in `docs/superpowers/plans/2026-08-15-ponytail-audit-findings.md` (written in Task 0). No product requirements change.
+**Spec:** This plan implements the findings of the `ponytail-audit` run recorded in `docs/superpowers/archive/plans/2026-08-15-ponytail-audit-findings.md` (written in Task 0). No product requirements change.
 
 ## Global Constraints
 
@@ -54,7 +54,7 @@
 No code changes. This task exists so that every later task can be judged against a known-green baseline. If the baseline is already red, stop and report — do not start deleting on top of pre-existing failures.
 
 **Files:**
-- Create: `docs/superpowers/plans/2026-08-15-ponytail-audit-findings.md`
+- Create: `docs/superpowers/archive/plans/2026-08-15-ponytail-audit-findings.md`
 
 - [ ] **Step 1: Confirm the branch and working tree**
 
@@ -96,7 +96,7 @@ This is untracked-work cleanup, not a planned slice, so it takes a `<type>/<desc
 
 - [ ] **Step 5: Record the audit findings alongside the plan**
 
-Write `docs/superpowers/plans/2026-08-15-ponytail-audit-findings.md` with this content:
+Write `docs/superpowers/archive/plans/2026-08-15-ponytail-audit-findings.md` with this content:
 
 ```markdown
 # Ponytail Audit Findings — 2026-08-15
@@ -165,7 +165,7 @@ net: -1,100 lines, -4 deps.
 - [ ] **Step 6: Commit the findings**
 
 ```bash
-git add docs/superpowers/plans/2026-08-15-ponytail-audit-findings.md docs/superpowers/plans/2026-08-15-ponytail-cleanup.md
+git add docs/superpowers/archive/plans/2026-08-15-ponytail-audit-findings.md docs/superpowers/archive/plans/2026-08-15-ponytail-cleanup.md
 git commit -m "docs(plans): record ponytail audit findings and cleanup plan"
 ```
 
@@ -1772,8 +1772,8 @@ Append to `memory-bank/slice-progress.md`:
 ## Ponytail Cleanup — 2026-08-15
 
 Tech-debt sweep from a `ponytail-audit` run against `main` @ 3cb0832.
-Findings: `docs/superpowers/plans/2026-08-15-ponytail-audit-findings.md`.
-Plan: `docs/superpowers/plans/2026-08-15-ponytail-cleanup.md`.
+Findings: `docs/superpowers/archive/plans/2026-08-15-ponytail-audit-findings.md`.
+Plan: `docs/superpowers/archive/plans/2026-08-15-ponytail-cleanup.md`.
 
 Deleted (all verified zero call sites):
 - `app/api/dev-screenshot-upload/route.ts`, `features/dashboard/admin/merge-actions.ts`,
@@ -1843,8 +1843,8 @@ warning on the client portal. Both look like omissions in the copies rather than
 **Also fixed:** `npm run test:run` no longer matches `tests/integration/**`, so the unit
 command cannot reach a real Supabase project on a machine with `.env.local` loaded.
 
-Plan: `docs/superpowers/plans/2026-08-15-ponytail-cleanup.md`
-Findings: `docs/superpowers/plans/2026-08-15-ponytail-audit-findings.md`
+Plan: `docs/superpowers/archive/plans/2026-08-15-ponytail-cleanup.md`
+Findings: `docs/superpowers/archive/plans/2026-08-15-ponytail-audit-findings.md`
 
 Verified: `npm run qa:local` and `npm run build` both pass.
 

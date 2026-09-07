@@ -453,8 +453,8 @@ Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>"
   - `docs/superpowers/journeys/evidence/04-physician-L1.md`
   - `docs/superpowers/journeys/evidence/05-releasing-L1.md`
   - `docs/superpowers/journeys/evidence/05-releasing-L2.md`
-  - `docs/superpowers/plans/2026-09-04-journey-04-physician-review.md`
-  - `docs/superpowers/plans/2026-09-04-journey-05-releasing-review.md`
+  - `docs/superpowers/archive/plans/2026-09-04-journey-04-physician-review.md`
+  - `docs/superpowers/archive/plans/2026-09-04-journey-05-releasing-review.md`
   - `docs/superpowers/specs/2026-09-04-ux-programme-overview.md`
   - `memory-bank/current-sprint.md`
 - Test: none. This is an audit of documents, not a code change. Its check is the gate itself plus human reading.

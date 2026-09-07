@@ -550,7 +550,7 @@ At least these blockers exist and must be named on any item they gate, rather th
 State plainly what this backlog deliberately does not cover, so a reader does not assume it is the whole picture:
 
 - Journeys 06-10 are not reviewed, so the patient portal, client portal, admin, and the two cross-cutting units contribute nothing here yet. RC-1 and RC-4 both already name journey 06 as affected, so this backlog will grow.
-- The six tracked markdown files with pre-existing bad citations (`.claude/commands/brief.md`, `docs/superpowers/plans/2026-09-04-journey-03-department-review.md`, and four others named in `memory-bank/current-sprint.md`) are a separate, unowned cleanup.
+- The six tracked markdown files with pre-existing bad citations (`.claude/commands/brief.md`, `docs/superpowers/archive/plans/2026-09-04-journey-03-department-review.md`, and four others named in `memory-bank/current-sprint.md`) are a separate, unowned cleanup.
 - Reproducing the D-005-onward defects against a live database is its own piece of work and needs a write budget nobody has approved.
 
 - [ ] **Step 5: Wire the new documents into the trackers**
