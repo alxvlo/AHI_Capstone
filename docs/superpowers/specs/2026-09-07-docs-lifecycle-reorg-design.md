@@ -139,22 +139,31 @@ distinct causes:
 - **18 were false positives in the checker itself**, not real breakage: it resolved every
   reference against repo root, but a handful of files (`memory-bank/index.md`,
   `memory-bank/archive/README.md`, `memory-bank/current-sprint.md`, `memory-bank/agent-workflow.md`,
-  `memory-bank/slice-progress.md`) write genuine relative links — `../current-sprint.md` and
-  similar — that only resolve against the citing file's own directory, the way every markdown
-  renderer treats them. Fixed in `verify-doc-links.mjs` by trying both before calling a path dead;
-  covered by two new tests in `tests/scripts/verify-doc-links.test.ts` (one proving the fix
-  resolves the real case, one proving a genuinely dead relative reference still gets caught).
-- **14 were real**, once the resolver was fixed: 11 pre-existing and unrelated to this plan (a
-  missing requirements doc, two stale references inside `memory-bank/archive/` left over from a
+  `memory-bank/slice-progress.md`) write genuine relative links — <code>../current-sprint.md</code>
+  and similar — that only resolve against the citing file's own directory, the way every markdown
+  renderer treats them. Fixed in `verify-doc-links.mjs` by resolving against the citing file's
+  directory when the path's first segment does not name a real top-level entry (`.` and `..` always
+  count as relative); a repo-root-anchored path such as `memory-bank/fullPlan.md` never gets that
+  fallback, so a coincidental file at the same relative offset elsewhere cannot mask it. Covered by
+  three new tests in `tests/scripts/verify-doc-links.test.ts`: the fix resolving the real case, a
+  genuinely dead relative reference still getting caught, and a same-shaped coincidence not
+  rescuing a broken repo-root-anchored reference.
+- **14 were real**, once the resolver was fixed: 11 occurrences (8 distinct paths — three
+  occurrences repeat `memory-bank/activeContext.md`, two repeat
+  `memory-bank/requirements/2026-09-02-ahi-site-visit.md`) pre-existing and unrelated to this plan
+  (a missing requirements doc, two stale references inside `memory-bank/archive/` left over from a
   file move that predates this work, and similar), 2 that this plan's own tasks will resolve
-  (`docs/superpowers/archive/README.md` and `docs/superpowers/archive/plans/2026-08-26-...md`,
-  created by Task 4 and Task 2 respectively — dangling only until those tasks run), and 1
-  illustrative placeholder (`docs/.../foo.md`) in this plan's own prose.
+  (`docs/superpowers/archive/README.md` and
+  <code>docs/superpowers/archive/plans/2026-08-26-kickoff-action-plan.md</code>, created by Task 4
+  and Task 2 respectively — dangling only until those tasks run), and 1 illustrative placeholder
+  (<code>docs/.../foo.md</code>) in this plan's own prose. 18 + 11 + 2 + 1 = 32.
 
-The 11 genuinely pre-existing and unrelated ones are now allowlisted alongside the original three,
-each with its own reason. The 2 that this plan's own tasks resolve are deliberately **not**
-allowlisted — leaving them dangling until Task 2 and Task 4 land is the correct behavior, and
-Task 4's final check should find `0 dangling` project-wide as a result.
+The 8 distinct genuinely-pre-existing-and-unrelated paths, plus the 1 illustrative placeholder, are
+now allowlisted alongside the original three — 12 entries total (verify:
+`grep -vc '^\s*#\|^\s*$' scripts/docs/known-dangling-doc-links.txt`). The 2 that this plan's own
+tasks resolve are deliberately **not** allowlisted — leaving them dangling until Task 2 and Task 4
+land is the correct behavior, and Task 4's final check should find `0 dangling` project-wide as a
+result.
 
 ### Why `archive/` and not deletion
 

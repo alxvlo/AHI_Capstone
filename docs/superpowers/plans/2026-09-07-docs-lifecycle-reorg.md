@@ -464,10 +464,19 @@ Expected: `exit=0`. The three dangling paths are absorbed by the allowlist; anyt
 >   repo root only, but several files (`memory-bank/index.md`, `memory-bank/archive/README.md`,
 >   `memory-bank/current-sprint.md`, `memory-bank/agent-workflow.md`,
 >   `memory-bank/slice-progress.md`) write genuine links relative to their own directory
->   (`../current-sprint.md` and similar) — valid markdown, the way every renderer treats it. Fixed
->   by trying both resolutions before calling a path dead, with two new regression tests.
-> - **14 were real**: 11 pre-existing and unrelated to this plan, now allowlisted alongside the
->   original three (12 total); 2 that Task 2 and Task 4 resolve by creating the files referenced
+>   (<code>../current-sprint.md</code> and similar) — valid markdown, the way every renderer treats
+>   it. Fixed by falling back to citing-directory resolution only when the path's first segment
+>   does not name a real top-level entry (`.`/`..` always count as relative) — so a repo-root path
+>   like `memory-bank/fullPlan.md` never gets that fallback, and a coincidental file elsewhere can't
+>   mask it. Three new regression tests: the fix resolving the real case, a genuinely dead relative
+>   reference still getting caught, and a same-shaped coincidence not rescuing a broken
+>   repo-root-anchored reference.
+> - **14 were real**: 11 occurrences (8 distinct paths — three occurrences repeat
+>   `memory-bank/activeContext.md`, two repeat `memory-bank/requirements/2026-09-02-ahi-site-visit.md`)
+>   pre-existing and unrelated to this plan, plus 1 illustrative placeholder
+>   (<code>docs/.../foo.md</code>) — those 8 + 1 = 9 distinct paths are now allowlisted alongside
+>   the original three, 12 total (verify: `grep -vc '^\s*#\|^\s*$' scripts/docs/known-dangling-doc-links.txt`);
+>   2 that Task 2 and Task 4 resolve by creating the files referenced
 >   (`docs/superpowers/archive/plans/2026-08-26-kickoff-action-plan.md`,
 >   `docs/superpowers/archive/README.md`) — deliberately left **not** allowlisted, so this exact
 >   command re-run after Task 1 alone still reports `exit=1, 2 dangling` until those tasks land,

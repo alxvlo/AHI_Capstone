@@ -43,6 +43,22 @@ export function loadAllowlist(file) {
   );
 }
 
+// A path is repo-root-anchored if its first segment names a directory or file
+// that actually exists at repo root -- ".", ".." never count as anchored, since
+// they are relative-path syntax regardless of what happens to sit at repo root.
+// This distinguishes `memory-bank/foo.md` (clearly meant from repo root; if it's
+// broken, it stays broken -- no fallback) from `guides/foo.md` written inside
+// memory-bank/ (not a real top-level dir, so a citing-directory reading is tried).
+// Without this, a citing-directory fallback applied to every path risks a
+// coincidental file at the same relative offset masking a genuinely dead
+// repo-root reference -- exactly the silent-breakage failure mode this tool
+// exists to catch.
+function looksRepoRootAnchored(linkPath, repoRoot) {
+  const first = linkPath.split("/")[0];
+  if (first === "." || first === "..") return false;
+  return existsSync(path.join(repoRoot, first));
+}
+
 export function verifyDocLinks(files, { repoRoot, allowlist = new Set() } = {}) {
   const dangling = [];
   const used = new Set();
@@ -55,10 +71,13 @@ export function verifyDocLinks(files, { repoRoot, allowlist = new Set() } = {}) 
       // scripts/docs/verify-citations.mjs's path:line convention), but a few
       // files use true relative links that only resolve against their own
       // directory, the way GitHub and every markdown renderer treats them.
-      // Try both before calling a path dead.
-      const resolvesFromRoot = existsSync(path.join(repoRoot, link.path));
-      const resolvesFromCiter = existsSync(path.join(path.dirname(file), link.path));
-      if (resolvesFromRoot || resolvesFromCiter) continue;
+      if (existsSync(path.join(repoRoot, link.path))) continue;
+      if (
+        !looksRepoRootAnchored(link.path, repoRoot) &&
+        existsSync(path.join(path.dirname(file), link.path))
+      ) {
+        continue;
+      }
       if (allowlist.has(link.path)) {
         used.add(link.path);
         continue;

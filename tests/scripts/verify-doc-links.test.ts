@@ -111,6 +111,21 @@ describe("verifyDocLinks", () => {
     expect(report.dangling).toHaveLength(1);
     expect(report.dangling[0].path).toBe("../ghost-sprint.md");
   });
+
+  it("does not let a citing-directory coincidence mask a broken repo-root-anchored reference", () => {
+    const root = makeRepo();
+    // "docs" is a real top-level directory in this fixture (makeRepo creates docs/kept/real.md),
+    // so `docs/kept/other.md` reads as repo-root-anchored, not a relative link. A file that
+    // happens to sit at the same relative offset from the citing file must not rescue it --
+    // the citing-directory fallback exists only for paths that don't look root-anchored at all.
+    mkdirSync(path.join(root, "notes", "docs", "kept"), { recursive: true });
+    writeFileSync(path.join(root, "notes", "docs", "kept", "other.md"), "# coincidence\n");
+    const md = path.join(root, "notes", "index.md");
+    writeFileSync(md, "see `docs/kept/other.md`\n");
+    const report = verifyDocLinks([md], { repoRoot: root });
+    expect(report.dangling).toHaveLength(1);
+    expect(report.dangling[0].path).toBe("docs/kept/other.md");
+  });
 });
 
 describe("loadAllowlist", () => {
