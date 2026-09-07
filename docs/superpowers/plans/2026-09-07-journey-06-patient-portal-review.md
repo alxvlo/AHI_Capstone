@@ -40,6 +40,30 @@ The patient portal's most consequential surfaces — the result summary, the cer
 
 **The ruling for this journey, made before the work starts: proceed with L1 + L2, and flag the gap.** Those released-state surfaces are audited at L1 from code, and every claim about them is marked in L2 as unobserved. No database writes are performed to manufacture a released case. This is a deliberate, recorded limitation — not an oversight to be discovered later — and §5 of the review must name it as a blocked input with its owner.
 
+> **Addendum, recorded after Task 2 ran.** The premise above was wrong for the account this
+> journey actually used. The patient probe account's one case, `DEMO-0013`, turned out to be
+> `RELEASED` — contrary to `docs/superpowers/specs/2026-09-04-ux-programme-overview.md:216`'s
+> "Demo case release status ... Pending" note, which this plan was written against. Task 2's L2
+> pass observed this directly rather than assuming it, and the finding survives independent
+> re-verification: the screenshot at
+> `docs/superpowers/journeys/evidence/screenshots/06-patient-portal-390x844-released-results.png`
+> shows all three released-gated surfaces (Detailed Results, PDF Certificate, Result Files)
+> rendering their released branch.
+>
+> **This resolves only part of the original gap, not all of it.** The released *container
+> mechanism* — which branch each component renders, gated on `isCaseReleased` — is now confirmed
+> by observation, not just by code reading. The released *populated-table content* is not: this
+> case's `result_item` and `result_file` tables both have zero rows, so the released-and-empty
+> branch was observed, never the released-and-populated one. That narrower gap is real and
+> unchanged — it just isn't the same gap the plan originally named.
+>
+> **Ruling:** Task 3's §5 records the corrected, narrower blocker — populated-table rendering only,
+> not "released status" generally — rather than repeating the original claim now known to be stale.
+> The overview's Inputs-needed row (`:216`) is corrected to match, since leaving it as "Pending"
+> would misinform journeys 07–10 reading that table. Full detail:
+> `docs/superpowers/journeys/evidence/06-patient-portal-L2.md`, "Seeded data at the time of this
+> run" and Step 5.
+
 ---
 
 ## Global Constraints
@@ -453,7 +477,7 @@ Answer each comment from the evidence, independently, plus what the advisor did 
 
 - [ ] **Step 4: Write §5 — blocked on input**
 
-At minimum the released-case blocker (`:216`, owner named). Check the overview's own "Blocks" column (`:214-215`) before claiming the Sept 2 write-up or the AHI questionnaire blocks anything here — journey 02 conflated those two and had to be corrected. If neither blocks this journey, say so explicitly, as journey 05 did.
+**Record the narrower blocker, not the original one — see the addendum after "Why this journey inverts the pattern," above.** The blocker at `:216` originally read "Demo case release status ... Pending"; Task 2 found the probe account's case is in fact `RELEASED`, and the overview row is now corrected to say so. What remains blocked is specifically **populated result/certificate content**: this account's `result_item` and `result_file` tables are both empty, so the released-and-populated rendering of the results table, the file list, and a certificate that actually exists could not be observed — only the released-and-empty branch was. Name that, with its owner (Keith), citing `docs/superpowers/journeys/evidence/06-patient-portal-L2.md`'s Step 5. Check the overview's own "Blocks" column (`:214-215`) before claiming the Sept 2 write-up or the AHI questionnaire blocks anything here — journey 02 conflated those two and had to be corrected. If neither blocks this journey, say so explicitly, as journey 05 did.
 
 - [ ] **Step 5: Write §6 and §7**
 
@@ -502,7 +526,7 @@ git commit   # docs(journey-06): patient portal journey review
 
 **What must NOT happen:**
 
-No `INSERT`, `UPDATE`, or `DELETE` reaches the Singapore project by any path. No demo case is created, released, or torn down. No email flow is triggered. No file under `docs/superpowers/journeys/` for journeys 01–05, and no file under `docs/superpowers/findings/`, is modified — this journey adds, it does not revise its predecessors. No edit to `docs/superpowers/specs/2026-09-04-ux-programme-overview.md` beyond unit 06's status cell and a minted OD row. Neither `advisor-*-2026-09-04.md` file is ever staged. Neither gate script is weakened to reach a green result.
+No `INSERT`, `UPDATE`, or `DELETE` reaches the Singapore project by any path. No demo case is created, released, or torn down. No email flow is triggered. No file under `docs/superpowers/journeys/` for journeys 01–05, and no file under `docs/superpowers/findings/`, is modified — this journey adds, it does not revise its predecessors. No edit to `docs/superpowers/specs/2026-09-04-ux-programme-overview.md` by Task 3 beyond unit 06's status cell and a minted OD row — the Inputs-needed row correction (`:216`) was made once, directly, by the controller after Task 2's finding, and is not Task 3's to repeat or extend. Neither `advisor-*-2026-09-04.md` file is ever staged. Neither gate script is weakened to reach a green result.
 
 ---
 

@@ -213,7 +213,7 @@ Work that is blocked on something outside the codebase.
 |---|---|---|---|
 | **Sept 2 site visit write-up** | 01, 02, 10 · answers to Q-01, Q-02, Q-03, Q-12, Q-13 | Team | ⚠️ **Missing** — not in `memory-bank/` or `docs/` |
 | **AHI questionnaire answers** (Q-01–Q-14) | Lex's spec approval; skip reasons (Q-07), certificate (Q-09), retention (Q-14) | AHI, via advisor | Not sent — no date recorded in `memory-bank/current-sprint.md:44-46` |
-| **Demo case release status** | The clinical-values answer in journey 06 | Keith | Pending |
+| **Populated result/certificate content for a released case** | The clinical-values answer in journey 06 | Keith | Partially resolved — the probe account's case (`DEMO-0013`) is `RELEASED`, confirmed by journey 06's L2 evidence, so the released-container mechanism is observed; that account's `result_item`/`result_file` tables are both empty, so populated-table rendering remains unobserved |
 | **Lex's response** to §9 and the ordering change | OD-3 | Lex | Pending |
 
 The Sept 2 write-up is the critical one. It is the evidence behind the answer to "did you just make
