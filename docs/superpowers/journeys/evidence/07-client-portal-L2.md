@@ -379,9 +379,10 @@ from the live DOM. No control whose handler reaches a Server Action was found or
   released-cases table); no date of birth, sex, or physician remarks (the Fitness Summary block is
   still its unacknowledged placeholder).
 - `07-client-portal-390x844-dpa-notice.png` — Step 3, viewport scrolled to the DPA notice, before
-  acknowledgment. This cropped viewport shot's own lower edge already includes the released-cases
-  table's header row and both case rows in full — it contains unmasked applicant name and
-  government ID for both cases directly in this frame, not merely in the full-page context.
+  acknowledgment. This cropped viewport shot's own lower edge includes the released-cases table's
+  header row and the **first** case row only; the second case row sits below the frame. It
+  therefore contains unmasked applicant name and government ID for one case directly in this
+  frame — not merely in the full-page context, and not for both cases.
 - `07-client-portal-390x844-dpa-acknowledged.png` — Step 3, same scroll position, after
   acknowledgment. The frame contains the acknowledged DPA notice, the search form, and the
   released-cases table with both rows — unmasked applicant name and government ID for both cases.
