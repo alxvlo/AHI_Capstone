@@ -15,8 +15,8 @@ This file tracks completion status and verification results for each development
 Tech-debt sweep on branch `refactor/ponytail-cleanup` (commits `2906c98`..`8c3b8f8`, on top
 of `fd0e466` which retired Jira for repo-native work tracking and had already corrected
 `CLAUDE.md`'s stale email/Realtime claims — not repeated here).
-Findings: `docs/superpowers/plans/2026-08-15-ponytail-audit-findings.md`.
-Plan: `docs/superpowers/plans/2026-08-15-ponytail-cleanup.md`.
+Findings: `docs/superpowers/archive/plans/2026-08-15-ponytail-audit-findings.md`.
+Plan: `docs/superpowers/archive/plans/2026-08-15-ponytail-cleanup.md`.
 Execution ledger: `.superpowers/sdd/2026-08-15-ponytail-cleanup/progress.md`.
 
 **Deleted (all verified zero call sites):**
@@ -106,7 +106,7 @@ change needing its own accessibility test pass.
   now excluded from the unit run entirely rather than skipped in place).
 - `npm run build`: production build succeeds (22 routes, middleware compiles clean).
 - `git diff --stat 3cb0832 HEAD`: 44 files changed, 2705 insertions(+), 2811
-  deletions(-); of that, `docs/superpowers/plans/2026-08-15-ponytail-cleanup.md` and
+  deletions(-); of that, `docs/superpowers/archive/plans/2026-08-15-ponytail-cleanup.md` and
   `2026-08-15-ponytail-audit-findings.md` alone account for ~1,926 insertions (planning
   docs, not app code), and `package-lock.json` accounts for ~1,236 of the deletions.
 - `package.json`: 4 dependencies removed, none added.

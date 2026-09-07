@@ -103,7 +103,7 @@ One paragraph on the change.
 ## Tracking
 
 - Slice: `DEVELOPMENT-PLAN.md` → Slice 15
-- Plan: `docs/superpowers/plans/2026-08-15-ponytail-cleanup.md`
+- Plan: `docs/superpowers/archive/plans/2026-08-15-ponytail-cleanup.md`
 - Defects closed: D-001, D-004
 
 ## Verification

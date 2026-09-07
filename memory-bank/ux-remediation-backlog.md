@@ -1289,7 +1289,7 @@ backlog.
   appears nowhere in any of the five journeys' text) — so this backlog will grow once those journeys
   land, and RC-4 may finally get a finding of its own.
 - **Six tracked markdown files carry pre-existing bad citations** — `.claude/commands/brief.md`,
-  `docs/superpowers/plans/2026-09-04-journey-03-department-review.md`,
+  `docs/superpowers/archive/plans/2026-09-04-journey-03-department-review.md`,
   `docs/superpowers/specs/2026-08-16-staff-workflow-revision-design.md`,
   `docs/superpowers/specs/2026-08-30-phase-3-singapore-cutover-demo-readiness-design.md`,
   `docs/superpowers/specs/2026-08-31-d004-fitness-status-column-width-design.md`, and

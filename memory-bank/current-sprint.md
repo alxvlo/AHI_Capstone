@@ -85,7 +85,7 @@ became `D-005` through `D-017` in `qa-runs/defect-log.md`; the rest are tracked 
 
 **Gate defect fixed.** `scripts/docs/verify-citations.mjs` was blind to comma-joined multi-range
 citations (<code>file.tsx:40-77,118-126</code>) — they matched no branch of its regex, so a citation to a
-nonexistent file in that form reported `0 citations, 0 bad`. `docs/superpowers/plans/2026-09-06-citation-gate-repair.md`
+nonexistent file in that form reported `0 citations, 0 bad`. `docs/superpowers/archive/plans/2026-09-06-citation-gate-repair.md`
 fixed this: the grammar now parses comma-joined ranges, and a new warning flags anything still
 unparseable. Its repair pass then read 101 of the ~114 originally-invisible spans against source —
 the five journey review docs (`01-reception.md` through `05-releasing.md`) and their evidence files,
@@ -97,7 +97,7 @@ it — and zero were found factually wrong. Separately, one bare-filename citati
 prefix was fixed in `docs/superpowers/journeys/evidence/01-reception-L3.md`, and two files with
 illustrative/historical-quote examples were de-formatted so the gate stops treating them as
 citations. Six other tracked files (`.claude/commands/brief.md`,
-`docs/superpowers/plans/2026-09-04-journey-03-department-review.md`,
+`docs/superpowers/archive/plans/2026-09-04-journey-03-department-review.md`,
 `docs/superpowers/specs/2026-08-16-staff-workflow-revision-design.md`,
 `docs/superpowers/specs/2026-08-30-phase-3-singapore-cutover-demo-readiness-design.md`,
 `docs/superpowers/specs/2026-08-31-d004-fitness-status-column-width-design.md`,
@@ -155,7 +155,7 @@ Department → Reception → Physician → Releasing → Triage).
 
 ### Recommended Next
 
-Reordered 2026-08-26 after the post-kickoff action plan (`docs/2026-08-26-kickoff-action-plan.md`).
+Reordered 2026-08-26 after the post-kickoff action plan (`docs/superpowers/archive/plans/2026-08-26-kickoff-action-plan.md`).
 Item 1 supersedes the 2026-08-22 ordering; items 2-4 are unchanged and still independent of
 anything AHI answers.
 
