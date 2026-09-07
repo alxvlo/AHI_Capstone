@@ -194,7 +194,11 @@ requires `coalesce(c.portalvisible, false)` and `coalesce(c.waiversigned, false)
 enforces this independently of the application query, a hypothetical direct query that skipped the
 app's own `.eq()` filters would still be blocked — this is a real database-level narrowing, not
 merely an application-layer convenience
-(`docs/superpowers/journeys/evidence/07-client-portal-L1.md:150-152,186-190`).
+(`docs/superpowers/journeys/evidence/07-client-portal-L1.md:150-152,186-190`). This two-layer
+conclusion rests on static code reading alone: L2 could not independently re-confirm it from the
+rendered UI, since doing so would require writing to flip `portalvisible` or `waiversigned` on a
+real case, which this read-only pass excluded
+(`docs/superpowers/journeys/evidence/07-client-portal-L2.md:361-363`).
 
 Journey 06 found the opposite for the same two flags on `/dashboard/patient`: `portalvisible`
 filters nothing at any of the four layers a patient's own case is reached through, and
@@ -310,7 +314,9 @@ is rendered twice on the same page from the same underlying error string
 application cap means a company with more than 200 qualifying released cases would silently lose
 cases 201+ from the list and from search, while those cases would remain individually reachable by
 RLS if queried directly by `caseid`
-(`docs/superpowers/journeys/evidence/07-client-portal-L1.md:118-124`).
+(`docs/superpowers/journeys/evidence/07-client-portal-L1.md:118-124`) — a code-level claim only;
+this seed's company has just 2 released cases, so L2 could not observe the cap actually truncating
+anything (`docs/superpowers/journeys/evidence/07-client-portal-L2.md:364-365`).
 
 ## 5. Blocked on input
 
