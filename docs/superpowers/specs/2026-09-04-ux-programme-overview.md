@@ -78,7 +78,7 @@ demo runs in.
 | **03** | Department stations | — | Reviewed | *unassigned* |
 | **04** | Physician decision | — | Reviewed | *unassigned* |
 | **05** | Releasing | — | Reviewed | *unassigned* |
-| **06** | Patient portal | 10 | Not started | *unassigned* |
+| **06** | Patient portal | 10 | Reviewed | *unassigned* |
 | **07** | Client / agency portal | — | Not started | *unassigned* |
 | **08** | Admin | — | Not started | *unassigned* |
 | **09** | Cross-cutting: shell, navigation, global search | 01–05 reviewed | Not started | *unassigned* |
@@ -202,6 +202,7 @@ re-argued in each journey.
 | **OD-5** | Data entry container: keep the drawer, or move to split view? | Advisor 4:38 / 5:57 | **Open** — defer to journeys 02, 03, and 04 |
 | **OD-6** | Should a release ever be reversible, and by whom? Includes what to do about notification emails that cannot be un-sent | Journey 05 | **Open** — see `docs/superpowers/journeys/05-releasing.md` §8 |
 | **OD-7** | Does a certificate have to exist before a case can be released, and is that check part of `releaseCaseAction`'s precondition chain or a separate gate? | Journey 05, tied to Q-09 | **Open** — needs AHI's Q-09 answer first |
+| **OD-8** | Should the patient portal get an interim ordering fix (e.g. switching `ExamProgress` from alphabetical to fetch order) ahead of the full queue model, or wait entirely for unit 10? | Journey 06 | **Open** — see `docs/superpowers/journeys/06-patient-portal.md` §8 |
 
 ---
 
