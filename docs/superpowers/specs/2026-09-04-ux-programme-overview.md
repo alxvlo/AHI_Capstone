@@ -42,7 +42,8 @@ board before committing to anything. No design decisions.
 
 **Pass 2 — Design spec + implementation plan.** Written just-in-time under
 `docs/superpowers/specs/` and `docs/superpowers/plans/`, only for units the team commits to build,
-in whatever order Pass 1 shows is right.
+in whatever order Pass 1 shows is right. Completed plans and superseded specs move to
+`docs/superpowers/archive/` so those two directories show only live work.
 
 Rationale for two passes: a spec written weeks before anyone builds it goes stale, and the work
 cannot be ranked sensibly until every journey's gaps are visible side by side.

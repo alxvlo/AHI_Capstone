@@ -21,6 +21,7 @@ this table is the map. Read the roles, not the filenames.
 | Completed work log | `slice-progress.md` |
 | Locked decisions, dated | `decisions.md` |
 | Ranked UX remediation backlog | `ux-remediation-backlog.md` |
+| Completed plans and superseded specs | `docs/superpowers/archive/` |
 
 ## Reading Order For New Sessions
 
