@@ -6,20 +6,22 @@
 > because they are an accurate record; they are not live references. See
 > `guides/workflow-policy.md`.
 
-**Last Updated:** 2026-09-06 (checkpoint corrected; UX journey programme recorded)
+**Last Updated:** 2026-09-07 (`ux-journey-reviews` merged to local `main`; journey 06 started)
 **Phase:** Phase 5 - QA hardening, risk closure, and coverage stabilization
-**Current Checkpoint:** `2733e52` on `main` — "Merge pull request #68 from
+**Current Checkpoint (pushed):** `2733e52` on `origin/main` — "Merge pull request #68 from
 alxvlo/worktree-d004-fitness-status-column-width", merged 2026-08-31. Carries the Phase 3 groundwork
-merge and the D-004 fitness status column width fix. This is also `origin/main`, so it is pushed.
+merge and the D-004 fitness status column width fix.
 
-Local `main` is **one commit ahead** at `279ea09` (the UX programme overview doc, 2026-09-04),
-unpushed. The 2026-08-31 version of this line named the feature branch
-`worktree-d004-fitness-status-column-width` and said it was "not yet merged to `main`" — that was
-true when written, PR #68 merged it the same day, and the branch was deleted afterward, which is why
-git no longer recognizes the name. Corrected 2026-09-06.
+**Local `main` is 85 commits ahead of `origin/main`, nothing pushed.** The `ux-journey-reviews`
+branch (five journey reviews, both original doc gate scripts, the findings register, the UX
+remediation backlog, and a full documentation-lifecycle reorganisation adding a third gate script)
+was merged into local `main` and the branch deleted on 2026-09-07 — see "UX journey review
+programme" below for what it carries. Nothing was pushed to `origin` as part of that merge; the
+decision of if/when to push remains open.
 
-**Active branch:** `ux-journey-reviews`, 47 commits ahead of `main`, **nothing pushed** — see
-"UX journey review programme" below.
+**Active branch:** `journey-06-patient-portal-review`, off local `main`, for the sixth journey
+review. `ux-journey-reviews` no longer exists — it was merged and deleted, not renamed. Any note
+elsewhere referring to it as still in flight is stale.
 
 ---
 
@@ -41,27 +43,32 @@ No Supabase linked commands, migrations, seed scripts, cleanup scripts, or Auth 
 run during this reconciliation. `qa:supabase` and Playwright E2E have not been re-run since the
 2026-05-20 baseline — that gap is unchecked, not green.
 
-**`qa:local` re-run 2026-09-06** on `ux-journey-reviews` at `843e4d8`: lint 0 errors + 2 warnings
-(`lib/supabase/client.ts:7` as above, plus `scripts/supabase/seed-demo-data.mjs:125`), typecheck
-clean, **326 passed / 0 skipped across 55 files**. The 272/51 figures in the table above are the
-2026-08-22 measurement and are kept as the historical record, not the current baseline.
+**`qa:local` re-run 2026-09-07** on local `main` at `8dc1dfc` (post-merge): lint 0 errors + 2
+warnings (`lib/supabase/client.ts:7` as above, plus `scripts/supabase/seed-demo-data.mjs:125`),
+typecheck clean, **360 passed / 0 skipped across 56 files**. The 272/51 and 326/55 figures above
+are earlier measurements, kept as historical record, not the current baseline.
 
 ---
 
 ## UX journey review programme
 
-Running since 2026-09-04 on branch **`ux-journey-reviews`** (47 commits ahead of `main`,
-**nothing pushed**). An evidence-backed UX audit of all ten user journeys, so the team can answer the
-capstone advisor's post-demo comments with citations rather than recollection. Governed by
+Started 2026-09-04. An evidence-backed UX audit of all ten user journeys, so the team can answer
+the capstone advisor's post-demo comments with citations rather than recollection. Governed by
 `docs/superpowers/specs/2026-09-04-ux-programme-overview.md`, which is the authority on unit status,
 root causes RC-1–RC-4, the S0 quick wins, and the OD-1–OD-7 decisions register.
 
-**Five of ten journeys reviewed and merged:** 01 Reception, 02 Triage, 03 Department stations,
-04 Physician, 05 Releasing. Journeys 06-10 not started.
+**Five of ten journeys reviewed, and now on local `main`:** 01 Reception, 02 Triage, 03 Department
+stations, 04 Physician, 05 Releasing — merged from `ux-journey-reviews` on 2026-09-07, along with
+the documentation-lifecycle reorganisation that ran alongside them (completed plans and specs moved
+to `docs/superpowers/archive/`, a third gate script `scripts/docs/verify-doc-links.mjs` added).
+**Journey 06 (patient portal) is in progress** on branch `journey-06-patient-portal-review`, per
+`docs/superpowers/plans/2026-09-07-journey-06-patient-portal-review.md`. Journeys 07-10 not
+started.
 
-The branch adds 58 files — 5 reviews, 11 evidence documents, 30 screenshots, 5 plans, the two
-`scripts/docs/` gate scripts and their tests — and modifies one, the programme overview.
-**No application code is touched by any of it.**
+**No application code has been touched by the programme so far** — five journeys plus the reorg,
+zero lines of `app/`, `components/`, `features/`, or `lib/` changed. The UX remediation backlog
+(`memory-bank/ux-remediation-backlog.md`) the first five journeys produced is the queue for when
+that changes; every item in it is still "Not started."
 
 Findings that carry into this sprint's work, each verified against source by an independent
 reviewer:
