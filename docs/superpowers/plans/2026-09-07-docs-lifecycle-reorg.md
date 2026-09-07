@@ -19,9 +19,10 @@
 - **This plan does not archive itself.** `docs/superpowers/plans/2026-09-07-docs-lifecycle-reorg.md` is the active plan and remains in `plans/` until its own work merges.
 - **The known-dangling references are baseline, not bugs to fix.** Originally thought to be three; Task 1's own whole-repo run found 32, of which 18 turned out to be a bug in the checker itself (fixed — see the Task 1 addendum) and 12 are genuine pre-existing, unrelated baseline. All 12 are allowlisted with reasons; the count must never grow beyond that without one.
 - **Repo is public, nothing is pushed.** Never commit `.agents/`, `.claude/skills/`, `skills-lock.json`, or either `advisor-*-2026-09-04.md` file. All are gitignored.
-- **Attribution trailer** on every commit:
+- **Attribution trailer** on every commit (updated 2026-09-07 after Task 1; Task 1's own commit
+  predates this change and carries the earlier Opus trailer):
   ```
-  Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>
+  Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
   Claude-Session: https://claude.ai/code/session_01XfdCANoX2LdqwaxPS28DcG
   ```
 
