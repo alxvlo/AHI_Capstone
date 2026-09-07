@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 // backticks or as a markdown link target, with NO line numbers. That last part
 // is the whole point: scripts/docs/verify-citations.mjs only recognises
 // `path:line` and `path:line-range`, so a plain document reference is invisible
-// to it and breaks silently when a file moves. Three such references in this
+// to it and breaks silently when a file moves. A dozen such references in this
 // repo are already dead (see known-dangling-doc-links.txt).
 
 // Paths inside fenced code blocks are illustrative, not references — the same
@@ -51,7 +51,14 @@ export function verifyDocLinks(files, { repoRoot, allowlist = new Set() } = {}) 
   for (const file of files) {
     for (const link of extractDocLinks(readFileSync(file, "utf8"))) {
       checked += 1;
-      if (existsSync(path.join(repoRoot, link.path))) continue;
+      // Most references in this repo are written repo-root-relative (matching
+      // scripts/docs/verify-citations.mjs's path:line convention), but a few
+      // files use true relative links that only resolve against their own
+      // directory, the way GitHub and every markdown renderer treats them.
+      // Try both before calling a path dead.
+      const resolvesFromRoot = existsSync(path.join(repoRoot, link.path));
+      const resolvesFromCiter = existsSync(path.join(path.dirname(file), link.path));
+      if (resolvesFromRoot || resolvesFromCiter) continue;
       if (allowlist.has(link.path)) {
         used.add(link.path);
         continue;

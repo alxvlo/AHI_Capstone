@@ -17,7 +17,7 @@
 - **Do not touch** `docs/superpowers/journeys/`, `docs/superpowers/journeys/evidence/`, `docs/superpowers/journeys/evidence/screenshots/`, or `docs/superpowers/findings/`. No file in those trees is moved, renamed, or edited by any task.
 - **`docs/superpowers/specs/2026-08-16-staff-workflow-revision-design.md` stays in `specs/`.** It is a live requirements authority (programme overview line 28), referenced by 22 files, 11 of them in the protected trees above.
 - **This plan does not archive itself.** `docs/superpowers/plans/2026-09-07-docs-lifecycle-reorg.md` is the active plan and remains in `plans/` until its own work merges.
-- **The three known-dangling references are baseline, not bugs to fix.** They are allowlisted with reasons; the count must never grow.
+- **The known-dangling references are baseline, not bugs to fix.** Originally thought to be three; Task 1's own whole-repo run found 32, of which 18 turned out to be a bug in the checker itself (fixed — see the Task 1 addendum) and 12 are genuine pre-existing, unrelated baseline. All 12 are allowlisted with reasons; the count must never grow beyond that without one.
 - **Repo is public, nothing is pushed.** Never commit `.agents/`, `.claude/skills/`, `skills-lock.json`, or either `advisor-*-2026-09-04.md` file. All are gitignored.
 - **Attribution trailer** on every commit:
   ```
@@ -454,6 +454,27 @@ node scripts/docs/verify-doc-links.mjs $(git ls-files '*.md') ; echo "exit=$?"
 
 Expected: `exit=0`. The three dangling paths are absorbed by the allowlist; anything else dangling is a pre-existing problem this plan did not create — **if the exit code is 1, stop and report what it found** before moving any file. Record the `N doc links checked` number; Task 4 compares against it.
 
+> **Addendum, recorded after Task 1 ran.** The actual first run was `exit=1`, 32 dangling —
+> not the predicted 0. Per this step's own instruction, that halted file-moving and got
+> investigated before any of Task 2–4 ran. Two distinct causes, both now fixed in this commit's
+> follow-up:
+>
+> - **18 of the 32 were a bug in `verifyDocLinks` itself**: it resolved every reference against
+>   repo root only, but several files (`memory-bank/index.md`, `memory-bank/archive/README.md`,
+>   `memory-bank/current-sprint.md`, `memory-bank/agent-workflow.md`,
+>   `memory-bank/slice-progress.md`) write genuine links relative to their own directory
+>   (`../current-sprint.md` and similar) — valid markdown, the way every renderer treats it. Fixed
+>   by trying both resolutions before calling a path dead, with two new regression tests.
+> - **14 were real**: 11 pre-existing and unrelated to this plan, now allowlisted alongside the
+>   original three (12 total); 2 that Task 2 and Task 4 resolve by creating the files referenced
+>   (`docs/superpowers/archive/plans/2026-08-26-kickoff-action-plan.md`,
+>   `docs/superpowers/archive/README.md`) — deliberately left **not** allowlisted, so this exact
+>   command re-run after Task 1 alone still reports `exit=1, 2 dangling` until those tasks land,
+>   and `exit=0` once they do. That is expected, not a defect.
+>
+> Full detail and the corrected allowlist: `scripts/docs/known-dangling-doc-links.txt` and the
+> spec's "What verifying first changed" section.
+
 - [ ] **Step 9: Run the full gate**
 
 ```bash
@@ -821,11 +842,13 @@ ls docs/superpowers/plans/
 # 2. specs/ holds exactly three live documents
 ls docs/superpowers/specs/
 
-# 3 + 4 + 8. every reference resolves; dangling count still exactly the 3 allowlisted
+# 3 + 4 + 8. every reference resolves — by this point Task 2 and Task 4 (Step 1, above) have
+# created the two paths that were the only allowlist-exempt dangling links, so this must be exit=0
 node scripts/docs/verify-doc-links.mjs $(git ls-files '*.md') ; echo "exit=$?"
 
-# 5. allowlist unchanged, three entries with reasons
-grep -c '^docs/' scripts/docs/known-dangling-doc-links.txt
+# 5. allowlist has exactly its 12 documented entries (3 original + 9 found by Task 1's own
+# whole-repo run — see the Task 1 addendum), each with a reason
+grep -vc '^\s*#\|^\s*$' scripts/docs/known-dangling-doc-links.txt
 
 # 6. nothing deleted
 git ls-files | wc -l

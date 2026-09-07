@@ -91,6 +91,26 @@ describe("verifyDocLinks", () => {
     });
     expect(report.staleAllowances).toEqual(["docs/kept/real.md"]);
   });
+
+  it("resolves a relative link against the citing file's own directory when repo-root resolution fails", () => {
+    const root = makeRepo();
+    mkdirSync(path.join(root, "memory-bank", "archive"), { recursive: true });
+    writeFileSync(path.join(root, "memory-bank", "current-sprint.md"), "# sprint\n");
+    const md = path.join(root, "memory-bank", "archive", "readme.md");
+    writeFileSync(md, "see `../current-sprint.md`\n");
+    const report = verifyDocLinks([md], { repoRoot: root });
+    expect(report.dangling).toEqual([]);
+  });
+
+  it("still reports dangling when neither repo-root nor citing-directory resolution succeeds", () => {
+    const root = makeRepo();
+    mkdirSync(path.join(root, "memory-bank", "archive"), { recursive: true });
+    const md = path.join(root, "memory-bank", "archive", "readme.md");
+    writeFileSync(md, "see `../ghost-sprint.md`\n");
+    const report = verifyDocLinks([md], { repoRoot: root });
+    expect(report.dangling).toHaveLength(1);
+    expect(report.dangling[0].path).toBe("../ghost-sprint.md");
+  });
 });
 
 describe("loadAllowlist", () => {

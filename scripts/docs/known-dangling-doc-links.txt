@@ -7,3 +7,18 @@
 docs/superpowers/plans/2026-05-12-sprint-a-risk-closure.md              # cited by memory-bank/current-sprint.md:347; never committed
 docs/superpowers/plans/2026-05-20-pre-sprint-terminal-release-hardening.md  # cited by memory-bank/current-sprint.md:348; never committed
 docs/superpowers/plans/2026-05-22-demo-credibility-fixes.md             # cited by memory-bank/qa-runs/2026-05-22-demo-credibility-fixes.md:5; never committed
+
+# Whole-repo baseline run 2026-09-07 (after fixing the resolver to also try a
+# path relative to the citing file, not just repo-root) found these 9 more.
+# All pre-existing, all unrelated to the plans/specs reorg. Not fixed here —
+# fixing them means editing files this work does not otherwise touch.
+
+.github/copilot-instructions.md                          # cited by AGENTS.md; file does not exist in this repo
+qa-runs/defect-log.md                                    # cited by docs/2026-08-26-kickoff-action-plan.md without the memory-bank/ prefix; real file is memory-bank/qa-runs/defect-log.md
+memory-bank/audits/2026-04-16-sprint7-jira-reconciliation.md  # cited by docs/superpowers/plans/2026-04-16-sprint7-jira-verification.md; already dead before this reorg
+memory-bank/scrum-53-59-tech-debt.md                     # cited by the same 2026-04-16 plan; real file is memory-bank/archive/scrum-53-59-tech-debt.md
+memory-bank/requirements/2026-09-02-ahi-site-visit.md    # cited by the staff-workflow spec and the programme overview; requirements file was never created
+memory-bank/fullPlan.md                                  # cited by memory-bank/archive/HYBRID_IMPLEMENTATION_RECOMMENDATION.md; real file moved to memory-bank/archive/fullPlan.md before this reorg
+memory-bank/activeContext.md                             # cited by three files already inside memory-bank/archive/; same stale pre-archive-move path as above
+.superpowers/sdd/2026-08-15-ponytail-cleanup/progress.md # cited by memory-bank/slice-progress.md; gitignored SDD workspace, never committed by design
+docs/.../foo.md                                          # illustrative placeholder path in this plan's own prose (2026-09-07-docs-lifecycle-reorg.md), not a real reference

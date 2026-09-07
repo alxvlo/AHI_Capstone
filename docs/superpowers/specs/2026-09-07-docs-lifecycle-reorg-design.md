@@ -54,8 +54,9 @@ and no screenshot.
 - Touching `journeys/`, `journeys/evidence/`, or the 30 screenshots. All 30 are referenced by a
   surviving document; the evidence files are cited 17–61 times each and are what make findings
   defensible rather than assertions.
-- Repairing the three pre-existing dangling references identified below. They predate this work
-  and are recorded as a baseline, not fixed by it.
+- Repairing the pre-existing dangling references identified below (12, after building the checker
+  — see "What verifying first changed" for how that number was found). They predate this work and
+  are recorded as a baseline, not fixed by it.
 - Rewriting commit history. That is a separate, later decision.
 
 ## Design
@@ -131,6 +132,30 @@ plan references total seven sites across four files, all in `memory-bank/`.
 This asymmetry — plans are cheap to move, specs are expensive — is the reason this design archives
 all fourteen plans but only two specs.
 
+**The "three dangling references" baseline was wrong, and building the checker (Task 1) is what
+caught it.** Its first whole-repo run reported 32, not 3. Manually resolving each one found two
+distinct causes:
+
+- **18 were false positives in the checker itself**, not real breakage: it resolved every
+  reference against repo root, but a handful of files (`memory-bank/index.md`,
+  `memory-bank/archive/README.md`, `memory-bank/current-sprint.md`, `memory-bank/agent-workflow.md`,
+  `memory-bank/slice-progress.md`) write genuine relative links — `../current-sprint.md` and
+  similar — that only resolve against the citing file's own directory, the way every markdown
+  renderer treats them. Fixed in `verify-doc-links.mjs` by trying both before calling a path dead;
+  covered by two new tests in `tests/scripts/verify-doc-links.test.ts` (one proving the fix
+  resolves the real case, one proving a genuinely dead relative reference still gets caught).
+- **14 were real**, once the resolver was fixed: 11 pre-existing and unrelated to this plan (a
+  missing requirements doc, two stale references inside `memory-bank/archive/` left over from a
+  file move that predates this work, and similar), 2 that this plan's own tasks will resolve
+  (`docs/superpowers/archive/README.md` and `docs/superpowers/archive/plans/2026-08-26-...md`,
+  created by Task 4 and Task 2 respectively — dangling only until those tasks run), and 1
+  illustrative placeholder (`docs/.../foo.md`) in this plan's own prose.
+
+The 11 genuinely pre-existing and unrelated ones are now allowlisted alongside the original three,
+each with its own reason. The 2 that this plan's own tasks resolve are deliberately **not**
+allowlisted — leaving them dangling until Task 2 and Task 4 land is the correct behavior, and
+Task 4's final check should find `0 dangling` project-wide as a result.
+
 ### Why `archive/` and not deletion
 
 The plans are the only record of how the audit was conducted: acceptance criteria, review protocol,
@@ -189,6 +214,10 @@ exist and never have:
 **Requirement:** build the check before performing any move, and record those three as an explicit,
 documented allowlist so the count can never quietly grow.
 
+Building the checker (Task 1) surfaced nine more of these, unrelated to the three above and to each
+other — see "What verifying first changed" below for the count and why it isn't three. All twelve
+are documented, with a reason, in `scripts/docs/known-dangling-doc-links.txt`.
+
 ### Safety rules for the move itself
 
 1. **Tag before touching anything.** `git tag pre-docs-reorg` makes the entire pre-move state
@@ -219,13 +248,19 @@ Written from the requirement, before implementation.
    requirements authority), the programme overview, and this design.
 3. Every document that referenced a moved file resolves to its new path.
 4. `scripts/docs/verify-doc-links.mjs` exists, is tested, and exits non-zero when a referenced
-   `.md` path does not exist and is not in the documented allowlist.
-5. The allowlist contains exactly the three paths tabled above, each with a stated reason.
+   `.md` path does not exist and is not in the documented allowlist. It resolves a reference
+   against both repo root and the citing file's own directory before calling it dead.
+5. The allowlist contains exactly the twelve paths documented in
+   `scripts/docs/known-dangling-doc-links.txt` (the original three, plus nine more the checker's
+   own whole-repo run found — see "What verifying first changed"), each with a stated reason.
 6. **Must NOT happen:** no file is deleted. Tracked-file count before and after the reorganisation
    is identical.
 7. **Must NOT happen:** no file lands in a gitignored location. `git status` shows no untracked
    file under `docs/superpowers/archive/`.
-8. **Must NOT happen:** the dangling-reference count does not grow beyond the three allowlisted.
+8. **Must NOT happen:** the dangling-reference count does not grow beyond the twelve allowlisted.
+   After Task 2 and Task 4 land, the whole-repo check should report `0 dangling` — the two
+   currently-dangling forward references this plan's own tasks resolve are not allowlisted, so
+   their disappearance is a positive check, not a workaround.
 9. **Must NOT happen:** no file under `journeys/`, `journeys/evidence/`, or `findings/` is moved,
    renamed, or edited.
 10. `npm run qa:local` result is unchanged from its pre-work baseline.
