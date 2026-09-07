@@ -1,0 +1,9 @@
+# Referenced markdown paths that do not exist and are not expected to.
+# Each entry needs a reason. This list must not grow without one.
+#
+# These three plan files are named in historical notes but were never
+# committed to the repository. Confirmed 2026-09-07.
+
+docs/superpowers/plans/2026-05-12-sprint-a-risk-closure.md              # cited by memory-bank/current-sprint.md:347; never committed
+docs/superpowers/plans/2026-05-20-pre-sprint-terminal-release-hardening.md  # cited by memory-bank/current-sprint.md:348; never committed
+docs/superpowers/plans/2026-05-22-demo-credibility-fixes.md             # cited by memory-bank/qa-runs/2026-05-22-demo-credibility-fixes.md:5; never committed
