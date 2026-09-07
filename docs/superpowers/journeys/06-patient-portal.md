@@ -219,7 +219,7 @@ of the table's field list are the only description of what that branch would sho
 own Inputs Needed row now records this exact split: "Partially resolved — the probe account's case
 (`DEMO-0013`) is `RELEASED`... that account's `result_item`/`result_file` tables are both empty, so
 populated-table rendering remains unobserved"
-(`docs/superpowers/specs/2026-09-04-ux-programme-overview.md:217`). This journey does not claim to
+(`docs/superpowers/specs/2026-09-04-ux-programme-overview.md:218`). This journey does not claim to
 know whether the specific case the advisor was shown during the original walkthrough is the same
 case observed here — only that, for the probe account and environment this review had access to,
 the container mechanism the hold is about is now directly observed, and the populated-content
@@ -275,7 +275,7 @@ requirement to "the client portal" by name, and the code matches that scoping ex
 this journey.** The overview's own Blocks column names units 01, 02, and 10 for the Sept 2
 site-visit write-up, and Lex's spec approval plus questionnaire items Q-07/Q-09/Q-14 for the AHI
 questionnaire — unit 06 appears in neither list
-(`docs/superpowers/specs/2026-09-04-ux-programme-overview.md:215-216`). Journey 02 conflated these
+(`docs/superpowers/specs/2026-09-04-ux-programme-overview.md:216-217`). Journey 02 conflated these
 two rows with its own journey and had to be corrected; nothing in this journey's findings turns on
 patient identification, triage timing, department ordering at the site level, retention, or the
 certificate business rule those two rows actually cover.
@@ -285,7 +285,7 @@ the row has already been corrected to say so.** The overview's third Inputs Need
 "Partially resolved — the probe account's case (`DEMO-0013`) is `RELEASED`, confirmed by journey
 06's L2 evidence, so the released-container mechanism is observed; that account's
 `result_item`/`result_file` tables are both empty, so populated-table rendering remains unobserved"
-(`docs/superpowers/specs/2026-09-04-ux-programme-overview.md:217`), owner **Keith**. §4 traced
+(`docs/superpowers/specs/2026-09-04-ux-programme-overview.md:218`), owner **Keith**. §4 traced
 exactly what this means: the released-and-empty branch of `ResultSummary`'s result table and
 `ResultFiles`'s file list was directly observed
 (`docs/superpowers/journeys/evidence/06-patient-portal-L2.md:186-201`), but a released-and-

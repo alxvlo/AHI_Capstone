@@ -79,7 +79,7 @@ demo runs in.
 | **04** | Physician decision | — | Reviewed | *unassigned* |
 | **05** | Releasing | — | Reviewed | *unassigned* |
 | **06** | Patient portal | 10 | Reviewed | *unassigned* |
-| **07** | Client / agency portal | — | Not started | *unassigned* |
+| **07** | Client / agency portal | — | Reviewed | *unassigned* |
 | **08** | Admin | — | Not started | *unassigned* |
 | **09** | Cross-cutting: shell, navigation, global search | 01–05 reviewed | Not started | *unassigned* |
 | **10** | Cross-cutting: the queue model | Sept 2 notes | Not started | *unassigned* |
@@ -203,6 +203,7 @@ re-argued in each journey.
 | **OD-6** | Should a release ever be reversible, and by whom? Includes what to do about notification emails that cannot be un-sent | Journey 05 | **Open** — see `docs/superpowers/journeys/05-releasing.md` §8 |
 | **OD-7** | Does a certificate have to exist before a case can be released, and is that check part of `releaseCaseAction`'s precondition chain or a separate gate? | Journey 05, tied to Q-09 | **Open** — needs AHI's Q-09 answer first |
 | **OD-8** | Should the patient portal get an interim ordering fix (e.g. switching `ExamProgress` from alphabetical to fetch order) ahead of the full queue model, or wait entirely for unit 10? | Journey 06 | **Open** — see `docs/superpowers/journeys/06-patient-portal.md` §8 |
+| **OD-9** | Should the DPA acknowledgment gate expand to cover the applicant's name, government ID, and the coarse fitness verdict — all three already rendered unconditionally elsewhere on the same page — or is confining the gate to demographic detail and physician remarks the intended scope? | Journey 07, extends advisor 10:29 | **Open** — see `docs/superpowers/journeys/07-client-portal.md` §8 |
 
 ---
 

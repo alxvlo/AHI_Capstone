@@ -311,7 +311,7 @@ review does not invent what either would have said.
 
 **The Sept 2 AHI site-visit write-up** does not exist yet — the programme overview records this as a
 missing input owned by the team, not something this review can substitute for
-(`docs/superpowers/specs/2026-09-04-ux-programme-overview.md:206-215`). Journey 01 is one of the
+(`docs/superpowers/specs/2026-09-04-ux-programme-overview.md:207-216`). Journey 01 is one of the
 journeys it blocks (`docs/superpowers/specs/2026-09-04-ux-programme-overview.md:208`), but the
 specific AHI questionnaire items it would plausibly answer — Q-01, Q-02, Q-03, Q-12, Q-13
 (`docs/superpowers/specs/2026-09-04-ux-programme-overview.md:208`) — are about station identification,

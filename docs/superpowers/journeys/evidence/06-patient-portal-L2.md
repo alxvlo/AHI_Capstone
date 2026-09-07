@@ -24,7 +24,7 @@ released state consistently (Current Status: "Released"; Result Access: "Availab
 Signed" and "Portal Visible," both positive tone).
 
 **This contradicts the premise Task 1's L1 file and the brief for this task were both written
-against.** `docs/superpowers/specs/2026-09-04-ux-programme-overview.md:217` (the row read "Demo case
+against.** `docs/superpowers/specs/2026-09-04-ux-programme-overview.md:218` (the row read "Demo case
 release status … Pending" when this observation was made; the row has since been corrected by this
 journey to name the narrower remaining blocker) listed "Demo case release status" as a blocked input
 with status "Pending," and this task's own brief (Step 5) instructs recording the released-state
@@ -209,7 +209,7 @@ is not observable from this account. L1 Q8/Q9's code-level description of what t
 show if populated is the only evidence for that, and remains the reference for it.
 
 The blocked-input citation the brief pointed at
-(`docs/superpowers/specs/2026-09-04-ux-programme-overview.md:217` — the row read "Demo case release
+(`docs/superpowers/specs/2026-09-04-ux-programme-overview.md:218` — the row read "Demo case release
 status … Pending" when this observation was made; the row has since been corrected by this journey
 to name the narrower remaining blocker) is recorded above in "Seeded data" as stale relative to this
 run's live observation, not silently dropped.
@@ -296,7 +296,7 @@ exactly, with no contradicting rendered value.
 **One factual premise external to L1's own citations turned out stale, and is called out on its own
 terms above rather than folded into a false "no divergence" claim:** the brief (Task 2, Step 5) and
 the input-tracking table it cites
-(`docs/superpowers/specs/2026-09-04-ux-programme-overview.md:217` — the row read "Demo case release
+(`docs/superpowers/specs/2026-09-04-ux-programme-overview.md:218` — the row read "Demo case release
 status … Pending" when this observation was made; the row has since been corrected by this journey
 to name the narrower remaining blocker) both expected this account to have no `RELEASED` case. L1 itself did not make this claim — L1 correctly marked the demoed case's
 actual status `[UNVERIFIED]` in its Advisor draft comparison section, precisely because a static
