@@ -8,7 +8,7 @@
 
 **Tech Stack:** Next.js 15.5 (App Router, webpack), Node 22, Vitest, Supabase (`@supabase/supabase-js`, service-role admin client), Vercel, GitHub Actions.
 
-**Spec:** `docs/superpowers/specs/2026-08-30-phase-3-singapore-cutover-demo-readiness-design.md`
+**Spec:** `docs/superpowers/archive/specs/2026-08-30-phase-3-singapore-cutover-demo-readiness-design.md`
 
 ## Global Constraints
 

@@ -1291,8 +1291,8 @@ backlog.
 - **Six tracked markdown files carry pre-existing bad citations** — `.claude/commands/brief.md`,
   `docs/superpowers/archive/plans/2026-09-04-journey-03-department-review.md`,
   `docs/superpowers/specs/2026-08-16-staff-workflow-revision-design.md`,
-  `docs/superpowers/specs/2026-08-30-phase-3-singapore-cutover-demo-readiness-design.md`,
-  `docs/superpowers/specs/2026-08-31-d004-fitness-status-column-width-design.md`, and
+  `docs/superpowers/archive/specs/2026-08-30-phase-3-singapore-cutover-demo-readiness-design.md`,
+  `docs/superpowers/archive/specs/2026-08-31-d004-fitness-status-column-width-design.md`, and
   `memory-bank/qa-runs/defect-log.md` — a separate, unowned cleanup unrelated to this backlog's
   findings.
 - **Reproducing D-005 through D-017 against a live database is its own piece of work.** Every one of

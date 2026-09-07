@@ -8,7 +8,7 @@
 
 **Tech Stack:** PostgreSQL 17 (Supabase, `ap-southeast-1`), `@supabase/supabase-js`, Next.js 15.5 App Router, TypeScript strict, Vitest, Node 22.
 
-**Spec:** `docs/superpowers/specs/2026-08-31-d004-fitness-status-column-width-design.md`
+**Spec:** `docs/superpowers/archive/specs/2026-08-31-d004-fitness-status-column-width-design.md`
 
 ## Global Constraints
 
@@ -749,7 +749,7 @@ In `memory-bank/current-sprint.md`, update the `**Last Updated:**` line to `2026
   `varchar(20)` to `varchar(30)` so `FIT_WITH_RESTRICTIONS` is savable. Fitness decision codes now
   live in `lib/dashboard/fitness-decision.ts` with an offline guard test
   (`tests/lib/fitness-decision.test.ts`) that fails if the option list ever outgrows the column
-  again. Spec: `docs/superpowers/specs/2026-08-31-d004-fitness-status-column-width-design.md`.
+  again. Spec: `docs/superpowers/archive/specs/2026-08-31-d004-fitness-status-column-width-design.md`.
   Sydney remains at `varchar(20)` — known, recorded drift.
 ```
 

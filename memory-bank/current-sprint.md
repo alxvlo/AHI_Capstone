@@ -99,8 +99,8 @@ illustrative/historical-quote examples were de-formatted so the gate stops treat
 citations. Six other tracked files (`.claude/commands/brief.md`,
 `docs/superpowers/archive/plans/2026-09-04-journey-03-department-review.md`,
 `docs/superpowers/specs/2026-08-16-staff-workflow-revision-design.md`,
-`docs/superpowers/specs/2026-08-30-phase-3-singapore-cutover-demo-readiness-design.md`,
-`docs/superpowers/specs/2026-08-31-d004-fitness-status-column-width-design.md`,
+`docs/superpowers/archive/specs/2026-08-30-phase-3-singapore-cutover-demo-readiness-design.md`,
+`docs/superpowers/archive/specs/2026-08-31-d004-fitness-status-column-width-design.md`,
 `memory-bank/qa-runs/defect-log.md`) still fail the gate under both the old and new grammar — a
 different, pre-existing, un-fixed defect (missing path prefixes, one command-template placeholder),
 not covered by this fix.
@@ -299,7 +299,7 @@ anything AHI answers.
   `varchar(20)` to `varchar(30)` so `FIT_WITH_RESTRICTIONS` is savable. Fitness decision codes now
   live in `lib/dashboard/fitness-decision.ts` with an offline guard test
   (`tests/lib/fitness-decision.test.ts`) that fails if the option list ever outgrows the column
-  again. Spec: `docs/superpowers/specs/2026-08-31-d004-fitness-status-column-width-design.md`.
+  again. Spec: `docs/superpowers/archive/specs/2026-08-31-d004-fitness-status-column-width-design.md`.
   Sydney remains at `varchar(20)` — known, recorded drift.
 - **Briefing command `/brief` (2026-08-22):** `.claude/commands/brief.md`. Derives a standup brief
   from this file, `qa-runs/defect-log.md`, `agent-workflow.md` Open items, git, and `gh` — checkpoint
