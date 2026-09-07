@@ -262,8 +262,9 @@ Written from the requirement, before implementation.
 5. The allowlist contains exactly the twelve paths documented in
    `scripts/docs/known-dangling-doc-links.txt` (the original three, plus nine more the checker's
    own whole-repo run found — see "What verifying first changed"), each with a stated reason.
-6. **Must NOT happen:** no file is deleted. Tracked-file count before and after the reorganisation
-   is identical.
+6. **Must NOT happen:** no file is deleted. `git log --diff-filter=D --name-only` over the range
+   lists nothing. (Tracked-file count is *not* the check for this — Task 1 and Task 4 each add a
+   new file, so the count legitimately grows; a deletion is what this criterion actually forbids.)
 7. **Must NOT happen:** no file lands in a gitignored location. `git status` shows no untracked
    file under `docs/superpowers/archive/`.
 8. **Must NOT happen:** the dangling-reference count does not grow beyond the twelve allowlisted.

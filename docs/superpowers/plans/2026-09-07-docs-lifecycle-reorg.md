@@ -601,8 +601,11 @@ This is the check doing its job. **Record the actual list** — if it differs fr
 >   `docs/superpowers/specs/2026-09-07-docs-lifecycle-reorg-design.md` — both resolved once Task 4
 >   creates that file.
 >
-> 6 + 4 + 5 + 2 = 17. Full detail:
-> `.superpowers/sdd/2026-09-07-docs-lifecycle-reorg/task-2-report.md`.
+> 6 + 4 + 5 + 2 = 17. Full detail: <code>.superpowers/sdd/2026-09-07-docs-lifecycle-reorg/task-2-report.md</code>
+> — a gitignored SDD workspace file (`.superpowers/sdd/.gitignore:1` is `*`), never committed, so
+> it cannot be a live backtick reference without failing the checker on a fresh clone. Same
+> convention already used for the sibling case allowlisted in
+> `scripts/docs/known-dangling-doc-links.txt`.
 
 - [ ] **Step 4: Repair the references**
 
