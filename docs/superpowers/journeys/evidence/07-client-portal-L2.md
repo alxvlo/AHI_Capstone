@@ -111,10 +111,11 @@ form submission and not a Server Action. This matches L1's citation
 **Before acknowledgment — DOM text-content check (not just the screenshot).** `document.body.innerText`
 and `.innerHTML` were both read while `dpaAccepted` was absent from the URL:
 
-- Applicant full name for both released cases: **present** in `innerText` (`hasFullnameNov: true`,
-  `hasFullnamePatientUser: true` in the raw check — field names given, values not transcribed here).
-- Government ID for both released cases: **present** in `innerText` (`hasGovIdNov: true`,
-  `hasGovIdPatientUser: true`).
+- Applicant full name for both released cases: **present** in `innerText` (`hasFullnameCase1: true`,
+  `hasFullnameCase2: true` in the raw check — field checked for presence, no value or value
+  fragment reproduced here).
+- Government ID for both released cases: **present** in `innerText` (`hasGovIdCase1: true`,
+  `hasGovIdCase2: true`).
 - Any trace of "Date of Birth" or "Sex" labels: **absent from both `innerText` and `innerHTML`**
   (`hasDobLabelInText: false`, `hasDobLabelInHTML: false`) — not merely CSS-hidden, genuinely not in
   the served markup at all.
