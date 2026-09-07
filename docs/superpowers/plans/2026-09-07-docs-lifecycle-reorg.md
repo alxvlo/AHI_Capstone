@@ -580,18 +580,28 @@ again — live backticks would make this table itself a permanent source of chec
 
 This is the check doing its job. **Record the actual list** — if it differs from the table, the difference is real information; report it rather than adjusting the table to match.
 
-> **Addendum, recorded after Task 2 ran.** The actual Step 3 list was 17 dangling references, not
-> 8: the 6 `memory-bank/`-adjacent rows above (the workflow-policy.md row's underlying path is
-> real but sits inside a fenced code block, so the checker doesn't count it as a live reference —
-> repaired anyway since the stale text exists regardless of fencing) plus the kickoff-plan row, and
-> 10 more the prediction didn't anticipate: 4 were **this task's own move breaking cross-references
-> between sibling plans that both moved together** (e.g. `2026-08-15-ponytail-cleanup.md` citing
-> `2026-08-15-ponytail-audit-findings.md` by its pre-move path) — genuine new breakage, not
-> baseline noise, since both files' cross-reference was valid immediately before this task ran.
-> Fixed in a follow-up commit (`4efd114`) using the same substitution pattern, scoped to
-> `docs/superpowers/archive/plans/*.md`. The remaining 6 are this plan's own forward-references
-> (to `docs/superpowers/archive/README.md`, created by Task 4) and this document's own Step 3
-> table above — both already `<code>`-guarded or otherwise expected, not defects. Full detail:
+> **Addendum, recorded after Task 2 ran** (corrected once — a review of this addendum found its
+> first version misattributed a hit to the 8th predicted row, which never actually materialized,
+> and never mentioned the spec's own dangling reference; both are fixed below). The actual Step 3
+> list was 17 dangling references, not 8, breaking down as:
+>
+> - **6 of the 7 predicted `memory-bank/`-adjacent rows materialized as real hits.** The 7th
+>   (`memory-bank/guides/workflow-policy.md` → the ponytail-cleanup plan) did not, because that
+>   reference's text sits inside a fenced code block, so the checker correctly doesn't count it as
+>   a live reference — repaired anyway since the stale text exists regardless of fencing. The
+>   predicted 8th row ("self-relative refs" in the moved kickoff plan) had zero matches: the
+>   kickoff plan contains no path references at all.
+> - **11 were unanticipated.** 4 were **this task's own move breaking cross-references between
+>   sibling plans that both moved together** (e.g. `2026-08-15-ponytail-cleanup.md` citing
+>   `2026-08-15-ponytail-audit-findings.md` by its pre-move path) — genuine new breakage, not
+>   baseline noise, since both files' cross-reference was valid immediately before this task ran.
+>   Fixed in a follow-up commit (`4efd114`), scoped to `docs/superpowers/archive/plans/*.md`. 5 are
+>   self-quotes inside this document's own Step 3 table above (now `<code>`-guarded). The remaining
+>   2 are forward-references to `docs/superpowers/archive/README.md` — one from this plan, one from
+>   `docs/superpowers/specs/2026-09-07-docs-lifecycle-reorg-design.md` — both resolved once Task 4
+>   creates that file.
+>
+> 6 + 4 + 5 + 2 = 17. Full detail:
 > `.superpowers/sdd/2026-09-07-docs-lifecycle-reorg/task-2-report.md`.
 
 - [ ] **Step 4: Repair the references**
