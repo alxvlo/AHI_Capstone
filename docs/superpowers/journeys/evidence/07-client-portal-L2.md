@@ -253,13 +253,19 @@ Measured:
   reflow from text wrapping at the narrower width, not a structural change).
 - `document.body.scrollWidth` vs `document.documentElement.clientWidth`: **360 vs 360** — the page
   body itself does **not** horizontally overflow the viewport.
-- The `<table>` element itself: `width: 729.66px` inside a containing `<div>` measured at
-  `width: ~730px` with computed `overflow-x: auto` — the table is **more than double the viewport
-  width** and scrolls horizontally **within its own container**, not the page. This is the one
-  meaningful layout difference at this width: the released-cases table becomes a horizontally
-  scrollable strip. Its rightmost column ("Action," containing the "Selected"/"View Summary" links)
-  sits at `x: 635–759`, entirely **off-screen to the right** of the 360px viewport and reachable only
-  by scrolling the table's own horizontal scrollbar, not the page.
+- The `<table>` element itself: `width: 729.66px`, with computed `overflow-x: auto` on its
+  containing `<div>`. The `~730px` figure originally recorded for that container is `[UNVERIFIED]`
+  as a container *width* — a table cannot overflow a box already the same width as itself, so that
+  figure almost certainly reflects the container's `scrollWidth` (which tracks the table's own
+  content extent) rather than its rendered `clientWidth`, which this pass did not capture
+  separately; the container's true visible width is not established here. This is still the one
+  meaningful layout difference at this width — the released-cases table becomes a horizontally
+  scrollable strip — corroborated independently of that figure: its rightmost column ("Action,"
+  containing the "Selected"/"View Summary" links) sits at `x: 635–759`, entirely **off-screen to the
+  right** of the 360px viewport and reachable only by scrolling the table's own horizontal
+  scrollbar, not the page (visible directly in `07-client-portal-360x800-table-overflow.png`).
+  Compare `:286-288` below, where the 1440 case correctly reports a `tableWiderThanContainer: false`
+  boolean rather than two same-valued widths.
 - Tap targets measured directly: "Apply Filters" button — `44px` tall (`width: 114px`), meets the
   44px minimum. The "Selected"/"View Summary" row-action links — `44px` tall each — also meet the
   minimum, but only once scrolled into view within the table's horizontal strip.
@@ -368,20 +374,34 @@ from the live DOM. No control whose handler reaches a Server Action was found or
 
 ## Screenshots produced
 
-- `07-client-portal-390x844-first-load.png` — Step 2, full page, first load before any search.
+- `07-client-portal-390x844-first-load.png` — Step 2, full page, first load before any search, DPA
+  unacknowledged. Contains unmasked applicant name and government ID for both released cases (the
+  released-cases table); no date of birth, sex, or physician remarks (the Fitness Summary block is
+  still its unacknowledged placeholder).
 - `07-client-portal-390x844-dpa-notice.png` — Step 3, viewport scrolled to the DPA notice, before
-  acknowledgment. Contains unmasked applicant name/government ID in the released-cases table below
-  the notice (visible in the full-page context, not this cropped viewport shot).
+  acknowledgment. This cropped viewport shot's own lower edge already includes the released-cases
+  table's header row and both case rows in full — it contains unmasked applicant name and
+  government ID for both cases directly in this frame, not merely in the full-page context.
 - `07-client-portal-390x844-dpa-acknowledged.png` — Step 3, same scroll position, after
-  acknowledgment. Contains unmasked applicant name, government ID, date of birth, and sex in the
-  now-visible Fitness Summary block.
+  acknowledgment. The frame contains the acknowledged DPA notice, the search form, and the
+  released-cases table with both rows — unmasked applicant name and government ID for both cases.
+  The Fitness Summary block (and its date-of-birth/sex fields) sits below this scroll position and
+  is not in frame.
 - `07-client-portal-390x844-search.png` — Step 4, full page, a query matching one of the two
-  released cases.
-- `07-client-portal-390x844-search-empty.png` — Step 4, full page, a query matching zero cases.
+  released cases, DPA already acknowledged. Contains unmasked applicant name and government ID (the
+  one matching table row) plus, in the now-visible Fitness Summary block for that same case, date of
+  birth, sex, and physician remarks.
+- `07-client-portal-390x844-search-empty.png` — Step 4, full page, a query matching zero cases. No
+  case row renders — this screenshot contains no applicant PII.
 - `07-client-portal-390x844-selected-case.png` — Step 5, full page, DEMO-0014 selected and
   acknowledged. Contains unmasked applicant name, government ID, date of birth, and sex.
-- `07-client-portal-360x800-first-load.png` — Step 6, full page, first load at the narrower width.
+- `07-client-portal-360x800-first-load.png` — Step 6, full page, first load at the narrower width,
+  DPA unacknowledged. Contains unmasked applicant name and government ID for both released cases
+  (clipped to the Applicant/Identifier columns by the table overflow, Step 6 above); no date of
+  birth or sex (Fitness Summary placeholder only).
 - `07-client-portal-360x800-table-overflow.png` — Step 6, viewport screenshot showing the
   released-cases table's horizontal-scroll behavior at this width. Contains unmasked applicant
   name/government ID.
-- `07-client-portal-1440x900-first-load.png` — Step 7, full page, desktop comparison width.
+- `07-client-portal-1440x900-first-load.png` — Step 7, full page, desktop comparison width, DPA
+  unacknowledged. Contains unmasked applicant name and government ID for both released cases; no
+  date of birth or sex (Fitness Summary placeholder only).

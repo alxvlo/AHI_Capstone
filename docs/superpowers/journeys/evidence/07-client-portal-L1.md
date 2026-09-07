@@ -342,7 +342,7 @@ unrecognized fitness code"** — all three collapse to the identical string `"PE
 identical `warning` tone; the disambiguating `note` text only exists inside the DPA-gated
 `CaseResultView` block. Second, and this is the disambiguation the advisor's comment (`10:29`,
 addressed in the Advisor draft comparison below) calls for: **the literal string the tile renders is
-`"PENDING"`, all capitals** (`features/dashboard/client/shared.ts:125,157`) — the mixed-case word
+`"PENDING"`, all capitals** (`features/dashboard/client/shared.ts:125,156`) — the mixed-case word
 `"Pending"` does appear on this page, but as the *DPA Gate* tile's value when unacknowledged
 (`app/dashboard/client/page.tsx:92`), a different metric entirely. `grep -n
 '"Pending"' app/dashboard/client/page.tsx` confirms the only mixed-case occurrence is that one line.
@@ -491,7 +491,7 @@ client-side polling, subscription, or refetch of any kind. If a currently-select
 `portalvisible` or `waiversigned` flips to `false` while a representative is viewing it, the
 already-rendered page keeps showing the stale data (the tile values, the table row, the fitness
 label already computed before the change) until the representative manually reloads or clicks
-Refresh — at which point the next fetch's `.eq("portalvisible", true).eq("waiversigned", true")`
+Refresh — at which point the next fetch's `.eq("portalvisible", true).eq("waiversigned", true)`
 filter and RLS's identical predicate (Q2/Q3/Q4) would simply exclude that case from the next
 `cases` array and `selectedCase` would resolve to a different case or `null`. This is a stronger
 version of Journey 06's Q12 finding — there, `peme_case`/`department_visit` at least refreshed live
@@ -588,7 +588,7 @@ normalizer does not recognize — not "no case was selected." The drafts' explan
 cause only in the zero-cases/no-search-match branch (Q5), which requires either an empty company
 portfolio or an active filter; it is not the default explanation the drafted text presents it as. A
 second, smaller precision point: the tile's literal string is `"PENDING"`, all capitals
-(`features/dashboard/client/shared.ts:125,157`); the mixed-case word the advisor quoted and both
+(`features/dashboard/client/shared.ts:125,156`); the mixed-case word the advisor quoted and both
 drafts repeat, `"Pending"`, is the *DPA Gate* tile's value when unacknowledged
 (`app/dashboard/client/page.tsx:92`), not the Selected Fitness tile's. Both tiles can plausibly read
 some form of "pending" simultaneously on first load, which is consistent with the advisor's

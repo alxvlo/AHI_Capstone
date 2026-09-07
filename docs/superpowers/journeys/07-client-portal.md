@@ -113,7 +113,7 @@ non-matching one, with the tile reading all-caps `PENDING` at zero
 **Selected case and the metric tiles.** Clicking "View Summary" changes only the URL's `caseId`
 param — a GET navigation, not a Server Action
 (`docs/superpowers/journeys/evidence/07-client-portal-L1.md:224-226`,
-`docs/superpowers/journeys/evidence/07-client-portal-L2.md:339`). The "Selected Fitness" tile is
+`docs/superpowers/journeys/evidence/07-client-portal-L2.md:345`). The "Selected Fitness" tile is
 computed unconditionally, independent of DPA acknowledgment and even independent of whether a case
 is selected at all (`docs/superpowers/journeys/evidence/07-client-portal-L1.md:282-287`). §4 traces
 what its five possible input branches mean and which one this pass could actually observe.
@@ -141,14 +141,26 @@ navigation (`docs/superpowers/journeys/evidence/07-client-portal-L1.md:401-422`)
 has no export or download control of any kind, and — per the access-scope finding above — is
 excluded from clinical file storage entirely regardless of DPA state.
 
-**Responsive layout.** At 390×844 the released-cases table renders as a normal single-column
-stack; at 360×800 the table itself becomes a horizontally-scrolling strip inside its own container,
-with the "Action" column off-screen until scrolled, while the page body itself never overflows
-(`docs/superpowers/journeys/evidence/07-client-portal-L2.md:247-266`). At 1440×900 the three metric
-tiles engage a genuine 3-column CSS grid and the table fits its container with no horizontal scroll
-at all (`docs/superpowers/journeys/evidence/07-client-portal-L2.md:280-294`). All tap targets
-measured (44px) meet the minimum at both mobile widths
-(`docs/superpowers/journeys/evidence/07-client-portal-L2.md:263-265`).
+**Responsive layout.** At 360×800 the released-cases table measurably overflows its own container —
+its rendered width is more than double the 360px viewport, and its "Action" column sits off-screen
+at `x: 635–759` until the table's own horizontal scrollbar is used — while the page body itself
+never overflows
+(`docs/superpowers/journeys/evidence/07-client-portal-L2.md:247-268`). At 390×844, L2 measured only
+the table's vertical position, not its width or overflow
+(`docs/superpowers/journeys/evidence/07-client-portal-L2.md:83`); the same clipped rendering is
+nonetheless visible directly in the 390×844 screenshots
+(`07-client-portal-390x844-first-load.png`, `07-client-portal-390x844-dpa-notice.png`) — the table
+cuts off after the Case / Applicant / Identifier columns, with Registered / Released / Status /
+Action off-screen, the same overflow pattern as 360×800, not a single-column stack. That 390×844
+observation is from the screenshots, not a measurement, and is recorded here as observed rather than
+measured. At 1440×900 the three metric tiles engage a genuine 3-column CSS grid and the table fits
+its container with no horizontal scroll at all
+(`docs/superpowers/journeys/evidence/07-client-portal-L2.md:286-300`). Tap targets were measured
+directly at 360×800, where all measured targets meet the 44px minimum
+(`docs/superpowers/journeys/evidence/07-client-portal-L2.md:269-271`); at 390×844 only one control,
+the "Acknowledge DPA Notice" link, was measured, also at 44px
+(`docs/superpowers/journeys/evidence/07-client-portal-L2.md:80-81`) — the claim does not extend
+beyond that one control at that width.
 
 ## 3. What the Capstone Advisor said
 
@@ -186,7 +198,7 @@ never claims otherwise.
 
 **The gating answer — the control case, and what it means next to journey 06.** `portalvisible` and
 `waiversigned` gate real content here, at two independent layers that agree with each other: the
-application's `.eq("portalvisible", true).eq("waiversigned", true")` filter on the `peme_case`
+application's `.eq("portalvisible", true).eq("waiversigned", true)` filter on the `peme_case`
 query, and the `'Client Representative'` branch of `rls_case_visible_to_current_user`, which
 requires `coalesce(c.portalvisible, false)` and `coalesce(c.waiversigned, false)` as two of four
 `and`-ed conditions in its own `exists (...)` predicate
@@ -198,7 +210,7 @@ merely an application-layer convenience
 conclusion rests on static code reading alone: L2 could not independently re-confirm it from the
 rendered UI, since doing so would require writing to flip `portalvisible` or `waiversigned` on a
 real case, which this read-only pass excluded
-(`docs/superpowers/journeys/evidence/07-client-portal-L2.md:361-363`).
+(`docs/superpowers/journeys/evidence/07-client-portal-L2.md:367-369`).
 
 Journey 06 found the opposite for the same two flags on `/dashboard/patient`: `portalvisible`
 filters nothing at any of the four layers a patient's own case is reached through, and
@@ -292,7 +304,7 @@ was the no-case-selected branch, via a zero-result search
 (`docs/superpowers/journeys/evidence/07-client-portal-L2.md:44-49,177-186`). The "case selected, no
 decision yet" branch and the unrecognized-fitness-code branch remain `[UNVERIFIED]` — this seed
 simply never presented them
-(`docs/superpowers/journeys/evidence/07-client-portal-L2.md:313-320,347-353`). So: the code
+(`docs/superpowers/journeys/evidence/07-client-portal-L2.md:319-326,353-359`). So: the code
 supports more than one cause for this exact tile value; the drafted answer names one of them, which
 happens to be the only one this pass could exercise with the data actually seeded; the other
 branches are not confirmed, and this review does not conclude the drafted answer was wrong — only
@@ -316,7 +328,7 @@ cases 201+ from the list and from search, while those cases would remain individ
 RLS if queried directly by `caseid`
 (`docs/superpowers/journeys/evidence/07-client-portal-L1.md:118-124`) — a code-level claim only;
 this seed's company has just 2 released cases, so L2 could not observe the cap actually truncating
-anything (`docs/superpowers/journeys/evidence/07-client-portal-L2.md:364-365`).
+anything (`docs/superpowers/journeys/evidence/07-client-portal-L2.md:370-371`).
 
 ## 5. Blocked on input
 
@@ -348,8 +360,9 @@ allowed to show an agency, not to a staff-side workflow question.
    representative — a link built for one case satisfies the check for every other case viewed
    afterward in the same session.** No record exists that a representative ever consented, when,
    or to what (§4 above). The advisor's own drafted answer already flags this as a known
-   compliance risk; this journey's evidence confirms the exact mechanism and adds the session-wide,
-   not-case-scoped scope of the bug
+   compliance risk
+   (`docs/superpowers/journeys/evidence/07-client-portal-L1.md:597-618`); this journey's evidence
+   confirms the exact mechanism and adds the session-wide, not-case-scoped scope of the bug
    (`docs/superpowers/journeys/evidence/07-client-portal-L1.md:246-264`).
 
 **Should-fix.**
