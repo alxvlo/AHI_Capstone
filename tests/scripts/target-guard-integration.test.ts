@@ -10,6 +10,8 @@ const GUARDED_SCRIPTS = [
   "seed-demo-data.mjs",
   "teardown-demo-data.mjs",
   "bootstrap-role-probe-users.mjs",
+  "validate-write-policy-baseline.mjs",
+  "validate-workflow-write-matrix.mjs",
 ];
 
 function runScript(file: string, env: Record<string, string>) {
