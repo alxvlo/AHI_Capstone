@@ -312,6 +312,12 @@ Department → Reception → Physician → Releasing → Triage).
 >
 > 1. **Permanent patient number + auth change** (email → patient number). Depends on nothing and
 >    nobody — start first. Acceptance criteria in §7 of the architecture spec.
+>    **Owner: Alex** (assigned 2026-09-08). Context is written up in
+>    `docs/superpowers/handovers/2026-09-08-patient-number-auth-handover.md` — the problem, the
+>    Supabase-Auth constraint that shapes every option, three approaches with the reasoning that
+>    separates them, the exact call sites, and the repo's safety rules. It is deliberately **not**
+>    a spec: the design decisions, including how existing patient accounts are handled and whether
+>    the reception slip is in scope, are Alex's to make and are listed as open in that document.
 > 2. **On-premise deployment** — trimmed self-hosted Supabase, all 48 migrations from empty,
 >    tunnel, LAN verification. The largest unknown in the remaining ten weeks; early failure is
 >    recoverable, late failure is not.
