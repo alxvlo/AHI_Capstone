@@ -205,8 +205,9 @@ happened.
 
 ### The Phase 3 census
 
-Copied from the Singapore rebuild record at `memory-bank/current-sprint.md:300`, which is the
-authority for what a correctly migrated database contains:
+Copied from the "Row counts vs. the pre-migration Sydney census" row of the Singapore rebuild
+record in `memory-bank/current-sprint.md`, which is the authority for what a correctly migrated
+database contains:
 
 | Table | Expected rows |
 |---|---|

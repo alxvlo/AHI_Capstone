@@ -3,9 +3,9 @@
 // cloud one makes every defect reproduced on it suspect, so this runs before any
 // defect work begins.
 //
-// Counts are transcribed from memory-bank/current-sprint.md:300. They are NOT
-// read back from a database -- deriving them from a running instance would make
-// this check agree with whatever it found.
+// Counts are transcribed from the "Row counts vs. the pre-migration Sydney census" row
+// in memory-bank/current-sprint.md. They are NOT read back from a database -- deriving
+// them from a running instance would make this check agree with whatever it found.
 
 import { createClient } from "@supabase/supabase-js";
 import { isLocalSupabaseUrl } from "./target-guard.mjs";
