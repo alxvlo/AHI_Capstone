@@ -3,7 +3,7 @@
 // cloud one makes every defect reproduced on it suspect, so this runs before any
 // defect work begins.
 //
-// Counts are transcribed from memory-bank/current-sprint.md:24. They are NOT
+// Counts are transcribed from memory-bank/current-sprint.md:300. They are NOT
 // read back from a database -- deriving them from a running instance would make
 // this check agree with whatever it found.
 
