@@ -8,9 +8,9 @@ export interface WriteTarget {
 
 export function isLocalSupabaseUrl(rawUrl: string): boolean;
 
-export function resolveWriteTarget(env?: NodeJS.ProcessEnv): WriteTarget;
+export function resolveWriteTarget(env?: Record<string, string | undefined>): WriteTarget;
 
 export function assertWritableTarget(
   scriptName: string,
-  env?: NodeJS.ProcessEnv
+  env?: Record<string, string | undefined>
 ): WriteTarget;
