@@ -99,18 +99,59 @@ the capstone advisor's post-demo comments with citations rather than recollectio
 `docs/superpowers/specs/2026-09-04-ux-programme-overview.md`, which is the authority on unit status,
 root causes RC-1–RC-4, the S0 quick wins, and the OD-1–OD-7 decisions register.
 
-**Five of ten journeys reviewed, and now on local `main`:** 01 Reception, 02 Triage, 03 Department
+**Seven of ten journeys reviewed, all on `main`:** 01 Reception, 02 Triage, 03 Department
 stations, 04 Physician, 05 Releasing — merged from `ux-journey-reviews` on 2026-09-07, along with
 the documentation-lifecycle reorganisation that ran alongside them (completed plans and specs moved
-to `docs/superpowers/archive/`, a third gate script `scripts/docs/verify-doc-links.mjs` added).
-**Journey 06 (patient portal) is in progress** on branch `journey-06-patient-portal-review`, per
-`docs/superpowers/plans/2026-09-07-journey-06-patient-portal-review.md`. Journeys 07-10 not
-started.
+to `docs/superpowers/archive/`, a third gate script `scripts/docs/verify-doc-links.mjs` added) —
+followed by 06 Patient portal and 07 Client/agency portal, each reviewed on its own branch and
+merged the same day. All three journey branches have been merged and deleted; none is in flight.
+**Journeys 08 (Admin), 09 (cross-cutting shell and navigation) and 10 (the queue model) are not
+started.**
 
-**No application code has been touched by the programme so far** — five journeys plus the reorg,
-zero lines of `app/`, `components/`, `features/`, or `lib/` changed. The UX remediation backlog
-(`memory-bank/ux-remediation-backlog.md`) the first five journeys produced is the queue for when
-that changes; every item in it is still "Not started."
+**The programme is paused after journey 07, deliberately.** Pass 1 produced 45 findings and the
+remediation backlog they feed (`memory-bank/ux-remediation-backlog.md`) still records **every one
+of its 38 items as "Not started"** — the audit has diagnosed far more than has been fixed, and with
+the 14 November freeze approaching the next work is Pass 2, not an eighth review. Journeys 09 and
+10 were placed last in the *review* order on purpose, so that by the time they came up the same
+problem would have been seen in five places; that condition is now met, and the overview's own
+dependency note says 09 is the keystone for 01-05 and must be built before them. Journey 08 is
+independent of everything else and is the cheapest to defer.
+
+**No application code has been touched by the programme** — seven journeys plus the reorg, zero
+lines of `app/`, `components/`, `features/`, or `lib/` changed. The UX remediation backlog
+(`memory-bank/ux-remediation-backlog.md`) is the queue for when that changes; every item in it is
+still "Not started."
+
+### Consequences of the 2026-09-02 onsite findings for this programme
+
+The seven journey reviews were conducted **without** the clinic architecture spec
+(`docs/superpowers/specs/2026-09-02-clinic-architecture-adaptation-design.md`), which existed only
+on `origin/main` while the programme ran on unmerged branches. The two were brought together by the
+2026-09-07 merge. Nothing in the audit is invalidated — that spec's in-scope section retains the
+role-scoped dashboards, the case lifecycle, both external portals, realtime and audit logging — but
+four interactions are live and none is yet reflected in the journey documents themselves:
+
+1. **`Q-11` directly challenges journey 07's central finding.** Journey 07 verified that the client
+   portal is rigorously released-only, gated at two independent layers, and judged that correct.
+   The onsite transcript has the agency Excel already carrying pending items, which would make
+   released-only a **downgrade** on the service agencies get today. The code finding stands; whether
+   the rule it enforces is the right rule does not. One real agency sheet settles it, and the same
+   question arrives independently from the advisor's own comment about Selected Fitness "Pending".
+2. **The patient portal's authentication is scheduled to change.** Journey 06 audited an
+   email-and-password sign-in; the spec replaces it with a permanent patient number plus password,
+   with no SMTP deployed. Those observations describe a surface that is about to be rebuilt.
+3. **Journeys 03 and 04 need a framing correction, not a retraction.** The spec falsifies the
+   premise in `pid.md` that departments encode results today — no department has ever encoded
+   anything, so those journeys audited a **proposed new behaviour** rather than a digitisation of an
+   existing one. The UX findings hold; the framing around them does not.
+4. **`Q-12` and `Q-13` strengthen findings that previously rested on code reading alone.** Roughly
+   50 patients a day, a wired LAN, and workstations described as old and slow corroborate the
+   queue-ceiling and JS-computed-metrics findings (RC-2, RC-3).
+
+`docs/superpowers/specs/2026-09-04-ux-programme-overview.md` still lists the Sept 2 write-up as a
+**missing** input and still carries the pre-visit status for several questionnaire items that §9 of
+the architecture spec has since answered. That table is stale and should be refreshed before anyone
+plans Pass 2 work from it.
 
 Findings that carry into this sprint's work, each verified against source by an independent
 reviewer:
