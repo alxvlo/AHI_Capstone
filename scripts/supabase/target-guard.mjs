@@ -50,6 +50,12 @@ export function assertWritableTarget(scriptName, env = process.env) {
   const target = resolveWriteTarget(env);
 
   if (target.allowed) {
+    if (!target.local && target.allowCloud) {
+      console.warn(
+        `${scriptName}: AHI_ALLOW_CLOUD_WRITES=1 is set, so this is writing to ` +
+          `"${target.host ?? "an unparseable host"}" instead of a local Supabase stack.`
+      );
+    }
     return target;
   }
 

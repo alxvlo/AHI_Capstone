@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   assertWritableTarget,
   isLocalSupabaseUrl,
@@ -96,5 +96,32 @@ describe("assertWritableTarget", () => {
     expect(() => assertWritableTarget("seed-demo-data", {})).toThrowError(
       /NEXT_PUBLIC_SUPABASE_URL/
     );
+  });
+
+  it("warns naming the script and host when the override permits a cloud target", () => {
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    const t = assertWritableTarget("seed-demo-data", {
+      NEXT_PUBLIC_SUPABASE_URL: CLOUD,
+      AHI_ALLOW_CLOUD_WRITES: "1",
+    });
+
+    expect(t.allowed).toBe(true);
+    expect(warnSpy).toHaveBeenCalledTimes(1);
+    const warned = warnSpy.mock.calls[0].join(" ");
+    expect(warned).toContain("seed-demo-data");
+    expect(warned).toContain("example-project.supabase.co");
+
+    warnSpy.mockRestore();
+  });
+
+  it("stays silent for a local target", () => {
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    assertWritableTarget("seed-demo-data", { NEXT_PUBLIC_SUPABASE_URL: LOCAL });
+
+    expect(warnSpy).not.toHaveBeenCalled();
+
+    warnSpy.mockRestore();
   });
 });
