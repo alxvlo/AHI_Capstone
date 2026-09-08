@@ -199,6 +199,40 @@ database, not a last resort: it is faster and more reliable than trying to hand-
 wrong. After resetting, re-run `npm run verify:local` and `npm run probe:bootstrap` before
 continuing, since a reset clears the probe accounts along with everything else.
 
+## Before anything is deployed — rotate the probe password
+
+**This is a gate, not a suggestion. Do it before any deployment, and before any real patient data
+enters a Supabase project.**
+
+The eight probe accounts share one password, and that value is public: it sits in three
+`memory-bank/` files and in git history, in a public repository. One of the eight,
+`probe.admin.20260320@ahi.local`, holds the **System Administrator** role.
+
+Today that is not exploitable. Signing in from outside needs the project URL (public in this repo),
+the anon key (**not** published anywhere), and the password (public). Two of three. There is also no
+live deployment, and `CLAUDE.md` restricts these projects to seeded dev/staging data — no real
+medical record is behind it.
+
+**Deploying changes that.** The anon key is designed to ship inside browser JavaScript; it is not a
+secret and was never meant to be one. The moment a public deployment exists, the third piece
+publishes itself and the credential becomes usable by anyone who reads this repository. The same
+applies the moment real patient data enters a project the probe accounts can reach, whether anything
+is deployed or not.
+
+Rotating takes about five minutes:
+
+1. Generate a new value — `openssl rand -base64 24`
+2. Replace `AHI_PROBE_PASSWORD` in `.env.local`
+3. `AHI_ALLOW_CLOUD_WRITES=1 npm run probe:bootstrap` — the guard requires the override here, and
+   this is exactly the deliberate cloud write it exists to make you think about
+4. `npm run audit:roles:smoke:all` — if sign-in passes, all eight accounts took the new password
+5. Repeat for any other project that carries probe accounts; rotating one does not touch another
+6. Share the new value with the team out of band — never in the repo, a document, or a group chat
+
+Rotating does not remove the old value from git history and does not need to. History rewriting is
+not worthwhile on a repository that has been public for months; rotation is what makes the exposure
+harmless.
+
 ## What is NOT copied
 
 No cloud data is ever pulled down to a local machine — no `db pull`, no dump-and-restore, nothing
