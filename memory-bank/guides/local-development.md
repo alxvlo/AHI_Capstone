@@ -30,6 +30,13 @@ type it deliberately, you already know the syntax, and this repo is not the plac
 `supabase db reset`, run with no flag, resets your local database only. That is the only form of
 this command that appears anywhere in this document, and it is the only form you should ever type.
 
+**Two npm scripts always act on the cloud project, no matter what `.env.local` says:**
+`npm run probe:deptstaff:noclaim:bootstrap` and `npm run probe:cleanup` call the Supabase CLI
+directly against the linked project. They never read `.env.local` and never pass through the
+destructive-script guard described below, so nothing about your local setup can stop them.
+`probe:cleanup` runs an `UPDATE` there. Treat both as cloud-only commands and think before running
+either.
+
 ## Prerequisites
 
 - **Docker Desktop**, installed and running. The Supabase CLI runs the local stack as Docker
@@ -163,11 +170,12 @@ Rewrite `.env.local`'s three Supabase values from this output exactly as in Step
 skip this — leaving `.env.local` pointed at the cloud project after you are done is exactly the
 mistake the destructive-script guard exists to catch, and better not to rely on it.
 
-While `.env.local` points at the cloud, the four destructive scripts —
-`npm run seed:reference`, `npm run demo:seed`, `npm run demo:teardown`, and
-`npm run probe:bootstrap` — refuse to run. Each checks the resolved Supabase host and exits
-non-zero unless it is `localhost`, `127.0.0.1`, or `[::1]`. This is deliberate: it turns "don't
-write to Singapore" from a rule you have to remember into one the tooling enforces.
+While `.env.local` points at the cloud, the six destructive scripts —
+`npm run seed:reference`, `npm run demo:seed`, `npm run demo:teardown`,
+`npm run probe:bootstrap`, `npm run audit:write-policies`, and `npm run audit:write:workflow` —
+refuse to run. Each checks the resolved Supabase host and exits non-zero unless it is `localhost`,
+`127.0.0.1`, or `[::1]`. This is deliberate: it turns "don't write to Singapore" from a rule you
+have to remember into one the tooling enforces.
 
 The refusal has a single override, for the rare case where a cloud write is genuinely intended:
 setting the environment variable named `AHI_ALLOW_CLOUD_WRITES` to the value `1`. Do not set it
