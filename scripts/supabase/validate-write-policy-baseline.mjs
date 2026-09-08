@@ -1,4 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
+import { assertWritableTarget } from "./target-guard.mjs";
+
+assertWritableTarget("validate-write-policy-baseline.mjs");
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_KEY =

@@ -23,6 +23,7 @@
     "qa:ci": "npm run lint && npm run typecheck && npm run test:coverage",
     "qa:supabase": "npm run audit:roles:all && npm run audit:write:all && npm run audit:auth:logs && npm run audit:auth:e2e",
     "seed:reference": "node --env-file=.env.local scripts/supabase/seed-reference-data.mjs",
+    "verify:local": "node --env-file=.env.local scripts/supabase/verify-local-stack.mjs",
     "demo:teardown": "node --env-file=.env.local scripts/supabase/teardown-demo-data.mjs",
     "demo:seed": "node --env-file=.env.local scripts/supabase/seed-demo-data.mjs",
     "probe:bootstrap": "node --env-file=.env.local scripts/supabase/bootstrap-role-probe-users.mjs",

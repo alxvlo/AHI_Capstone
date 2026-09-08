@@ -1,4 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
+import { assertWritableTarget } from "./target-guard.mjs";
+
+assertWritableTarget("bootstrap-role-probe-users.mjs");
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
