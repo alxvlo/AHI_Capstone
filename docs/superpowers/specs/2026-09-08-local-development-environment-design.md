@@ -156,11 +156,39 @@ read only; blocking them would break existing workflows for no safety gain. `aud
 rows through a service-role client — it is not read-only, and it is one of the six guarded scripts
 above, not an exception to the guard.
 
-Two npm scripts sit outside the guard's reach entirely and are a known gap, not an oversight:
-`probe:deptstaff:noclaim:bootstrap` and `probe:cleanup` invoke the Supabase CLI directly against
-the linked project (`supabase db query --linked ...`) rather than loading this module, so the JS
-guard cannot intercept them. They target the linked cloud project by construction, regardless of
-what `.env.local` says. See `memory-bank/guides/local-development.md` for the operational warning.
+### The linked-project wrapper
+
+Two npm scripts used to sit outside the guard's reach: they invoked the Supabase CLI directly
+against the linked project rather than loading this module, so nothing could intercept them, and
+they targeted the cloud by construction regardless of what `.env.local` said.
+
+`probe:deptstaff:noclaim:bootstrap` turned out to be **dead** rather than merely unguarded — the
+SQL file it pointed at was deleted in `2c3b277` on 2026-04-03 and never replaced, so the script
+had failed for five months while `README.md` still advertised it. It was removed rather than
+wrapped. Restoring that SQL was rejected: it hardcodes the probe password in plaintext, which is
+precisely what SCRUM-55 removed from the probe scripts, and it is five months of migrations out
+of date with no way to test it. The audit that depended on its fixture,
+`audit:roles:deptstaff:noclaim`, is kept but marked non-functional — the property it checks is
+real and the fixture should be rebuilt in `bootstrap-role-probe-users.mjs`, which reads the
+password from the environment.
+
+`probe:cleanup` now runs through `scripts/supabase/run-guarded-sql.mjs`, which requires
+`AHI_ALLOW_CLOUD_WRITES=1` **unconditionally**.
+
+That last word matters, and it is why the wrapper does not reuse `assertWritableTarget`. That
+guard asks where `NEXT_PUBLIC_SUPABASE_URL` points, which is the wrong question for a command
+carrying the linked-project flag: a developer working entirely locally would satisfy a URL-based
+check and still write to production. The wrapper therefore ignores the URL and demands the
+override every time.
+
+The wrapper preserves the CLI invocation byte-for-byte rather than redirecting these scripts at a
+local stack. The Supabase CLI was not installed in the environment where this was written, so an
+untested command variation on a script that writes to `user_account` in production was not a
+trade worth making. Making the cloud write deliberate is the whole of the fix; making it local is
+follow-up work for someone who can run the CLI. The wrapper also refuses a missing SQL file by
+name, which is the check that would have surfaced the dead script years earlier than a reader did.
+
+See `memory-bank/guides/local-development.md` for the operational warning.
 
 The guard makes the standing "no writes to Singapore" constraint mechanical instead of
 remembered. It is the one piece of this work that is code rather than runbook, and it is the

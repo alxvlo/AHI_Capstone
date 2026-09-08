@@ -451,9 +451,15 @@ anything AHI answers.
    - **Vercel cutover** - environment variables still point at Sydney, and the function region needs
      setting to `sin1` (Settings - Functions - Function Regions). Until this is done the deployed app
      still reads Sydney.
-   - **`npm run probe:deptstaff:noclaim:bootstrap` is broken** - it references
-     `scripts/supabase/bootstrap-deptstaff-missing-claim-probe.sql`, which is not in the repo. Only
-     8 of the 9 probe accounts exist. Pre-existing, unrelated to the migration.
+   - **`npm run probe:deptstaff:noclaim:bootstrap` was broken and has now been removed**
+     (2026-09-08). It referenced `scripts/supabase/bootstrap-deptstaff-missing-claim-probe.sql`,
+     deleted in `2c3b277` on 2026-04-03 and never replaced, so it had failed for five months while
+     `README.md` still listed it as working. Only 8 of the 9 probe accounts exist, and nothing
+     creates the ninth. Restoring the SQL was rejected: it hardcodes the probe password, which is
+     what SCRUM-55 removed from the probe scripts, and it is far out of date with the schema.
+     `npm run audit:roles:deptstaff:noclaim` is kept but **cannot pass** until its fixture user is
+     rebuilt in `bootstrap-role-probe-users.mjs`; nothing chains to that audit, so no other gate is
+     affected.
    - **`scripts/supabase/seed-reference-data.mjs` duplicates reference-data logic** that now also
      lives in `20260312000001_seed_reference_data.sql`. Both are guarded and harmless today, but it's
      a second place these rows can drift apart. Noted in `seed.sql`'s own header; not fixed, since

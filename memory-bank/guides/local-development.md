@@ -30,12 +30,18 @@ type it deliberately, you already know the syntax, and this repo is not the plac
 `supabase db reset`, run with no flag, resets your local database only. That is the only form of
 this command that appears anywhere in this document, and it is the only form you should ever type.
 
-**Two npm scripts always act on the cloud project, no matter what `.env.local` says:**
-`npm run probe:deptstaff:noclaim:bootstrap` and `npm run probe:cleanup` call the Supabase CLI
-directly against the linked project. They never read `.env.local` and never pass through the
-destructive-script guard described below, so nothing about your local setup can stop them.
-`probe:cleanup` runs an `UPDATE` there. Treat both as cloud-only commands and think before running
-either.
+**`npm run probe:cleanup` always acts on the cloud project, no matter what `.env.local` says.**
+It calls the Supabase CLI directly against the linked project and runs an `UPDATE` there, so
+pointing `.env.local` at your local stack does **not** make it safe. It now refuses to run unless
+you set `AHI_ALLOW_CLOUD_WRITES=1` in the same command, and it prints a warning naming the file it
+is about to run when you do. If you find yourself setting that variable, stop and be sure you meant
+the cloud.
+
+There used to be a second such script, `probe:deptstaff:noclaim:bootstrap`. It has been removed: the
+SQL file it ran was deleted in April 2026 and never replaced, so it had been failing for months
+while the README still listed it. The audit that relied on its fixture,
+`npm run audit:roles:deptstaff:noclaim`, still exists but cannot pass until someone rebuilds that
+probe user.
 
 ## Prerequisites
 
