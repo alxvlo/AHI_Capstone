@@ -19,7 +19,7 @@ function runScript(file: string, env: Record<string, string>) {
     // Bounded: at Step 2 the guard does not exist yet, so the script really
     // does try to reach the fake host. Without this the run hangs.
     timeout: 30_000,
-    env: { PATH: process.env.PATH ?? "", ...env },
+    env: { NODE_ENV: "test", PATH: process.env.PATH ?? "", ...env },
   });
 }
 
