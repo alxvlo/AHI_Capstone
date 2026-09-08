@@ -184,13 +184,12 @@ npm run start
 | `npm run verify:local` | Verify the local Supabase stack's reference-table row counts match the census |
 | `npm run seed:reference` | Seed reference data into the linked Supabase project |
 | `npm run probe:bootstrap` | Bootstrap role-probe users for audits |
-| `npm run probe:deptstaff:noclaim:bootstrap` | Seed the dept-staff missing-claim probe scenario |
-| `npm run probe:cleanup` | Remove probe users from the linked Supabase project |
+| `npm run probe:cleanup` | Deactivate probe users on the **linked cloud** project. Targets the cloud regardless of `.env.local`, so it refuses to run unless `AHI_ALLOW_CLOUD_WRITES=1` is set deliberately. |
 | `npm run audit:roles:redirect` | Verify role → dashboard redirects |
 | `npm run audit:roles:protected:all` | Verify protected-route access across all roles |
 | `npm run audit:roles:smoke:all` | Smoke-test all role landing pages |
 | `npm run audit:roles:all` | Run all three role audits in sequence |
-| `npm run audit:roles:deptstaff:noclaim` | Audit dept-staff with missing department claim |
+| `npm run audit:roles:deptstaff:noclaim` | Audit dept-staff with missing department claim. **Currently non-functional** — its fixture user is created by nothing since the bootstrap SQL was deleted in `2c3b277` (2026-04-03), so the sign-in fails. Kept because the property it checks is real; the fixture needs rebuilding in `bootstrap-role-probe-users.mjs`, which reads the password from the environment rather than hardcoding it. |
 | `npm run audit:write-policies` | Validate RLS write-policy baseline |
 | `npm run audit:write:workflow` | Validate workflow write matrix |
 | `npm run audit:write:all` | Run both write-policy audits |
