@@ -450,7 +450,9 @@ anything AHI answers.
      and verification evidence.
    - **Vercel cutover** - environment variables still point at Sydney, and the function region needs
      setting to `sin1` (Settings - Functions - Function Regions). Until this is done the deployed app
-     still reads Sydney.
+     still reads Sydney. **Rotate the probe password before this ships** - a public deployment
+     publishes the anon key, which is the one missing piece that would make the repository's
+     plaintext probe password usable. See deferred item 3.
    - **`npm run probe:deptstaff:noclaim:bootstrap` was broken and has now been removed**
      (2026-09-08). It referenced `scripts/supabase/bootstrap-deptstaff-missing-claim-probe.sql`,
      deleted in `2c3b277` on 2026-04-03 and never replaced, so it had failed for five months while
@@ -474,7 +476,13 @@ anything AHI answers.
 
 1. **Sprint A Task 6** - Email audit actor propagation was skipped by policy and should remain deferred while Supabase/Auth/email-safety rules are active.
 2. **Sprint A Task 11** - Parental/guardian consent for under-18 patients is intentionally deferred for now.
-3. **Deployment authorization** - remains deferred.
+3. **Deployment authorization** - remains deferred. **When it is picked up, rotating the probe
+   password is a hard prerequisite** - see "Before anything is deployed" in
+   `memory-bank/guides/local-development.md`. The eight probe accounts share one password that is
+   public in this repository and in git history, and one of them holds System Administrator. It is
+   not exploitable today only because the anon key is unpublished and nothing is deployed;
+   deploying publishes the anon key by design and completes the chain. The same applies before any
+   real patient data enters a Supabase project, deployed or not.
 4. **PDF certificate generation** - Blocked on **Q-09** (template, signatory, signature type). Tracked in the questionnaire above; no longer an open-ended deferral.
 5. **`ActionPanel` → native `<dialog>`** - `components/dashboard/shared/action-panel.tsx` hand-rolls a Tab focus trap, Escape handler, and backdrop button that `dialog.showModal()` provides natively (~60 lines). Deferred from the 2026-08-15 ponytail cleanup because the panel navigates to `closeHref` rather than closing in place; needs its own accessibility test pass.
 
