@@ -30,8 +30,9 @@ install so two other developers can reproduce it without help.
   and `tests/scripts/verify-doc-links.test.ts`.
 - **Local hosts** are exactly: `localhost`, `127.0.0.1`, `[::1]`. Nothing else counts as local.
 - **The census** is `role` 8, `department` 10, `status_code` 16, `package` 5,
-  `package_department` 21, `test_catalog` 58, `package_test` 83 — from
-  `memory-bank/current-sprint.md:24`. Do not derive these from a running database.
+  `package_department` 21, `test_catalog` 58, `package_test` 83 — from the "Row counts vs. the
+  pre-migration Sydney census" row in `memory-bank/current-sprint.md`. Do not derive these from a
+  running database.
 
 ---
 
@@ -523,9 +524,9 @@ Create `scripts/supabase/verify-local-stack.mjs`:
 // cloud one makes every defect reproduced on it suspect, so this runs before any
 // defect work begins.
 //
-// Counts are transcribed from memory-bank/current-sprint.md:24. They are NOT
-// read back from a database -- deriving them from a running instance would make
-// this check agree with whatever it found.
+// Counts are transcribed from the "Row counts vs. the pre-migration Sydney census" row
+// in memory-bank/current-sprint.md. They are NOT read back from a database -- deriving
+// them from a running instance would make this check agree with whatever it found.
 
 import { createClient } from "@supabase/supabase-js";
 import { isLocalSupabaseUrl } from "./target-guard.mjs";

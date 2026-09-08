@@ -1,4 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
+import { assertWritableTarget } from "./target-guard.mjs";
+
+assertWritableTarget("seed-reference-data.mjs");
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey =

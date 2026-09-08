@@ -136,21 +136,31 @@ An env file swap is a convention, and conventions fail. A developer restoring cl
 check something, then running `npm run demo:teardown` an hour later, is a realistic sequence with
 an unrecoverable outcome.
 
-So the four unambiguously destructive scripts gain a shared guard that **refuses to run against a
+So the six unambiguously destructive scripts gain a shared guard that **refuses to run against a
 non-local target** unless the caller explicitly opts in:
 
 - `scripts/supabase/seed-reference-data.mjs`
 - `scripts/supabase/seed-demo-data.mjs`
 - `scripts/supabase/teardown-demo-data.mjs`
 - `scripts/supabase/bootstrap-role-probe-users.mjs`
+- `scripts/supabase/validate-write-policy-baseline.mjs`
+- `scripts/supabase/validate-workflow-write-matrix.mjs`
 
 The guard reads the resolved Supabase URL. If the host is not `localhost` or `127.0.0.1`, it
 exits non-zero with a message naming the host it refused. `AHI_ALLOW_CLOUD_WRITES=1` overrides it
 for the case where a cloud write is genuinely intended.
 
 **Read-only audits are not guarded.** `audit:roles:*` and the protected-route checks sign in and
-read; blocking them would break existing workflows for no safety gain. Scope is limited to the
-four scripts that create or destroy rows.
+read only; blocking them would break existing workflows for no safety gain. `audit:write:*`
+(`validate-write-policy-baseline.mjs` and `validate-workflow-write-matrix.mjs`) creates and deletes
+rows through a service-role client — it is not read-only, and it is one of the six guarded scripts
+above, not an exception to the guard.
+
+Two npm scripts sit outside the guard's reach entirely and are a known gap, not an oversight:
+`probe:deptstaff:noclaim:bootstrap` and `probe:cleanup` invoke the Supabase CLI directly against
+the linked project (`supabase db query --linked ...`) rather than loading this module, so the JS
+guard cannot intercept them. They target the linked cloud project by construction, regardless of
+what `.env.local` says. See `memory-bank/guides/local-development.md` for the operational warning.
 
 The guard makes the standing "no writes to Singapore" constraint mechanical instead of
 remembered. It is the one piece of this work that is code rather than runbook, and it is the
@@ -195,8 +205,9 @@ happened.
 
 ### The Phase 3 census
 
-Copied from the Singapore rebuild record at `memory-bank/current-sprint.md:24`, which is the
-authority for what a correctly migrated database contains:
+Copied from the "Row counts vs. the pre-migration Sydney census" row of the Singapore rebuild
+record in `memory-bank/current-sprint.md`, which is the authority for what a correctly migrated
+database contains:
 
 | Table | Expected rows |
 |---|---|

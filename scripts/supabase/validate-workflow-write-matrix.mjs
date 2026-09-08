@@ -1,4 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
+import { assertWritableTarget } from "./target-guard.mjs";
+
+assertWritableTarget("validate-workflow-write-matrix.mjs");
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_KEY =

@@ -120,7 +120,7 @@ npm install
 
 ### Environment
 
-Copy `.env.example` to `.env.local` and fill in the required values:
+Copy `.env.local.example` to `.env.local` and fill in the required values:
 
 ```env
 NEXT_PUBLIC_SUPABASE_URL=
@@ -140,7 +140,8 @@ Security notes:
 - `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` are expected browser-visible values.
 - `SUPABASE_SERVICE_ROLE_KEY` is sensitive and must remain server-only.
 - Never commit `.env.local`.
-- Prefer a dev or staging Supabase project over production for local work.
+- Prefer the local Supabase stack over any cloud project for local work — see
+  `memory-bank/guides/local-development.md` for setup.
 
 ### Run The App
 
@@ -180,6 +181,7 @@ npm run start
 | `npm run qa:ci` | `lint` + `typecheck` + `test:coverage` — CI baseline |
 | `npm run qa:supabase` | All Supabase-backed audits (roles, write policies, auth logs, auth E2E) |
 | `npm run qa:security` | OWASP ZAP baseline scan against `http://localhost:3000` (requires Docker) |
+| `npm run verify:local` | Verify the local Supabase stack's reference-table row counts match the census |
 | `npm run seed:reference` | Seed reference data into the linked Supabase project |
 | `npm run probe:bootstrap` | Bootstrap role-probe users for audits |
 | `npm run probe:deptstaff:noclaim:bootstrap` | Seed the dept-staff missing-claim probe scenario |
@@ -197,7 +199,7 @@ npm run start
 
 <!-- AUTO-GENERATED:scripts END -->
 
-`qa:supabase` and every `audit:*` / `seed:*` / `probe:*` script hits the linked Supabase project via `.env.local`. Run them only against a seeded dev/staging project — never production.
+`qa:supabase` and every `audit:*` / `seed:*` / `probe:*` script hits whatever `.env.local` points at — this should be the local Supabase stack (see `memory-bank/guides/local-development.md`). The destructive ones (`seed:*`, `demo:*`, `probe:bootstrap`, `audit:write:*`) now refuse to run against a non-local target.
 
 ## Current Implementation State
 

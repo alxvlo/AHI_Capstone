@@ -62,6 +62,10 @@ qa-visual-dashboard-staff.png
 .vercel
 .env*.local
 
+# Parked cloud credentials. Loaded by nothing; kept so cloud access can be
+# restored by copying it back over .env.local. Never commit it.
+.env.cloud
+
 # Advisor working documents — MUST NOT be committed.
 # This repo is public and these files quote the capstone advisor verbatim by name,
 # alongside the team's own drafted answers. Root-anchored so the pattern cannot match

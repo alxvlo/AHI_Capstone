@@ -6,8 +6,7 @@
 > because they are an accurate record; they are not live references. See
 > `guides/workflow-policy.md`.
 
-**Last Updated:** 2026-09-07 (clinic architecture findings merged into local `main`; UX journey
-programme paused after journey 07)
+**Last Updated:** 2026-09-08 (local development environment landed)
 **Phase:** Phase 5 - QA hardening, risk closure, and coverage stabilization
 **Current Checkpoint:** `0b0e395` on `origin/main` — "docs(memory-bank): record clinic architecture
 findings from the onsite visit", 2026-09-03. It sits on top of `2733e52`, which carried the Phase 3
@@ -323,6 +322,19 @@ Department → Reception → Physician → Releasing → Triage).
 > Note that item 1 below (the Vercel cutover) is affected: with deployment moving on-premise, the
 > Singapore project becomes staging rather than production. Re-read that item against
 > `decisions.md` 2026-09-02 before acting on it.
+
+**Local development environment landed 2026-09-08.** A local Supabase stack is now the default
+development target: `memory-bank/guides/local-development.md` is the setup path from a clean
+clone, and the four destructive scripts — `npm run seed:reference`, `npm run demo:seed`,
+`npm run demo:teardown`, and `npm run probe:bootstrap` — now refuse to run against a non-local
+Supabase host (override only via `AHI_ALLOW_CLOUD_WRITES=1`, and only when a cloud write is
+genuinely intended). **This is implemented but not yet run.** No local Supabase stack has been
+started as part of this plan — `supabase start`, `supabase db reset`, and `npm run verify:local`
+have not been executed, so the design spec's Phase 1 through Phase 5 verification gates
+(`docs/superpowers/specs/2026-09-08-local-development-environment-design.md`) all remain unmet.
+None of the thirteen open P1/P2 defects that motivated this work (`memory-bank/qa-runs/defect-log.md`)
+should be treated as reproduced, verified, or fixed by this entry — this work builds the
+environment those defects need; it does not itself exercise it.
 
 Reordered 2026-08-26 after the post-kickoff action plan (`docs/superpowers/archive/plans/2026-08-26-kickoff-action-plan.md`).
 Item 1 supersedes the 2026-08-22 ordering; items 2-4 are unchanged and still independent of
