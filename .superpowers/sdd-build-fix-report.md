@@ -75,7 +75,7 @@ build was not passing before the fix.
 | `npm run test:run` | **447 passed** across 67 test files — same count as before the change, as required. |
 | `npm run lint` (extra check, not requested but run for confidence) | 0 errors, 2 pre-existing warnings unrelated to this change (`lib/supabase/client.ts` unused eslint-disable, `scripts/supabase/seed-demo-data.mjs` unused var). |
 
-Commit SHA: e6d... (see final report message for exact SHA after commit)
+Commit SHA: 34cfb9a04db98e5774902c2cbc6297fabb961950
 
 ## Anything I disagree with
 
