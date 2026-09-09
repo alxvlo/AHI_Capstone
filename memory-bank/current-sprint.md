@@ -374,9 +374,28 @@ invisible until then because the implementation plan forbade running anything ag
   `qa:supabase` has sat unrun since 2026-05-20 and is recorded above as "unchecked, not green" —
   it may not have been neglect so much as impossible.
 
-**No defect has been reproduced or fixed by this work.** The thirteen open P1/P2 defects in
-`memory-bank/qa-runs/defect-log.md` remain `OPEN — NOT REPRODUCED`. What has changed is that they
-are now *reproducible*: there is a database it is safe to break.
+**No defect was reproduced or fixed by the environment stand-up work itself.** What that work
+changed is that the thirteen open P1/P2 defects in `memory-bank/qa-runs/defect-log.md` became
+*reproducible*: there is a database it is safe to break.
+
+**Since then, D-012 has been reproduced and fixed against that same local stack** — this is the
+first defect closed under the verification standard using the local stack: reproduced first (a
+`RELEASED` case reverted to `IN_PROGRESS` with its triage timestamp re-stamped and nothing
+stopping it), then fixed (`updateTriageCompletionAction` now rejects any case that is not
+`REGISTERED` or `IN_PROGRESS`, or that has no `triage_assessment` row, before either the
+`peme_case` update or the `audit_log` insert). D-012's Status is now `FIXED` in the defect log.
+
+**D-017 is partially addressed, not fixed.** Criterion 1 — the same action rejects a case with no
+`triage_assessment` row and performs no write when it does — is met. Criterion 2 — the system-wide
+invariant that no code path anywhere, including RLS-permitted direct writes, can move a case to
+`IN_PROGRESS` without a `triage_assessment` row — is not met and cannot be enforced from
+application code alone; it needs a database constraint or trigger. That constraint is blocked: the
+demo seeder violates the invariant on every case it creates (verified 2026-09-09 on the local
+stack, 14 seeded cases with zero `triage_assessment` rows, including five at `IN_PROGRESS` and two
+at `RELEASED`), so adding the constraint today would break `npm run demo:seed`. D-017 stays
+`OPEN` in the defect log.
+
+The remaining eleven defects are unchanged and remain `OPEN — NOT REPRODUCED`.
 
 Reordered 2026-08-26 after the post-kickoff action plan (`docs/superpowers/archive/plans/2026-08-26-kickoff-action-plan.md`).
 Item 1 supersedes the 2026-08-22 ordering; items 2-4 are unchanged and still independent of
