@@ -37,11 +37,46 @@ export function compareCensus(actual, expected = EXPECTED_CENSUS) {
   return mismatches;
 }
 
+// The census must use the service-role key, which bypasses RLS.
+//
+// It originally used the anon/publishable key, and that was wrong in a way that
+// only appeared on first real use: every census table has RLS enabled, but the
+// policies differ. `role` and `status_code` grant SELECT to {anon,authenticated}
+// so an anon-keyed count works; `package` and `test_catalog` grant it to
+// {authenticated} only, and `package` is additionally scoped to cases the caller
+// can see. So an anon census silently counted the first three tables and then
+// failed on the fourth.
+//
+// The question this script asks is "does this database contain the right
+// reference rows", not "can an anonymous visitor see them". Only the service
+// role answers that. Safe here because the script refuses a non-local target.
+export function resolveCensusKey(env = process.env) {
+  return env.SUPABASE_SERVICE_ROLE_KEY ?? null;
+}
+
+// Supabase errors do not always carry a message. The original version read only
+// .message and printed "Could not count package: " with nothing after the colon,
+// which hid an RLS refusal behind an empty string.
+export function formatCountError(table, error) {
+  const parts = [];
+
+  if (error) {
+    for (const field of ["message", "code", "details", "hint"]) {
+      const value = error[field];
+      if (typeof value === "string" && value.trim() !== "") {
+        parts.push(field === "message" ? value.trim() : `${field}: ${value.trim()}`);
+      }
+    }
+  }
+
+  const detail = parts.length > 0 ? parts.join(" · ") : "no error detail returned";
+
+  return `Could not count ${table} — ${detail}`;
+}
+
 async function main() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
-  const key =
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const key = resolveCensusKey();
 
   if (!isLocalSupabaseUrl(url)) {
     console.error(
@@ -52,7 +87,11 @@ async function main() {
   }
 
   if (!key) {
-    console.error("Missing a browser-safe Supabase key in .env.local.");
+    console.error(
+      "Missing SUPABASE_SERVICE_ROLE_KEY in .env.local. The census counts rows " +
+        "regardless of row-level security, so it needs the service-role key; the " +
+        "anon key cannot read every reference table."
+    );
     process.exit(1);
   }
 
@@ -68,7 +107,7 @@ async function main() {
       .select("*", { count: "exact", head: true });
 
     if (error) {
-      console.error(`Could not count ${table}: ${error.message}`);
+      console.error(formatCountError(table, error));
       process.exit(1);
     }
 
