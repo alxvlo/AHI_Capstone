@@ -4,6 +4,7 @@ import {
 } from "@/features/dashboard/staff/actions";
 import { MetricCard } from "@/components/dashboard/shared/metric-card";
 import { StatusBadge } from "@/components/dashboard/shared/status-badge";
+import { DataTable, type DataTableColumn } from "@/components/dashboard/shared/data-table";
 import { DataTableContainer } from "@/components/dashboard/shared/data-table-container";
 import { RealtimeBridge } from "@/components/dashboard/shared/realtime-bridge";
 import { ReleasingHistory } from "@/components/dashboard/staff/releasing-history";
@@ -129,6 +130,147 @@ export async function ReleasingModule({
     releasedError = error?.message ?? null;
   }
 
+  const releaseChecklistColumns: DataTableColumn<CaseRow>[] = [
+    {
+      header: "Case",
+      cell: (caseRow) => (
+        <>
+          <div className="flex items-center gap-2">
+            <span className="font-medium">{caseRow.casenumber}</span>
+            {caseRow.isrush ? <StatusBadge label="RUSH" tone="warning" /> : null}
+          </div>
+          <p className="text-xs text-muted-foreground">
+            {formatTimestamp(caseRow.registrationtimestamp)}
+          </p>
+        </>
+      ),
+    },
+    {
+      header: "Patient",
+      cell: (caseRow) => pickJoined(caseRow.patient)?.fullname ?? "Unknown patient",
+    },
+    {
+      header: "Company",
+      cell: (caseRow) => (
+        <span className="text-muted-foreground">
+          {pickJoined(caseRow.company)?.name ?? "Walk-in"}
+        </span>
+      ),
+    },
+    {
+      header: "Decision",
+      cell: (caseRow) => {
+        const readiness = releaseReadinessByCaseId.get(caseRow.caseid) ?? {
+          totalVisits: 0,
+          completedVisits: 0,
+          percentage: 0,
+          progressLabel: "0 / 0 (0%)",
+          hasDecision: false,
+          canRelease: false,
+        };
+
+        return (
+          <StatusBadge
+            label={readiness.hasDecision ? "Available" : "Missing"}
+            tone={readiness.hasDecision ? "positive" : "danger"}
+          />
+        );
+      },
+    },
+    {
+      header: "Visits",
+      cell: (caseRow) => {
+        const readiness = releaseReadinessByCaseId.get(caseRow.caseid) ?? {
+          totalVisits: 0,
+          completedVisits: 0,
+          percentage: 0,
+          progressLabel: "0 / 0 (0%)",
+          hasDecision: false,
+          canRelease: false,
+        };
+
+        return (
+          <StatusBadge
+            label={
+              readiness.progressLabel ??
+              `${readiness.completedVisits}/${readiness.totalVisits} completed`
+            }
+            tone={readiness.canRelease ? "positive" : "warning"}
+          />
+        );
+      },
+    },
+    {
+      header: "Action",
+      cell: (caseRow) => {
+        const readiness = releaseReadinessByCaseId.get(caseRow.caseid);
+
+        return (
+          <form action={releaseCaseAction}>
+            <input type="hidden" name="caseId" value={caseRow.caseid} />
+            <input type="hidden" name="returnPath" value={returnPath} />
+            <Button type="submit" size="sm" disabled={!readiness?.canRelease}>
+              Release Case
+            </Button>
+          </form>
+        );
+      },
+    },
+  ];
+
+  const portalVisibilityColumns: DataTableColumn<CaseRow & { portalvisible: boolean | null }>[] = [
+    {
+      header: "Case",
+      cell: (caseRow) => <span className="font-medium">{caseRow.casenumber}</span>,
+    },
+    {
+      header: "Patient",
+      cell: (caseRow) => pickJoined(caseRow.patient)?.fullname ?? "Unknown",
+    },
+    {
+      header: "Released",
+      cell: (caseRow) => (
+        <span className="text-muted-foreground">
+          {formatTimestamp(caseRow.releasedtimestamp)}
+        </span>
+      ),
+    },
+    {
+      header: "Portal",
+      cell: (caseRow) => (
+        <StatusBadge
+          label={caseRow.portalvisible ? "Visible" : "Hidden"}
+          tone={caseRow.portalvisible ? "positive" : "neutral"}
+        />
+      ),
+    },
+    {
+      header: "Toggle",
+      cell: (caseRow) => (
+        <form action={togglePortalVisibilityAction} className="flex items-end gap-2">
+          <input type="hidden" name="caseId" value={caseRow.caseid} />
+          <input type="hidden" name="returnPath" value={returnPath} />
+          <div className="space-y-1">
+            <Label htmlFor={`reason-${caseRow.caseid}`} className="sr-only">
+              Reason
+            </Label>
+            <Input
+              id={`reason-${caseRow.caseid}`}
+              name="reason"
+              placeholder="Reason for change"
+              required
+              maxLength={255}
+              className="h-8 w-44 text-xs"
+            />
+          </div>
+          <Button type="submit" variant="outline" size="sm">
+            {caseRow.portalvisible ? "Hide" : "Show"}
+          </Button>
+        </form>
+      ),
+    },
+  ];
+
   return (
     <div className="space-y-6">
       <RealtimeBridge table="peme_case" />
@@ -159,73 +301,13 @@ export async function ReleasingModule({
         emptyTitle="No cases queued for release"
         emptyMessage="Cases will appear here once they reach FOR_RELEASING status."
       >
-        <table className="min-w-full text-sm">
-          <thead className="bg-muted/50 text-left">
-            <tr>
-              <th className="px-3 py-2 font-semibold">Case</th>
-              <th className="px-3 py-2 font-semibold">Patient</th>
-              <th className="px-3 py-2 font-semibold">Company</th>
-              <th className="px-3 py-2 font-semibold">Decision</th>
-              <th className="px-3 py-2 font-semibold">Visits</th>
-              <th className="px-3 py-2 font-semibold">Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {releaseQueue.map((caseRow) => {
-              const patient = pickJoined(caseRow.patient);
-              const company = pickJoined(caseRow.company);
-              const readiness = releaseReadinessByCaseId.get(caseRow.caseid) ?? {
-                totalVisits: 0,
-                completedVisits: 0,
-                percentage: 0,
-                progressLabel: "0 / 0 (0%)",
-                hasDecision: false,
-                canRelease: false,
-              };
-
-              return (
-                <tr key={caseRow.caseid} className="border-t align-top">
-                  <td className="px-3 py-2">
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium">{caseRow.casenumber}</span>
-                      {caseRow.isrush ? (
-                        <StatusBadge label="RUSH" tone="warning" />
-                      ) : null}
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      {formatTimestamp(caseRow.registrationtimestamp)}
-                    </p>
-                  </td>
-                  <td className="px-3 py-2">{patient?.fullname ?? "Unknown patient"}</td>
-                  <td className="px-3 py-2 text-muted-foreground">
-                    {company?.name ?? "Walk-in"}
-                  </td>
-                  <td className="px-3 py-2">
-                    <StatusBadge
-                      label={readiness.hasDecision ? "Available" : "Missing"}
-                      tone={readiness.hasDecision ? "positive" : "danger"}
-                    />
-                  </td>
-                  <td className="px-3 py-2">
-                    <StatusBadge
-                      label={readiness.progressLabel ?? `${readiness.completedVisits}/${readiness.totalVisits} completed`}
-                      tone={readiness.canRelease ? "positive" : "warning"}
-                    />
-                  </td>
-                  <td className="px-3 py-2">
-                    <form action={releaseCaseAction}>
-                      <input type="hidden" name="caseId" value={caseRow.caseid} />
-                      <input type="hidden" name="returnPath" value={returnPath} />
-                      <Button type="submit" size="sm" disabled={!readiness.canRelease}>
-                        Release Case
-                      </Button>
-                    </form>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+        <DataTable
+          columns={releaseChecklistColumns}
+          rows={releaseQueue}
+          rowKey={(caseRow) => caseRow.caseid}
+          rowClassName="align-top"
+          caption="Release checklist"
+        />
       </DataTableContainer>
 
       {/* Portal Visibility Management for Released Cases */}
@@ -239,63 +321,13 @@ export async function ReleasingModule({
           emptyTitle="No released cases"
           emptyMessage="Released cases will appear here for visibility management."
         >
-          <table className="min-w-full text-sm">
-            <thead className="bg-muted/50 text-left">
-              <tr>
-                <th className="px-3 py-2 font-semibold">Case</th>
-                <th className="px-3 py-2 font-semibold">Patient</th>
-                <th className="px-3 py-2 font-semibold">Released</th>
-                <th className="px-3 py-2 font-semibold">Portal</th>
-                <th className="px-3 py-2 font-semibold">Toggle</th>
-              </tr>
-            </thead>
-            <tbody>
-              {releasedCases.map((caseRow) => {
-                const patient = pickJoined(caseRow.patient);
-
-                return (
-                  <tr key={caseRow.caseid} className="border-t align-top">
-                    <td className="px-3 py-2 font-medium">{caseRow.casenumber}</td>
-                    <td className="px-3 py-2">{patient?.fullname ?? "Unknown"}</td>
-                    <td className="px-3 py-2 text-muted-foreground">
-                      {formatTimestamp(caseRow.releasedtimestamp)}
-                    </td>
-                    <td className="px-3 py-2">
-                      <StatusBadge
-                        label={caseRow.portalvisible ? "Visible" : "Hidden"}
-                        tone={caseRow.portalvisible ? "positive" : "neutral"}
-                      />
-                    </td>
-                    <td className="px-3 py-2">
-                      <form
-                        action={togglePortalVisibilityAction}
-                        className="flex items-end gap-2"
-                      >
-                        <input type="hidden" name="caseId" value={caseRow.caseid} />
-                        <input type="hidden" name="returnPath" value={returnPath} />
-                        <div className="space-y-1">
-                          <Label htmlFor={`reason-${caseRow.caseid}`} className="sr-only">
-                            Reason
-                          </Label>
-                          <Input
-                            id={`reason-${caseRow.caseid}`}
-                            name="reason"
-                            placeholder="Reason for change"
-                            required
-                            maxLength={255}
-                            className="h-8 w-44 text-xs"
-                          />
-                        </div>
-                        <Button type="submit" variant="outline" size="sm">
-                          {caseRow.portalvisible ? "Hide" : "Show"}
-                        </Button>
-                      </form>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+          <DataTable
+            columns={portalVisibilityColumns}
+            rows={releasedCases}
+            rowKey={(caseRow) => caseRow.caseid}
+            rowClassName="align-top"
+            caption="Portal visibility management"
+          />
         </DataTableContainer>
       ) : null}
 

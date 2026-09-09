@@ -1,11 +1,9 @@
 import type { ReactNode } from "react";
-import { RoleBadge } from "@/components/dashboard/shared/role-badge";
 import { cn } from "@/lib/utils";
 
 type DashboardHeaderProps = {
   title: string;
   description?: string;
-  role?: string | null;
   quickActions?: ReactNode;
   className?: string;
 };
@@ -13,7 +11,6 @@ type DashboardHeaderProps = {
 export function DashboardHeader({
   title,
   description,
-  role = null,
   quickActions,
   className,
 }: DashboardHeaderProps) {
@@ -27,13 +24,6 @@ export function DashboardHeader({
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="space-y-2">
           <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{title}</h1>
-
-          {role ? (
-            <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-              <span>Role detected:</span>
-              <RoleBadge role={role} />
-            </div>
-          ) : null}
 
           {description ? (
             <p className="text-sm text-muted-foreground">{description}</p>

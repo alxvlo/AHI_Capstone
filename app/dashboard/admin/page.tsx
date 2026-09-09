@@ -9,7 +9,6 @@ import { MetricCard } from "@/components/dashboard/shared/metric-card";
 import { FlashToast } from "@/components/dashboard/shared/flash-toast";
 import { DashboardHeader } from "@/components/dashboard/shell/dashboard-header";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   buildAdminReturnPath,
   parseOptionalPositiveInt,
@@ -243,50 +242,20 @@ export default async function AdminDashboardPage({
 
       <DashboardHeader
         title="System Admin Dashboard"
-        role={role}
         description={`${ADMIN_TAB_LABEL[activeTab]}: ${ADMIN_TAB_DESCRIPTION[activeTab]}`}
         quickActions={
           <div className="flex flex-wrap gap-2">
-            <Button
-              variant={activeTab === "overview" ? "default" : "outline"}
-              size="sm"
-              className="h-11 px-4 sm:h-9 sm:px-3"
-              asChild
-            >
-              <Link href={buildAdminReturnPath("overview")}>Overview</Link>
-            </Button>
-            <Button
-              variant={activeTab === "users" ? "default" : "outline"}
-              size="sm"
-              className="h-11 px-4 sm:h-9 sm:px-3"
-              asChild
-            >
-              <Link href={buildAdminReturnPath("users")}>Users</Link>
-            </Button>
-            <Button
-              variant={activeTab === "reference" ? "default" : "outline"}
-              size="sm"
-              className="h-11 px-4 sm:h-9 sm:px-3"
-              asChild
-            >
-              <Link href={buildAdminReturnPath("reference")}>Reference Data</Link>
-            </Button>
-            <Button
-              variant={activeTab === "audit" ? "default" : "outline"}
-              size="sm"
-              className="h-11 px-4 sm:h-9 sm:px-3"
-              asChild
-            >
-              <Link href={buildAdminReturnPath("audit")}>Audit Logs</Link>
-            </Button>
-            <Button
-              variant={activeTab === "catalog" ? "default" : "outline"}
-              size="sm"
-              className="h-11 px-4 sm:h-9 sm:px-3"
-              asChild
-            >
-              <Link href={buildAdminReturnPath("catalog")}>Test Catalog</Link>
-            </Button>
+            {(Object.keys(ADMIN_TAB_LABEL) as AdminTab[]).map((tab) => (
+              <Button
+                key={tab}
+                variant={activeTab === tab ? "default" : "outline"}
+                size="sm"
+                className="h-11 px-4 sm:h-9 sm:px-3"
+                asChild
+              >
+                <Link href={buildAdminReturnPath(tab)}>{ADMIN_TAB_LABEL[tab]}</Link>
+              </Button>
+            ))}
           </div>
         }
       />
@@ -309,66 +278,6 @@ export default async function AdminDashboardPage({
           tone="default"
         />
       </div>
-
-      {activeTab === "overview" ? (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">User Administration</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <p className="text-sm text-muted-foreground">
-                Manage account role assignment, active state, and lock controls.
-              </p>
-              <Button size="sm" className="h-10 px-4" asChild>
-                <Link href={buildAdminReturnPath("users")}>Open Users Tab</Link>
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">Reference Maintenance</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <p className="text-sm text-muted-foreground">
-                Maintain departments, packages, companies, and routing mappings.
-              </p>
-              <Button size="sm" className="h-10 px-4" asChild>
-                <Link href={buildAdminReturnPath("reference")}>Open Reference Tab</Link>
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">Audit Monitoring</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <p className="text-sm text-muted-foreground">
-                Inspect audit events by user, action type, and date window.
-              </p>
-              <Button size="sm" className="h-10 px-4" asChild>
-                <Link href={buildAdminReturnPath("audit")}>Open Audit Tab</Link>
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">Test Catalog</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <p className="text-sm text-muted-foreground">
-                View seeded test entries and package-test mappings by department.
-              </p>
-              <Button size="sm" className="h-10 px-4" asChild>
-                <Link href={buildAdminReturnPath("catalog")}>Open Test Catalog</Link>
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-      ) : null}
 
       {activeTab === "users" ? (
         <UserTable

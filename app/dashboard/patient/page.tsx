@@ -6,12 +6,14 @@ import { ExamProgress } from "@/components/dashboard/patient/exam-progress";
 import { ResultFiles } from "@/components/dashboard/patient/result-files";
 import { ResultSummary } from "@/components/dashboard/patient/result-summary";
 import { FlashToast } from "@/components/dashboard/shared/flash-toast";
+import { InlineNotice } from "@/components/dashboard/shared/inline-notice";
 import { RealtimeBridge } from "@/components/dashboard/shared/realtime-bridge";
 import { MetricCard } from "@/components/dashboard/shared/metric-card";
 import { StatusBadge } from "@/components/dashboard/shared/status-badge";
 import { DashboardHeader } from "@/components/dashboard/shell/dashboard-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { NativeSelect } from "@/components/ui/native-select";
 import { fetchPatientDashboardData } from "@/features/dashboard/patient/actions";
 import {
   caseStatusTone,
@@ -89,7 +91,6 @@ export default async function PatientDashboardPage({
 
       <DashboardHeader
         title="Patient Dashboard"
-        role={role}
         description="Track your PEME case progress and review released findings."
         quickActions={
           <Button variant="outline" size="sm" className="h-11 px-4 sm:h-9 sm:px-3" asChild>
@@ -107,11 +108,11 @@ export default async function PatientDashboardPage({
             action="/dashboard/patient"
             className="grid gap-3 sm:grid-cols-[minmax(0,1fr),auto,auto]"
           >
-            <select
+            <NativeSelect
               id="caseId"
               name="caseId"
               defaultValue={dashboardData.selectedCaseId ?? ""}
-              className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              className="h-11"
               disabled={dashboardData.cases.length === 0}
             >
               {dashboardData.cases.length === 0 ? (
@@ -122,7 +123,7 @@ export default async function PatientDashboardPage({
                   {formatCaseSelectorLabel(caseRow)}
                 </option>
               ))}
-            </select>
+            </NativeSelect>
             <Button type="submit" className="h-11 px-4">
               Load Case
             </Button>
@@ -131,11 +132,7 @@ export default async function PatientDashboardPage({
             </Button>
           </form>
 
-          {dashboardData.errors.account ? (
-            <p className="rounded-md border border-rose-300/70 bg-rose-50 px-3 py-2 text-sm text-rose-900">
-              {dashboardData.errors.account}
-            </p>
-          ) : null}
+          <InlineNotice tone="danger" message={dashboardData.errors.account ?? undefined} />
         </CardContent>
       </Card>
 

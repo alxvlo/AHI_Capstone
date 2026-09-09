@@ -5,9 +5,11 @@ import {
   upsertPackageAction,
   upsertStatusCodeAction,
 } from "@/features/dashboard/admin/actions";
+import { DataTable, type DataTableColumn } from "@/components/dashboard/shared/data-table";
 import { DataTableContainer } from "@/components/dashboard/shared/data-table-container";
 import { StatusBadge } from "@/components/dashboard/shared/status-badge";
 import { Button } from "@/components/ui/button";
+import { NativeSelect } from "@/components/ui/native-select";
 import { pickJoined } from "@/features/dashboard/admin/shared";
 import type {
   CompanyRecord,
@@ -36,6 +38,78 @@ export function ReferencePanel({
   statusCodes,
   referenceError = null,
 }: ReferencePanelProps) {
+  const mappingColumns: DataTableColumn<PackageDepartmentRecord>[] = [
+    {
+      header: "Package",
+      cell: (mapping) => pickJoined(mapping.package)?.packagename ?? mapping.packageid,
+    },
+    {
+      header: "Department",
+      cell: (mapping) => {
+        const departmentInfo = pickJoined(mapping.department);
+        return departmentInfo ? `${departmentInfo.code} - ${departmentInfo.name}` : mapping.departmentid;
+      },
+    },
+    {
+      header: "State",
+      cell: (mapping) => (
+        <StatusBadge
+          label={mapping.isactive ? "Active" : "Inactive"}
+          tone={mapping.isactive ? "positive" : "warning"}
+        />
+      ),
+    },
+    {
+      header: "Action",
+      cell: (mapping) => (
+        <form action={setPackageDepartmentMappingAction}>
+          <input type="hidden" name="returnPath" value={returnPath} />
+          <input type="hidden" name="packageId" value={String(mapping.packageid)} />
+          <input type="hidden" name="departmentId" value={String(mapping.departmentid)} />
+          <input type="hidden" name="isActive" value={mapping.isactive ? "false" : "true"} />
+          <Button type="submit" size="sm" variant="outline" className="h-10 px-3">
+            {mapping.isactive ? "Deactivate" : "Activate"}
+          </Button>
+        </form>
+      ),
+    },
+  ];
+
+  const statusCodeColumns: DataTableColumn<StatusCodeRecord>[] = [
+    {
+      header: "Domain",
+      cell: (status) => <span className="font-mono text-xs">{status.domain}</span>,
+    },
+    {
+      header: "Code",
+      cell: (status) => <span className="font-mono text-xs">{status.code}</span>,
+    },
+    {
+      header: "Label",
+      colSpan: () => 3,
+      cell: (status) => (
+        <form action={upsertStatusCodeAction} className="grid gap-2 md:grid-cols-[1fr_auto_auto]">
+          <input type="hidden" name="returnPath" value={returnPath} />
+          <input type="hidden" name="statusCodeId" value={String(status.statuscodeid)} />
+          <input
+            name="label"
+            defaultValue={status.label ?? ""}
+            className="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
+          />
+          <label className="flex items-center gap-2 text-xs text-muted-foreground">
+            <input type="checkbox" name="isActive" defaultChecked={status.isactive !== false} className="h-4 w-4" />
+            Active
+          </label>
+          <Button type="submit" size="sm" variant="outline" className="h-10 px-3">
+            Save
+          </Button>
+        </form>
+      ),
+    },
+    { header: "Active", cell: () => null },
+    { header: "Save", cell: () => null },
+  ];
+
   return (
     <div className="space-y-6">
       <DataTableContainer
@@ -292,89 +366,35 @@ export function ReferencePanel({
         <div className="min-w-[840px] p-4">
           <form action={setPackageDepartmentMappingAction} className="mb-4 grid gap-3 md:grid-cols-4">
             <input type="hidden" name="returnPath" value={returnPath} />
-            <select
-              name="packageId"
-              className="flex h-11 rounded-md border border-input bg-background px-3 py-2 text-sm"
-              required
-            >
+            <NativeSelect name="packageId" className="h-11" required>
               <option value="">Select package</option>
               {packages.map((item) => (
                 <option key={item.packageid} value={item.packageid}>
                   {item.packagename}
                 </option>
               ))}
-            </select>
-            <select
-              name="departmentId"
-              className="flex h-11 rounded-md border border-input bg-background px-3 py-2 text-sm"
-              required
-            >
+            </NativeSelect>
+            <NativeSelect name="departmentId" className="h-11" required>
               <option value="">Select department</option>
               {departments.map((item) => (
                 <option key={item.departmentid} value={item.departmentid}>
                   {item.code} - {item.name}
                 </option>
               ))}
-            </select>
+            </NativeSelect>
             <input type="hidden" name="isActive" value="true" />
             <Button type="submit" className="h-11 px-4 md:col-span-2">
               Add / Reactivate Mapping
             </Button>
           </form>
 
-          <table className="min-w-full text-sm">
-            <thead className="bg-muted/50 text-left">
-              <tr>
-                <th className="px-3 py-2 font-semibold">Package</th>
-                <th className="px-3 py-2 font-semibold">Department</th>
-                <th className="px-3 py-2 font-semibold">State</th>
-                <th className="px-3 py-2 font-semibold">Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {packageDepartmentMappings.map((mapping) => {
-                const packageInfo = pickJoined(mapping.package);
-                const departmentInfo = pickJoined(mapping.department);
-
-                return (
-                  <tr
-                    key={`${mapping.packageid}-${mapping.departmentid}`}
-                    className="border-t align-top"
-                  >
-                    <td className="px-3 py-2">{packageInfo?.packagename ?? mapping.packageid}</td>
-                    <td className="px-3 py-2">
-                      {departmentInfo ? `${departmentInfo.code} - ${departmentInfo.name}` : mapping.departmentid}
-                    </td>
-                    <td className="px-3 py-2">
-                      <StatusBadge
-                        label={mapping.isactive ? "Active" : "Inactive"}
-                        tone={mapping.isactive ? "positive" : "warning"}
-                      />
-                    </td>
-                    <td className="px-3 py-2">
-                      <form action={setPackageDepartmentMappingAction}>
-                        <input type="hidden" name="returnPath" value={returnPath} />
-                        <input type="hidden" name="packageId" value={String(mapping.packageid)} />
-                        <input
-                          type="hidden"
-                          name="departmentId"
-                          value={String(mapping.departmentid)}
-                        />
-                        <input
-                          type="hidden"
-                          name="isActive"
-                          value={mapping.isactive ? "false" : "true"}
-                        />
-                        <Button type="submit" size="sm" variant="outline" className="h-10 px-3">
-                          {mapping.isactive ? "Deactivate" : "Activate"}
-                        </Button>
-                      </form>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+          <DataTable
+            columns={mappingColumns}
+            rows={packageDepartmentMappings}
+            rowKey={(mapping) => `${mapping.packageid}-${mapping.departmentid}`}
+            rowClassName="align-top"
+            caption="Package-department mappings"
+          />
         </div>
       </DataTableContainer>
 
@@ -418,43 +438,13 @@ export function ReferencePanel({
             </div>
           </form>
 
-          <table className="min-w-full text-sm">
-            <thead className="bg-muted/50 text-left">
-              <tr>
-                <th className="px-3 py-2 font-semibold">Domain</th>
-                <th className="px-3 py-2 font-semibold">Code</th>
-                <th className="px-3 py-2 font-semibold">Label</th>
-                <th className="px-3 py-2 font-semibold">Active</th>
-                <th className="px-3 py-2 font-semibold">Save</th>
-              </tr>
-            </thead>
-            <tbody>
-              {statusCodes.map((status) => (
-                <tr key={status.statuscodeid} className="border-t align-middle">
-                  <td className="px-3 py-2 font-mono text-xs">{status.domain}</td>
-                  <td className="px-3 py-2 font-mono text-xs">{status.code}</td>
-                  <td className="px-3 py-2" colSpan={3}>
-                    <form action={upsertStatusCodeAction} className="grid gap-2 md:grid-cols-[1fr_auto_auto]">
-                      <input type="hidden" name="returnPath" value={returnPath} />
-                      <input type="hidden" name="statusCodeId" value={String(status.statuscodeid)} />
-                      <input
-                        name="label"
-                        defaultValue={status.label ?? ""}
-                        className="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
-                      />
-                      <label className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <input type="checkbox" name="isActive" defaultChecked={status.isactive !== false} className="h-4 w-4" />
-                        Active
-                      </label>
-                      <Button type="submit" size="sm" variant="outline" className="h-10 px-3">
-                        Save
-                      </Button>
-                    </form>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <DataTable
+            columns={statusCodeColumns}
+            rows={statusCodes}
+            rowKey={(status) => status.statuscodeid}
+            rowClassName="align-middle"
+            caption="Status codes"
+          />
         </div>
       </DataTableContainer>
     </div>

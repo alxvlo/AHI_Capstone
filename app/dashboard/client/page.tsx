@@ -66,7 +66,6 @@ export default async function ClientDashboardPage({
     <div className="space-y-6">
       <DashboardHeader
         title="Client Representative Dashboard"
-        role={role}
         description="Search released company cases and view compliance-safe fitness summaries."
         quickActions={
           <Button variant="outline" size="sm" className="h-11 px-4 sm:h-9 sm:px-3" asChild>

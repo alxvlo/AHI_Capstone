@@ -5,6 +5,7 @@ import { saveResultItemsAction } from "@/features/dashboard/staff/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { NativeSelect } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
 
 type CatalogEntry = {
@@ -76,13 +77,13 @@ export function TestResultForm({
       {!customMode && (
         <div>
           <Label htmlFor="testId">Test</Label>
-          <select
+          <NativeSelect
             id="testId"
             name="testId"
             value={selectedId}
             onChange={(e) => setSelectedId(e.target.value)}
             required
-            className="block w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            className="block h-auto"
           >
             <option value="">Select a test...</option>
             {grouped.map(([cat, items]) => (
@@ -95,7 +96,7 @@ export function TestResultForm({
                 ))}
               </optgroup>
             ))}
-          </select>
+          </NativeSelect>
           <button
             type="button"
             onClick={() => setCustomMode(true)}
@@ -184,19 +185,19 @@ export function TestResultForm({
           )}
         </Label>
         {selected?.valuetype === "categorical" && selected.validvalues ? (
-          <select
+          <NativeSelect
             id="value"
             name="value"
             value={value}
             onChange={(e) => setValue(e.target.value)}
             required
-            className="block w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            className="block h-auto"
           >
             <option value="">Select...</option>
             {selected.validvalues.map((v) => (
               <option key={v} value={v}>{v}</option>
             ))}
-          </select>
+          </NativeSelect>
         ) : (
           <Input
             id="value"

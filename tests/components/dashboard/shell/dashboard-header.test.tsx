@@ -3,34 +3,30 @@ import { describe, expect, it } from "vitest";
 import { DashboardHeader } from "@/components/dashboard/shell/dashboard-header";
 
 describe("DashboardHeader", () => {
-  it("renders title, role badge, description, and quick actions", () => {
+  it("renders title, description, and quick actions", () => {
     render(
       <DashboardHeader
         title="Staff Dashboard"
-        role="Reception/Billing"
-        description="Queue overview and role workflow controls."
-        quickActions={<button type="button">Account</button>}
+        description="Queue overview"
+        quickActions={<button type="button">Refresh</button>}
       />
     );
 
-    expect(
-      screen.getByRole("heading", { level: 1, name: "Staff Dashboard" })
-    ).toBeInTheDocument();
-    expect(screen.getByText("Reception / Billing")).toBeInTheDocument();
-    expect(
-      screen.getByText("Queue overview and role workflow controls.")
-    ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Account" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "Staff Dashboard" })).toBeInTheDocument();
+    expect(screen.getByText("Queue overview")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Refresh" })).toBeInTheDocument();
   });
 
-  it("omits role and quick actions when not provided", () => {
-    render(<DashboardHeader title="Account" description="Manage your profile." />);
+  it("never renders a role line — identity belongs to the sidebar", () => {
+    // @ts-expect-error role is no longer a prop; the compiler is part of the check
+    render(<DashboardHeader title="Staff Dashboard" role="TRIAGE_NURSE" />);
+    expect(screen.queryByText(/role detected/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/triage/i)).not.toBeInTheDocument();
+  });
 
-    expect(
-      screen.getByRole("heading", { level: 1, name: "Account" })
-    ).toBeInTheDocument();
-    expect(screen.queryByText("Role detected:")).not.toBeInTheDocument();
+  it("omits description and quick actions when not provided", () => {
+    render(<DashboardHeader title="Only title" />);
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Only title");
     expect(screen.queryByRole("button")).not.toBeInTheDocument();
   });
 });
-

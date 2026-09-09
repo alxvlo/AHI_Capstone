@@ -7,6 +7,7 @@ import { useAuth } from "@/components/providers/auth-provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { NativeSelect } from "@/components/ui/native-select";
 import {
   Card,
   CardContent,
@@ -178,16 +179,16 @@ export default function PatientSignUpPage() {
                   <Label htmlFor="sex">
                     Sex <span className="text-destructive">*</span>
                   </Label>
-                  <select
+                  <NativeSelect
                     id="sex"
                     value={form.sex}
                     onChange={(e) => update("sex", e.target.value)}
-                    className="flex h-10 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="rounded-xl"
                   >
                     <option value="">Select</option>
                     <option value="Male">Male</option>
                     <option value="Female">Female</option>
-                  </select>
+                  </NativeSelect>
                 </div>
               </div>
 
@@ -270,11 +271,11 @@ export default function PatientSignUpPage() {
                   <Label htmlFor="governmentIdType">
                     ID Type <span className="text-destructive">*</span>
                   </Label>
-                  <select
+                  <NativeSelect
                     id="governmentIdType"
                     value={form.governmentIdType}
                     onChange={(e) => update("governmentIdType", e.target.value)}
-                    className="flex h-10 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="rounded-xl"
                   >
                     <option value="">Select ID type</option>
                     {GOVERNMENT_ID_TYPES.map((idType) => (
@@ -282,7 +283,7 @@ export default function PatientSignUpPage() {
                         {idType}
                       </option>
                     ))}
-                  </select>
+                  </NativeSelect>
                 </div>
               </div>
 

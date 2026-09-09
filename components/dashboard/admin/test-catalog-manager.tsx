@@ -1,6 +1,7 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { pickJoined } from "@/features/dashboard/admin/shared";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { DataTable, type DataTableColumn } from "@/components/dashboard/shared/data-table";
 
 type CatalogRow = {
   testid: number;
@@ -31,6 +32,37 @@ export async function TestCatalogManager() {
 
   const rows = (data ?? []) as unknown as CatalogRow[];
 
+  const columns: DataTableColumn<CatalogRow>[] = [
+    {
+      header: "Department",
+      cell: (r) => <span className="font-mono text-xs">{pickJoined(r.department)?.code ?? "—"}</span>,
+    },
+    {
+      header: "Category",
+      cell: (r) => <span className="text-muted-foreground">{r.category ?? "—"}</span>,
+    },
+    {
+      header: "Test",
+      cell: (r) => <span className="font-medium">{r.testname}</span>,
+    },
+    {
+      header: "Type",
+      cell: (r) => <span className="text-muted-foreground">{r.valuetype}</span>,
+    },
+    {
+      header: "Unit",
+      cell: (r) => <span className="font-mono text-xs">{r.defaultunit ?? "—"}</span>,
+    },
+    {
+      header: "Reference",
+      cell: (r) => <span className="font-mono text-xs">{r.defaultref ?? "—"}</span>,
+    },
+    {
+      header: "Active",
+      cell: (r) => (r.isactive ? "Yes" : "No"),
+    },
+  ];
+
   return (
     <Card>
       <CardHeader>
@@ -38,35 +70,13 @@ export async function TestCatalogManager() {
       </CardHeader>
       <CardContent>
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b text-left">
-                <th className="py-2 pr-4 font-semibold">Department</th>
-                <th className="py-2 pr-4 font-semibold">Category</th>
-                <th className="py-2 pr-4 font-semibold">Test</th>
-                <th className="py-2 pr-4 font-semibold">Type</th>
-                <th className="py-2 pr-4 font-semibold">Unit</th>
-                <th className="py-2 pr-4 font-semibold">Reference</th>
-                <th className="py-2 font-semibold">Active</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r) => {
-                const dept = pickJoined(r.department);
-                return (
-                  <tr key={r.testid} className="border-b hover:bg-muted/30">
-                    <td className="py-1.5 pr-4 font-mono text-xs">{dept?.code ?? "—"}</td>
-                    <td className="py-1.5 pr-4 text-muted-foreground">{r.category ?? "—"}</td>
-                    <td className="py-1.5 pr-4 font-medium">{r.testname}</td>
-                    <td className="py-1.5 pr-4 text-muted-foreground">{r.valuetype}</td>
-                    <td className="py-1.5 pr-4 font-mono text-xs">{r.defaultunit ?? "—"}</td>
-                    <td className="py-1.5 pr-4 font-mono text-xs">{r.defaultref ?? "—"}</td>
-                    <td className="py-1.5">{r.isactive ? "Yes" : "No"}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+          <DataTable
+            columns={columns}
+            rows={rows}
+            rowKey={(r) => r.testid}
+            rowClassName="hover:bg-muted/30"
+            caption="Test catalog"
+          />
         </div>
         <p className="mt-4 text-xs text-muted-foreground">
           Read-only. Use the Supabase dashboard for manual edits.

@@ -1,3 +1,4 @@
+import { DataTable, type DataTableColumn } from "@/components/dashboard/shared/data-table";
 import { DataTableContainer } from "@/components/dashboard/shared/data-table-container";
 import { formatTimestamp, pickJoined, type AuditLogRow } from "@/features/dashboard/admin/shared";
 import { Button } from "@/components/ui/button";
@@ -20,6 +21,43 @@ export function AuditLogViewer({
   filters,
   logsError = null,
 }: AuditLogViewerProps) {
+  const columns: DataTableColumn<AuditLogRow>[] = [
+    {
+      header: "Timestamp",
+      cell: (logRow) => (
+        <span className="text-muted-foreground">{formatTimestamp(logRow.timestamp)}</span>
+      ),
+    },
+    {
+      header: "Action",
+      cell: (logRow) => <p className="font-medium">{logRow.actiontype}</p>,
+    },
+    {
+      header: "User",
+      cell: (logRow) => (
+        <span className="text-muted-foreground">
+          {pickJoined(logRow.user)?.username ?? logRow.userid ?? "System"}
+        </span>
+      ),
+    },
+    {
+      header: "Entity",
+      cell: (logRow) => (
+        <span className="text-muted-foreground">
+          {logRow.entityname ?? "N/A"} {logRow.entityid ? `(${logRow.entityid})` : ""}
+        </span>
+      ),
+    },
+    {
+      header: "Details",
+      cell: (logRow) => (
+        <span className="text-muted-foreground">
+          {logRow.details?.trim() ? logRow.details : "No details"}
+        </span>
+      ),
+    },
+  ];
+
   return (
     <DataTableContainer
       title="Audit Log Viewer"
@@ -68,42 +106,13 @@ export function AuditLogViewer({
       emptyMessage="No audit logs match the current filters."
       tableWrapperClassName="max-h-[520px] overflow-auto"
     >
-      <table className="min-w-full text-sm">
-        <thead className="bg-muted/50 text-left">
-          <tr>
-            <th className="px-3 py-2 font-semibold">Timestamp</th>
-            <th className="px-3 py-2 font-semibold">Action</th>
-            <th className="px-3 py-2 font-semibold">User</th>
-            <th className="px-3 py-2 font-semibold">Entity</th>
-            <th className="px-3 py-2 font-semibold">Details</th>
-          </tr>
-        </thead>
-        <tbody>
-          {logs.map((logRow) => {
-            const user = pickJoined(logRow.user);
-
-            return (
-              <tr key={logRow.auditid} className="border-t align-top">
-                <td className="px-3 py-2 text-muted-foreground">
-                  {formatTimestamp(logRow.timestamp)}
-                </td>
-                <td className="px-3 py-2">
-                  <p className="font-medium">{logRow.actiontype}</p>
-                </td>
-                <td className="px-3 py-2 text-muted-foreground">
-                  {user?.username ?? logRow.userid ?? "System"}
-                </td>
-                <td className="px-3 py-2 text-muted-foreground">
-                  {logRow.entityname ?? "N/A"} {logRow.entityid ? `(${logRow.entityid})` : ""}
-                </td>
-                <td className="px-3 py-2 text-muted-foreground">
-                  {logRow.details?.trim() ? logRow.details : "No details"}
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+      <DataTable
+        columns={columns}
+        rows={logs}
+        rowKey={(logRow) => logRow.auditid}
+        rowClassName="align-top"
+        caption="Audit log events"
+      />
     </DataTableContainer>
   );
 }

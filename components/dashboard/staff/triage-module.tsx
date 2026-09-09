@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ActionPanel } from "@/components/dashboard/shared/action-panel";
+import { DataTable, type DataTableColumn } from "@/components/dashboard/shared/data-table";
 import { DataTableContainer } from "@/components/dashboard/shared/data-table-container";
 import { MetricCard } from "@/components/dashboard/shared/metric-card";
 import { StatusBadge } from "@/components/dashboard/shared/status-badge";
@@ -106,6 +107,50 @@ export async function TriageModule({
     return Date.now() - registrationDate.getTime() >= twoHoursMs;
   }).length;
 
+  const triageColumns: DataTableColumn<CaseRow>[] = [
+    {
+      header: "Case",
+      cell: (caseRow) => (
+        <div className="flex items-center gap-2">
+          <span className="font-medium">{caseRow.casenumber}</span>
+          {caseRow.isrush ? <StatusBadge label="RUSH" tone="warning" /> : null}
+        </div>
+      ),
+    },
+    {
+      header: "Patient",
+      cell: (caseRow) => pickJoined(caseRow.patient)?.fullname ?? "Unknown patient",
+    },
+    {
+      header: "Status",
+      cell: (caseRow) => {
+        const status = pickJoined(caseRow.status);
+        return (
+          <StatusBadge
+            label={status?.label ?? status?.code ?? "Unknown"}
+            tone={caseStatusTone(status?.code ?? null)}
+          />
+        );
+      },
+    },
+    {
+      header: "Registered",
+      cell: (caseRow) => (
+        <span className="text-muted-foreground">
+          {formatTimestamp(caseRow.registrationtimestamp)}
+        </span>
+      ),
+    },
+    {
+      header: "Action",
+      cell: (caseRow) => (
+        <Button variant="outline" size="sm" asChild>
+          <Link href={buildTriagePanelHref(returnPath, caseRow.caseid)}>Assess Vitals</Link>
+        </Button>
+      ),
+    },
+  ];
+
   return (
     <div className="space-y-6">
       <div>
@@ -134,53 +179,12 @@ export async function TriageModule({
         emptyTitle="No cases waiting for triage"
         emptyMessage="No cases are waiting for triage at the moment."
       >
-        <table className="min-w-full text-sm">
-          <thead className="bg-muted/50 text-left">
-            <tr>
-              <th className="px-3 py-2 font-semibold">Case</th>
-              <th className="px-3 py-2 font-semibold">Patient</th>
-              <th className="px-3 py-2 font-semibold">Status</th>
-              <th className="px-3 py-2 font-semibold">Registered</th>
-              <th className="px-3 py-2 font-semibold">Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {triageCases.map((caseRow) => {
-              const patient = pickJoined(caseRow.patient);
-              const status = pickJoined(caseRow.status);
-
-              return (
-                <tr key={caseRow.caseid} className="border-t">
-                  <td className="px-3 py-2">
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium">{caseRow.casenumber}</span>
-                      {caseRow.isrush ? (
-                        <StatusBadge label="RUSH" tone="warning" />
-                      ) : null}
-                    </div>
-                  </td>
-                  <td className="px-3 py-2">{patient?.fullname ?? "Unknown patient"}</td>
-                  <td className="px-3 py-2">
-                    <StatusBadge
-                      label={status?.label ?? status?.code ?? "Unknown"}
-                      tone={caseStatusTone(status?.code ?? null)}
-                    />
-                  </td>
-                  <td className="px-3 py-2 text-muted-foreground">
-                    {formatTimestamp(caseRow.registrationtimestamp)}
-                  </td>
-                  <td className="px-3 py-2">
-                    <Button variant="outline" size="sm" asChild>
-                      <Link href={buildTriagePanelHref(returnPath, caseRow.caseid)}>
-                        Assess Vitals
-                      </Link>
-                    </Button>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+        <DataTable
+          columns={triageColumns}
+          rows={triageCases}
+          rowKey={(caseRow) => caseRow.caseid}
+          caption="Cases waiting for triage"
+        />
       </DataTableContainer>
 
       <ActionPanel

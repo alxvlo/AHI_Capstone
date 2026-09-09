@@ -4,12 +4,14 @@ import {
   submitPhysicianDecisionAction,
 } from "@/features/dashboard/staff/actions";
 import { ActionPanel } from "@/components/dashboard/shared/action-panel";
+import { DataTable, type DataTableColumn } from "@/components/dashboard/shared/data-table";
 import { DataTableContainer } from "@/components/dashboard/shared/data-table-container";
 import { RealtimeBridge } from "@/components/dashboard/shared/realtime-bridge";
 import { MetricCard } from "@/components/dashboard/shared/metric-card";
 import { StatusBadge } from "@/components/dashboard/shared/status-badge";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { NativeSelect } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
@@ -187,6 +189,104 @@ export async function PhysicianModule({
     panelCase && pickJoined(panelCase.status)?.code === "FOR_DECISION"
   );
 
+  const decisionQueueColumns: DataTableColumn<CaseRow>[] = [
+    {
+      header: "Case",
+      cell: (caseRow) => (
+        <div className="flex items-center gap-2">
+          <span className="font-medium">{caseRow.casenumber}</span>
+          {caseRow.isrush ? <StatusBadge label="RUSH" tone="warning" /> : null}
+        </div>
+      ),
+    },
+    {
+      header: "Patient",
+      cell: (caseRow) => pickJoined(caseRow.patient)?.fullname ?? "Unknown patient",
+    },
+    {
+      header: "Package",
+      cell: (caseRow) => (
+        <span className="text-muted-foreground">
+          {pickJoined(caseRow.package)?.packagename ?? "Unknown package"}
+        </span>
+      ),
+    },
+    {
+      header: "Company",
+      cell: (caseRow) => (
+        <span className="text-muted-foreground">
+          {pickJoined(caseRow.company)?.name ?? "Walk-in"}
+        </span>
+      ),
+    },
+    {
+      header: "Visits",
+      cell: (caseRow) => (
+        <StatusBadge label={visitProgressByCase.get(caseRow.caseid) ?? "—"} tone="positive" />
+      ),
+    },
+    {
+      header: "Registered",
+      cell: (caseRow) => (
+        <span className="text-muted-foreground">
+          {formatTimestamp(caseRow.registrationtimestamp)}
+        </span>
+      ),
+    },
+    {
+      header: "Action",
+      cell: (caseRow) => (
+        <Button variant="outline" size="sm" asChild>
+          <Link href={buildDecisionPanelHref(returnPath, caseRow.caseid)}>
+            Review and Decide
+          </Link>
+        </Button>
+      ),
+    },
+  ];
+
+  const resultsByDeptColumns: DataTableColumn<PhysicianResultItemRow>[] = [
+    {
+      header: "Department",
+      cell: (item) => {
+        const department = pickJoined(item.department);
+        return (
+          <>
+            <p className="font-medium">{department?.name ?? "Unknown"}</p>
+            <p className="text-xs text-muted-foreground">{department?.code ?? "No code"}</p>
+          </>
+        );
+      },
+    },
+    {
+      header: "Test",
+      cell: (item) => item.testname,
+    },
+    {
+      header: "Value",
+      cell: (item) => (
+        <span className="text-muted-foreground">
+          {item.value ? `${item.value}${item.unit ? ` ${item.unit}` : ""}` : "Not encoded"}
+        </span>
+      ),
+    },
+    {
+      header: "Reference",
+      cell: (item) => (
+        <span className="text-muted-foreground">{item.referencerange ?? "N/A"}</span>
+      ),
+    },
+    {
+      header: "Flag",
+      cell: (item) => (
+        <StatusBadge
+          label={item.isabnormal ? "Abnormal" : "Normal"}
+          tone={item.isabnormal ? "danger" : "positive"}
+        />
+      ),
+    },
+  ];
+
   return (
     <div className="space-y-6">
       <RealtimeBridge table="peme_case" />
@@ -213,60 +313,13 @@ export async function PhysicianModule({
         emptyTitle="No cases waiting for physician decision"
         emptyMessage="Cases will appear here once they reach FOR_DECISION status."
       >
-        <table className="min-w-full text-sm">
-          <thead className="bg-muted/50 text-left">
-            <tr>
-              <th className="px-3 py-2 font-semibold">Case</th>
-              <th className="px-3 py-2 font-semibold">Patient</th>
-              <th className="px-3 py-2 font-semibold">Package</th>
-              <th className="px-3 py-2 font-semibold">Company</th>
-              <th className="px-3 py-2 font-semibold">Visits</th>
-              <th className="px-3 py-2 font-semibold">Registered</th>
-              <th className="px-3 py-2 font-semibold">Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {decisionQueue.map((caseRow) => {
-              const patient = pickJoined(caseRow.patient);
-              const packageInfo = pickJoined(caseRow.package);
-              const company = pickJoined(caseRow.company);
-
-              return (
-                <tr key={caseRow.caseid} className="border-t align-top">
-                  <td className="px-3 py-2">
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium">{caseRow.casenumber}</span>
-                      {caseRow.isrush ? <StatusBadge label="RUSH" tone="warning" /> : null}
-                    </div>
-                  </td>
-                  <td className="px-3 py-2">{patient?.fullname ?? "Unknown patient"}</td>
-                  <td className="px-3 py-2 text-muted-foreground">
-                    {packageInfo?.packagename ?? "Unknown package"}
-                  </td>
-                  <td className="px-3 py-2 text-muted-foreground">
-                    {company?.name ?? "Walk-in"}
-                  </td>
-                  <td className="px-3 py-2">
-                    <StatusBadge
-                      label={visitProgressByCase.get(caseRow.caseid) ?? "—"}
-                      tone="positive"
-                    />
-                  </td>
-                  <td className="px-3 py-2 text-muted-foreground">
-                    {formatTimestamp(caseRow.registrationtimestamp)}
-                  </td>
-                  <td className="px-3 py-2">
-                    <Button variant="outline" size="sm" asChild>
-                      <Link href={buildDecisionPanelHref(returnPath, caseRow.caseid)}>
-                        Review and Decide
-                      </Link>
-                    </Button>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+        <DataTable
+          columns={decisionQueueColumns}
+          rows={decisionQueue}
+          rowKey={(caseRow) => caseRow.caseid}
+          rowClassName="align-top"
+          caption="Cases waiting for physician decision"
+        />
       </DataTableContainer>
 
       <ActionPanel
@@ -358,47 +411,13 @@ export async function PhysicianModule({
                 </p>
               ) : (
                 <div className="overflow-x-auto rounded-md border">
-                  <table className="min-w-full text-sm">
-                    <thead className="bg-muted/50 text-left">
-                      <tr>
-                        <th className="px-3 py-2 font-semibold">Department</th>
-                        <th className="px-3 py-2 font-semibold">Test</th>
-                        <th className="px-3 py-2 font-semibold">Value</th>
-                        <th className="px-3 py-2 font-semibold">Reference</th>
-                        <th className="px-3 py-2 font-semibold">Flag</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {resultItems.map((item) => {
-                        const department = pickJoined(item.department);
-                        const valueWithUnit = item.value
-                          ? `${item.value}${item.unit ? ` ${item.unit}` : ""}`
-                          : "Not encoded";
-
-                        return (
-                          <tr key={item.resultid} className="border-t align-top">
-                            <td className="px-3 py-2">
-                              <p className="font-medium">{department?.name ?? "Unknown"}</p>
-                              <p className="text-xs text-muted-foreground">
-                                {department?.code ?? "No code"}
-                              </p>
-                            </td>
-                            <td className="px-3 py-2">{item.testname}</td>
-                            <td className="px-3 py-2 text-muted-foreground">{valueWithUnit}</td>
-                            <td className="px-3 py-2 text-muted-foreground">
-                              {item.referencerange ?? "N/A"}
-                            </td>
-                            <td className="px-3 py-2">
-                              <StatusBadge
-                                label={item.isabnormal ? "Abnormal" : "Normal"}
-                                tone={item.isabnormal ? "danger" : "positive"}
-                              />
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+                  <DataTable
+                    columns={resultsByDeptColumns}
+                    rows={resultItems}
+                    rowKey={(item) => item.resultid}
+                    rowClassName="align-top"
+                    caption="Consolidated results by department"
+                  />
                 </div>
               )}
             </section>
@@ -446,11 +465,10 @@ export async function PhysicianModule({
 
                   <div className="space-y-2">
                     <Label htmlFor="fitnessStatus">Fitness Decision</Label>
-                    <select
+                    <NativeSelect
                       id="fitnessStatus"
                       name="fitnessStatus"
                       defaultValue={existingDecision?.fitnessstatus ?? ""}
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                       required
                     >
                       <option value="" disabled>
@@ -461,7 +479,7 @@ export async function PhysicianModule({
                           {code}
                         </option>
                       ))}
-                    </select>
+                    </NativeSelect>
                   </div>
 
                   <div className="space-y-2">

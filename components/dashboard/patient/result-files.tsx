@@ -1,3 +1,4 @@
+import { DataTable, type DataTableColumn } from "@/components/dashboard/shared/data-table";
 import { Button } from "@/components/ui/button";
 import {
   formatTimestamp,
@@ -24,6 +25,46 @@ function mimeLabel(mime: string) {
   }
   return mime;
 }
+
+const columns: DataTableColumn<PatientResultFileRow>[] = [
+  {
+    header: "File Name",
+    cell: (fileRow) => fileRow.fileName,
+  },
+  {
+    header: "Department",
+    cell: (fileRow) => <span className="text-muted-foreground">{fileRow.departmentName}</span>,
+  },
+  {
+    header: "Type",
+    cell: (fileRow) => <span className="text-muted-foreground">{mimeLabel(fileRow.mimeType)}</span>,
+  },
+  {
+    header: "Size",
+    cell: (fileRow) => <span className="text-muted-foreground">{formatBytes(fileRow.fileSize)}</span>,
+  },
+  {
+    header: "Uploaded",
+    cell: (fileRow) => (
+      <span className="text-muted-foreground">{formatTimestamp(fileRow.uploadedAt)}</span>
+    ),
+  },
+  {
+    header: "Action",
+    cell: (fileRow) =>
+      fileRow.downloadUrl ? (
+        <a href={fileRow.downloadUrl} target="_blank" rel="noopener noreferrer" download={fileRow.fileName}>
+          <Button type="button" variant="outline" size="sm" className="h-11 px-3 sm:h-9">
+            Download
+          </Button>
+        </a>
+      ) : (
+        <Button type="button" variant="outline" size="sm" className="h-11 px-3 sm:h-9" disabled>
+          Unavailable
+        </Button>
+      ),
+  },
+];
 
 export function ResultFiles({ statusCode, files, filesError = null }: ResultFilesProps) {
   if (!isCaseReleased(statusCode)) {
@@ -53,64 +94,12 @@ export function ResultFiles({ statusCode, files, filesError = null }: ResultFile
         </p>
       ) : (
         <div className="overflow-x-auto rounded-md border">
-          <table className="min-w-full text-sm">
-            <thead className="bg-muted/50 text-left">
-              <tr>
-                <th className="px-3 py-2 font-semibold">File Name</th>
-                <th className="px-3 py-2 font-semibold">Department</th>
-                <th className="px-3 py-2 font-semibold">Type</th>
-                <th className="px-3 py-2 font-semibold">Size</th>
-                <th className="px-3 py-2 font-semibold">Uploaded</th>
-                <th className="px-3 py-2 font-semibold">Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {files.map((fileRow) => (
-                <tr key={fileRow.fileid} className="border-t">
-                  <td className="px-3 py-2">{fileRow.fileName}</td>
-                  <td className="px-3 py-2 text-muted-foreground">{fileRow.departmentName}</td>
-                  <td className="px-3 py-2 text-muted-foreground">
-                    {mimeLabel(fileRow.mimeType)}
-                  </td>
-                  <td className="px-3 py-2 text-muted-foreground">
-                    {formatBytes(fileRow.fileSize)}
-                  </td>
-                  <td className="px-3 py-2 text-muted-foreground">
-                    {formatTimestamp(fileRow.uploadedAt)}
-                  </td>
-                  <td className="px-3 py-2">
-                    {fileRow.downloadUrl ? (
-                      <a
-                        href={fileRow.downloadUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        download={fileRow.fileName}
-                      >
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          className="h-11 px-3 sm:h-9"
-                        >
-                          Download
-                        </Button>
-                      </a>
-                    ) : (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="h-11 px-3 sm:h-9"
-                        disabled
-                      >
-                        Unavailable
-                      </Button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <DataTable
+            columns={columns}
+            rows={files}
+            rowKey={(fileRow) => fileRow.fileid}
+            caption="Result files"
+          />
         </div>
       )}
     </section>

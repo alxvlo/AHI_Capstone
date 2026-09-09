@@ -1,4 +1,6 @@
-import { StatusBadge, type StatusBadgeTone } from "@/components/dashboard/shared/status-badge";
+import { DataTable, type DataTableColumn } from "@/components/dashboard/shared/data-table";
+import { StatusBadge } from "@/components/dashboard/shared/status-badge";
+import { statusTone } from "@/lib/dashboard/status-tone";
 import {
   fitnessStatusTone,
   formatTimestamp,
@@ -23,32 +25,74 @@ function normalizeCodeLabel(code: string | null) {
   return code.replaceAll("_", " ");
 }
 
-function verificationTone(code: string | null): StatusBadgeTone {
-  if (!code) {
-    return "neutral";
-  }
-
-  if (code === "VERIFIED") {
-    return "positive";
-  }
-
-  if (code === "PENDING") {
-    return "warning";
-  }
-
-  if (code === "REJECTED") {
-    return "danger";
-  }
-
-  return "neutral";
-}
-
 export function ResultSummary({
   statusCode,
   resultItems,
   decision,
   resultError = null,
 }: ResultSummaryProps) {
+  const columns: DataTableColumn<PatientResultItemRow>[] = [
+    {
+      header: "Department",
+      cell: (item) => {
+        const department = pickJoined(item.department);
+        return (
+          <>
+            <p className="font-medium">{department?.name ?? "Unknown Department"}</p>
+            <p className="text-xs text-muted-foreground">{department?.code ?? "No code"}</p>
+          </>
+        );
+      },
+    },
+    {
+      header: "Test",
+      cell: (item) => item.testname,
+    },
+    {
+      header: "Value",
+      cell: (item) => (
+        <span className="text-muted-foreground">
+          {item.value ? `${item.value}${item.unit ? ` ${item.unit}` : ""}` : "N/A"}
+        </span>
+      ),
+    },
+    {
+      header: "Reference",
+      cell: (item) => (
+        <span className="text-muted-foreground">{item.referencerange ?? "N/A"}</span>
+      ),
+    },
+    {
+      header: "Verification",
+      cell: (item) => (
+        <div className="space-y-1">
+          <StatusBadge
+            label={normalizeCodeLabel(item.verificationstatus)}
+            tone={statusTone(item.verificationstatus)}
+          />
+          <p className="text-xs text-muted-foreground">{formatTimestamp(item.verifiedat)}</p>
+        </div>
+      ),
+    },
+    {
+      header: "Flag",
+      cell: (item) => (
+        <StatusBadge
+          label={item.isabnormal ? "Abnormal" : "Normal"}
+          tone={item.isabnormal ? "danger" : "positive"}
+        />
+      ),
+    },
+    {
+      header: "Remarks",
+      cell: (item) => (
+        <span className="text-muted-foreground">
+          {item.remarks?.trim() ? item.remarks : "No remarks"}
+        </span>
+      ),
+    },
+  ];
+
   if (!isCaseReleased(statusCode)) {
     return (
       <section className="space-y-3 rounded-xl border bg-card p-4 shadow-sm">
@@ -107,61 +151,13 @@ export function ResultSummary({
         </p>
       ) : (
         <div className="overflow-x-auto rounded-md border">
-          <table className="min-w-full text-sm">
-            <thead className="bg-muted/50 text-left">
-              <tr>
-                <th className="px-3 py-2 font-semibold">Department</th>
-                <th className="px-3 py-2 font-semibold">Test</th>
-                <th className="px-3 py-2 font-semibold">Value</th>
-                <th className="px-3 py-2 font-semibold">Reference</th>
-                <th className="px-3 py-2 font-semibold">Verification</th>
-                <th className="px-3 py-2 font-semibold">Flag</th>
-                <th className="px-3 py-2 font-semibold">Remarks</th>
-              </tr>
-            </thead>
-            <tbody>
-              {resultItems.map((item) => {
-                const department = pickJoined(item.department);
-                const resultValue = item.value ? `${item.value}${item.unit ? ` ${item.unit}` : ""}` : "N/A";
-
-                return (
-                  <tr key={item.resultid} className="border-t align-top">
-                    <td className="px-3 py-2">
-                      <p className="font-medium">{department?.name ?? "Unknown Department"}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {department?.code ?? "No code"}
-                      </p>
-                    </td>
-                    <td className="px-3 py-2">{item.testname}</td>
-                    <td className="px-3 py-2 text-muted-foreground">{resultValue}</td>
-                    <td className="px-3 py-2 text-muted-foreground">
-                      {item.referencerange ?? "N/A"}
-                    </td>
-                    <td className="px-3 py-2">
-                      <div className="space-y-1">
-                        <StatusBadge
-                          label={normalizeCodeLabel(item.verificationstatus)}
-                          tone={verificationTone(item.verificationstatus)}
-                        />
-                        <p className="text-xs text-muted-foreground">
-                          {formatTimestamp(item.verifiedat)}
-                        </p>
-                      </div>
-                    </td>
-                    <td className="px-3 py-2">
-                      <StatusBadge
-                        label={item.isabnormal ? "Abnormal" : "Normal"}
-                        tone={item.isabnormal ? "danger" : "positive"}
-                      />
-                    </td>
-                    <td className="px-3 py-2 text-muted-foreground">
-                      {item.remarks?.trim() ? item.remarks : "No remarks"}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+          <DataTable
+            columns={columns}
+            rows={resultItems}
+            rowKey={(item) => item.resultid}
+            rowClassName="align-top"
+            caption="Released result items"
+          />
         </div>
       )}
     </section>

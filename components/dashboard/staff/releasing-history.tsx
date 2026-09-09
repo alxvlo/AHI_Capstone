@@ -1,3 +1,4 @@
+import { DataTable, type DataTableColumn } from "@/components/dashboard/shared/data-table";
 import { StatusBadge } from "@/components/dashboard/shared/status-badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -49,6 +50,38 @@ export async function ReleasingHistory() {
     return null;
   }
 
+  const columns: DataTableColumn<ReleasedCaseRow>[] = [
+    {
+      header: "Case",
+      cell: (row) => <span className="font-medium">{row.casenumber}</span>,
+    },
+    {
+      header: "Patient",
+      cell: (row) => pickJoined(row.patient)?.fullname ?? "Unknown",
+    },
+    {
+      header: "Company",
+      cell: (row) => (
+        <span className="text-muted-foreground">{pickJoined(row.company)?.name ?? "Walk-in"}</span>
+      ),
+    },
+    {
+      header: "Released At",
+      cell: (row) => (
+        <span className="text-muted-foreground">{formatTimestamp(row.releasedtimestamp)}</span>
+      ),
+    },
+    {
+      header: "Portal",
+      cell: (row) => (
+        <StatusBadge
+          label={row.portalvisible ? "Visible" : "Hidden"}
+          tone={row.portalvisible ? "positive" : "neutral"}
+        />
+      ),
+    },
+  ];
+
   return (
     <Card>
       <CardHeader className="pb-3">
@@ -56,42 +89,12 @@ export async function ReleasingHistory() {
       </CardHeader>
       <CardContent>
         <div className="overflow-x-auto rounded-md border">
-          <table className="min-w-full text-sm">
-            <thead className="bg-muted/50 text-left">
-              <tr>
-                <th className="px-3 py-2 font-semibold">Case</th>
-                <th className="px-3 py-2 font-semibold">Patient</th>
-                <th className="px-3 py-2 font-semibold">Company</th>
-                <th className="px-3 py-2 font-semibold">Released At</th>
-                <th className="px-3 py-2 font-semibold">Portal</th>
-              </tr>
-            </thead>
-            <tbody>
-              {releasedCases.map((row) => {
-                const patient = pickJoined(row.patient);
-                const company = pickJoined(row.company);
-
-                return (
-                  <tr key={row.caseid} className="border-t">
-                    <td className="px-3 py-2 font-medium">{row.casenumber}</td>
-                    <td className="px-3 py-2">{patient?.fullname ?? "Unknown"}</td>
-                    <td className="px-3 py-2 text-muted-foreground">
-                      {company?.name ?? "Walk-in"}
-                    </td>
-                    <td className="px-3 py-2 text-muted-foreground">
-                      {formatTimestamp(row.releasedtimestamp)}
-                    </td>
-                    <td className="px-3 py-2">
-                      <StatusBadge
-                        label={row.portalvisible ? "Visible" : "Hidden"}
-                        tone={row.portalvisible ? "positive" : "neutral"}
-                      />
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+          <DataTable
+            columns={columns}
+            rows={releasedCases}
+            rowKey={(row) => row.caseid}
+            caption="Cases released today"
+          />
         </div>
       </CardContent>
     </Card>

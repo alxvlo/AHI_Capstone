@@ -2,13 +2,18 @@ import type { StatusBadgeTone } from "@/components/dashboard/shared/status-badge
 
 /**
  * One tone per status code, across every domain (case, department visit,
- * fitness decision). Codes are globally unique in `status_code`, so a single
- * map is sufficient; anything unmapped renders neutral.
+ * fitness decision, result-item verification). Codes are globally unique in
+ * `status_code`; verification codes come from the free-text
+ * `result_item.verificationstatus` column and cannot collide with them, so a
+ * single map is sufficient. Anything unmapped renders neutral.
  */
 const STATUS_TONE: Record<string, StatusBadgeTone> = {
   RELEASED: "positive",
   COMPLETED: "positive",
   FIT: "positive",
+  // result_item.verificationstatus (free text column, not a status_code row)
+  VERIFIED: "positive",
+  REJECTED: "danger",
 
   REGISTERED: "warning",
   IN_PROGRESS: "warning",
