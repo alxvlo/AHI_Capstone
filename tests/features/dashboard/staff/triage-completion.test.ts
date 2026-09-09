@@ -88,13 +88,21 @@ describe("updateTriageCompletionAction — happy path", () => {
     let pemeCaseCallCount = 0;
 
     // SELECT chain: supports .select().eq().maybeSingle()
+    // Status is REGISTERED — a correctable status per D-012's guard — so this
+    // remains a happy-path run of the correction.
     const selectChain = {
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
       maybeSingle: vi.fn().mockResolvedValue({
-        data: { caseid: CASE_ID, casenumber: "AHI-1" },
+        data: { caseid: CASE_ID, casenumber: "AHI-1", status: { code: "REGISTERED" } },
         error: null,
       }),
+    };
+
+    // triage_assessment count chain: supports .select(..., {count}).eq()
+    const triageAssessmentChain = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockResolvedValue({ count: 1, error: null }),
     };
 
     // UPDATE chain: supports .update().eq() — directly awaited as a thenable
@@ -119,6 +127,7 @@ describe("updateTriageCompletionAction — happy path", () => {
           // 1st call is SELECT, 2nd call is UPDATE
           return pemeCaseCallCount === 1 ? selectChain : updateChain;
         }
+        if (table === "triage_assessment") return triageAssessmentChain;
         if (table === "audit_log") {
           return {
             insert: (row: Parameters<typeof auditCollector.handler>[0]) =>

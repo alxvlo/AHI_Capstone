@@ -956,7 +956,7 @@ export async function updateTriageCompletionAction(formData: FormData) {
 
   const { data: caseRow, error: caseReadError } = await supabase
     .from("peme_case")
-    .select("caseid, casenumber")
+    .select("caseid, casenumber, status:casestatuscodeid(code)")
     .eq("caseid", caseId)
     .maybeSingle();
 
@@ -965,6 +965,23 @@ export async function updateTriageCompletionAction(formData: FormData) {
       returnPath,
       `Unable to load selected case: ${caseReadError?.message ?? "Case not found."}`
     );
+  }
+
+  const { count: triageAssessmentCount } = await supabase
+    .from("triage_assessment")
+    .select("*", { count: "exact", head: true })
+    .eq("caseid", caseId);
+
+  // D-012 / D-017 criterion 1. redirectWithError never returns, so a rejected
+  // call performs no peme_case write and no audit write.
+  const rejectionReason = triageCompletionRejectionReason({
+    caseNumber: caseRow.casenumber,
+    statusCode: pickJoined(caseRow.status)?.code ?? null,
+    hasTriageAssessment: (triageAssessmentCount ?? 0) > 0,
+  });
+
+  if (rejectionReason) {
+    redirectWithError(returnPath, rejectionReason);
   }
 
   const { error: updateError } = await supabase
