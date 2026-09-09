@@ -61,12 +61,64 @@ function runCommand(command, args, options = {}) {
   });
 }
 
-async function killProcessTree(pid) {
+// Decides how to kill the dev server, per platform.
+//
+// This used to call `taskkill` unconditionally -- a Windows-only command -- so
+// on macOS and Linux every audit:roles:* script ran its checks, printed its
+// results, then died with `spawn taskkill ENOENT` on the way out. The audit
+// itself worked; only the teardown failed, which meant a non-zero exit and a
+// broken `qa:supabase` chain on any non-Windows machine.
+//
+// On POSIX the target is the process GROUP, not the pid. `npm run dev` spawns
+// `next dev` as a child, so killing the npm pid alone leaves the server holding
+// port 3001. The negated pid addresses the whole group, which works because
+// main() spawns the server detached and thus as its own group leader.
+export function buildKillPlan(pid, platform = process.platform) {
   if (!pid) {
+    return { kind: "noop" };
+  }
+
+  if (platform === "win32") {
+    return {
+      kind: "taskkill",
+      command: "taskkill",
+      args: ["/pid", String(pid), "/t", "/f"],
+    };
+  }
+
+  return { kind: "process-group", pgid: -pid };
+}
+
+async function killProcessTree(pid) {
+  const plan = buildKillPlan(pid);
+
+  if (plan.kind === "noop") {
     return;
   }
 
-  await runCommand("taskkill", ["/pid", String(pid), "/t", "/f"]);
+  if (plan.kind === "taskkill") {
+    await runCommand(plan.command, plan.args);
+    return;
+  }
+
+  // SIGTERM the group, give it a moment, then SIGKILL anything still standing.
+  // ESRCH just means it already exited, which is the outcome we wanted.
+  try {
+    process.kill(plan.pgid, "SIGTERM");
+  } catch (error) {
+    if (error.code !== "ESRCH") {
+      console.error(`Could not signal process group ${plan.pgid}: ${error.message}`);
+    }
+    return;
+  }
+
+  await sleep(2000);
+
+  try {
+    process.kill(plan.pgid, "SIGKILL");
+  } catch {
+    // Already gone -- expected.
+  }
 }
 
 async function main() {
@@ -84,6 +136,10 @@ async function main() {
   const devProcess = spawn(devCommand.command, devCommand.args, {
     shell: false,
     stdio: ["ignore", "pipe", "pipe"],
+    // POSIX only: makes the child its own process-group leader so that
+    // killProcessTree can signal the whole group and not just npm. Without
+    // this, `next dev` survives teardown and keeps holding the port.
+    detached: process.platform !== "win32",
   });
 
   devProcess.stdout.on("data", (chunk) => {
@@ -127,4 +183,8 @@ async function main() {
   process.exit(exitCode);
 }
 
-await main();
+// Only run when executed directly. Without this guard, importing the module --
+// which the tests do -- spawns a dev server as a side effect of the import.
+if (import.meta.url === `file://${process.argv[1]}`) {
+  await main();
+}
