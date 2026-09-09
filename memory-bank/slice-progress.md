@@ -1,9 +1,108 @@
 # Slice Progress Log
 
-**Last Updated:** 2026-05-23  
+**Last Updated:** 2026-09-09  
 **Plan Reference:** [DEVELOPMENT-PLAN.md](../DEVELOPMENT-PLAN.md)
 
 This file tracks completion status and verification results for each development slice.
+
+---
+
+## Front-end Streamlining (2026-09-09)
+
+**Status:** Implemented on `refactor/frontend-streamlining` (13 commits, `d11f586`..`0eb12d9`, cut
+from `main` @ `bbbad73`) — not yet merged, not yet pushed.
+Spec: `docs/superpowers/specs/2026-09-09-frontend-streamlining-design.md`.
+Plan: `docs/superpowers/plans/2026-09-09-frontend-streamlining.md`.
+Execution ledger: `.superpowers/sdd/2026-09-09-frontend-streamlining/progress.md`.
+
+Adds the four missing front-end primitives the 2026-09-04 UX programme found every screen
+re-implementing by hand — `NativeSelect`, `DataTable`, `InlineNotice`, `AuthFrame`/`SignInForm` —
+and migrates every existing call site onto them. Decision-independent: does not depend on OD-1
+through OD-7 or on any pending AHI answer, so the OD-4/OD-5-blocked backlog items (W-013 Reception
+layout, W-015 queue filtering/pagination, W-016 data-entry container) still land on top of this,
+unblocked and unclosed.
+
+**Tasks (commit, one line each):**
+1. `80f0a30`/`071e50e` — `NativeSelect`; 22 selects migrated (audit's "21" was a mis-sum).
+2. `fec77bc` — `DataTable<T>` primitive + unit tests.
+3. `41158df`/`672fe2a` — 10 staff-module tables migrated onto `DataTable`.
+4. `33c82fb`/`672fe2a` — remaining 11 tables across 10 files migrated (21 tables in 15 files
+   total, once every file was counted — reference-panel had 2; audit-log-viewer,
+   package-test-mapper, test-catalog-manager, releasing-history, department-file-upload each had
+   1); `DataTable` gained an optional per-column `colSpan(row)` for reference-panel's merged edit
+   cell.
+5. `f4ff315` — role shown once (sidebar badge only); `DashboardHeader` no longer accepts a `role`
+   prop.
+6. `b34b89b`/`62b14d0` — `AuthFrame` + `SignInForm`; patient/staff/agency sign-in pages rebuilt on
+   it, forgot-password kept as its own page sharing only the visual frame.
+7. `50a4256`/`a646163` — admin tab bar generated from `ADMIN_TAB_LABEL`; the four overview cards
+   duplicating the tabs removed.
+8. `0eb12d9` — `InlineNotice` replaces the three hand-rolled flash cards; `verificationTone`
+   deleted, `lib/dashboard/status-tone.ts` is the one status→tone map; `features/dashboard/staff/
+   shared.tsx` renamed `.ts`.
+
+**Criteria (spec §3), pass / not run and why:**
+
+| # | Criterion | Result |
+|---|---|---|
+| A1 | Only `native-select.tsx` has `<select` under `app`/`components` | Pass (Task 1 grep) |
+| A2 | Only `data-table.tsx` has `<table` under `app`/`components` | Pass (Task 4 grep, controller-confirmed) |
+| A3 | Both primitives forward `name`/`defaultValue`/`disabled`/`required`/`id`/`className` | Pass (Task 1/2 tests) |
+| A4 | `DataTable` `<th>` labels byte-identical to what they replaced | Pass (Task 3/4 header tables + e2e `columnheader` assertions) |
+| A5 | No table loses `align-top` or a per-row class; `rowClassName` supported | Pass (Task 3 `align-top` preserved, `rowClassName` prop) |
+| B1 | Role rendered exactly once per page (sidebar badge); `role` prop removed from `DashboardHeader` | Pass (Task 5) |
+| B2 | `staff-dashboard.spec.ts:126-135` role-badge assertion still passes | Pass (Task 5, e2e role-badge 2/2) |
+| B3 | Navbar name chip not removed | Pass (Task 5 — name and role kept distinct) |
+| C1 | `sign-in-form.tsx` the only `login()` call site from a page | Pass (Task 6) |
+| C2 | Three sign-in pages keep heading/label/button copy | Pass (Task 6, e2e patient-portal + client-portal 10/10) |
+| C3 | Patient-only `?confirmed=1` banner and unconfirmed-email redirect preserved | Pass (Task 6) |
+| C4 | Agency error copy stays the fixed non-enumerating string | Pass (Task 6) |
+| C5 | Redirects: patient → `/dashboard/patient`, staff → `/dashboard`, agency → `/dashboard/client` | Pass (Task 6) |
+| C6 | Forgot-password keeps its own page, shares only `AuthFrame` | Pass (Task 6) |
+| D1 | `InlineNotice` replaces the three hand-rolled cards; keeps literal `bg-emerald-50/40`/`bg-rose-50/40` | Implemented; class tokens verified by unit test + diff. e2e (`staff-dashboard.spec.ts:141,148`) **not run** — auth-setup timeout in the local dev environment, pre-existing and unrelated to this branch. |
+| D2 | `verificationTone` deleted; `status-tone.ts` maps VERIFIED/PENDING/REJECTED correctly | Pass (Task 8) |
+| E1 | Tab bar generated from `ADMIN_TAB_LABEL`; duplicate overview cards removed | Pass (Task 7) — required updating one stale e2e assertion, see below |
+| E2 | `admin-dashboard.spec.ts` "page structure" and "tab navigation" still pass | Pass (Task 7, e2e admin 17/17 after the update) |
+| F1 | No file under `lib/supabase/`, `features/**/actions.ts`, `supabase/` changes | Pass — `git diff main --stat -- package.json lib/supabase features/dashboard/staff/actions.ts supabase` returns empty, confirmed by controller on `0eb12d9` |
+| F2 | `qa:local` passes; affected Playwright specs pass against the seeded dev project | Partially pass — `qa:local`'s lint/typecheck/vitest all green (see numbers below); Playwright run is **partial**, not fully green (see e2e summary below); `qa:supabase` **not run** |
+| F3 | `reception-module.tsx` line count reported, not targeted | Reported: 832 → 828 (near flat — selects shrank it, per-column closures grew it back) |
+
+**qa:local, confirmed by the controller on `0eb12d9`:** lint 0 errors / 2 warnings
+(`lib/supabase/client.ts:7`, `scripts/supabase/seed-demo-data.mjs:128` — both pre-existing,
+untouched by this branch); typecheck clean; vitest 421 passed / 3 failed across 65 files. The 3
+failures are all `tests/scripts/run-guarded-sql.test.ts` ("as a process" exit-code assertions),
+pre-existing on `main` (also 3 of 397 failing at the branch's baseline on `d11f586`), unrelated to
+front-end work.
+
+**Line counts:** `reception-module.tsx` 832 → 828. Sign-in pages: patient 160 → 54, staff 119 → 34,
+agency 122 → 36.
+
+**e2e summary (report as partial, never as green):** T3 staff-dashboard + dept-staff-catalog
+19-25/27, failures confined to auth-setup/probe-login redirects, not table assertions. T4 admin +
+patient + client 33/33. T5 role-badge 2/2. T6 patient-portal + client-portal 10/10. T7 admin 17/17
+after updating the stale overview-card test. T8 flash tests (`staff-dashboard.spec.ts:141,148`)
+not run — auth-setup timeout. `qa:supabase` not run at all this slice.
+
+**Two test files changed for requirement reasons (stated in their own commits):**
+`tests/components/dashboard/shell/dashboard-header.test.tsx` (B1: role shown once, rewritten) and
+`tests/e2e/admin-dashboard.spec.ts:132` (E1: overview cards removed — the pre-flight grep missed
+this assertion because it matches a heading, not the button copy; test updated to assert the Test
+Catalog tab link on overview instead of the removed card, commit states the requirement change).
+
+**Deferred / rulings**, from the execution ledger, none blocking:
+Reference-panel's packageId/departmentId selects gained `w-full` from the `NativeSelect` primitive
+(grid-stretched, likely inert). `DataTable` keys columns by header text (accepted; add an id if two
+same-named columns ever appear). Releasing-module's Decision/Visits columns each repeat a 6-field
+readiness default object — a `getReadiness(caseId)` helper would dedupe; the net +117 lines across
+5 files is structural (per-column closures re-running `pickJoined`), not an abstraction gap. The
+header test's third case no longer asserts description absence explicitly. `AuthFrame`'s
+`submitLabel` prop is unused (dead flexibility carried from the brief); the confirm-email branch
+toasts `result.error` before the `hideServerError` check (harmless today — only patient sets
+`checkEmailPath`); "Forgot Password?" is now a full-width footer child, flagged for Vai to eyeball.
+`admin/page.tsx:282`'s `{activeTab === "users" ? (` lost its indent/blank line. `status-tone.ts`
+places `REJECTED` in the positive block visually — move beside `UNFIT`/`CANCELLED`/`SKIPPED` next
+time the file is touched. The `colSpan` extension to `DataTable` (Task 4) is untested beyond the
+review's required test with requirement-derived expected values and a per-row negative.
 
 ---
 

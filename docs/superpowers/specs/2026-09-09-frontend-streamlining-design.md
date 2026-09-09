@@ -1,7 +1,7 @@
 # Front-end Streamlining — Design Spec
 
 **Date:** 2026-09-09
-**Status:** Draft, awaiting Vai's approval before any application code changes
+**Status:** Implemented 2026-09-09 on refactor/frontend-streamlining — see slice-progress.md
 **Plan:** `docs/superpowers/plans/2026-09-09-frontend-streamlining.md`
 
 ## 1. Why
