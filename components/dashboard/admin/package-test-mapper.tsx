@@ -1,6 +1,7 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { pickJoined } from "@/features/dashboard/admin/shared";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { DataTable, type DataTableColumn } from "@/components/dashboard/shared/data-table";
 
 type MappingRow = {
   packageid: number;
@@ -37,6 +38,23 @@ export async function PackageTestMapper() {
     byPackage.get(key)!.push(r);
   }
 
+  const columns: DataTableColumn<MappingRow>[] = [
+    {
+      header: "Department",
+      cell: (r) => (
+        <span className="font-mono text-xs">{pickJoined(r.test_catalog.department)?.code ?? "—"}</span>
+      ),
+    },
+    {
+      header: "Test",
+      cell: (r) => r.test_catalog.testname,
+    },
+    {
+      header: "Required",
+      cell: (r) => (r.isrequired ? "Required" : "Optional"),
+    },
+  ];
+
   return (
     <Card>
       <CardHeader>
@@ -52,27 +70,12 @@ export async function PackageTestMapper() {
               </span>
             </h3>
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b text-left">
-                    <th className="py-1 pr-4 font-semibold">Department</th>
-                    <th className="py-1 pr-4 font-semibold">Test</th>
-                    <th className="py-1 font-semibold">Required</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {items.map((r) => {
-                    const dept = pickJoined(r.test_catalog.department);
-                    return (
-                      <tr key={`${r.packageid}-${r.testid}`} className="border-b hover:bg-muted/30">
-                        <td className="py-1 pr-4 font-mono text-xs">{dept?.code ?? "—"}</td>
-                        <td className="py-1 pr-4">{r.test_catalog.testname}</td>
-                        <td className="py-1">{r.isrequired ? "Required" : "Optional"}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+              <DataTable
+                columns={columns}
+                rows={items}
+                rowKey={(r) => `${r.packageid}-${r.testid}`}
+                caption={`Tests mapped to ${pkgName}`}
+              />
             </div>
           </div>
         ))}

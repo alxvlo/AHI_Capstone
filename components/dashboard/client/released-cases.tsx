@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { DataTable, type DataTableColumn } from "@/components/dashboard/shared/data-table";
 import { DataTableContainer } from "@/components/dashboard/shared/data-table-container";
 import { StatusBadge } from "@/components/dashboard/shared/status-badge";
 import { Button } from "@/components/ui/button";
@@ -25,6 +26,75 @@ export function ReleasedCases({
   searchState,
   casesError = null,
 }: ReleasedCasesProps) {
+  const columns: DataTableColumn<ClientCaseRow>[] = [
+    {
+      header: "Case",
+      cell: (caseRow) => (
+        <>
+          <p className="font-medium">{caseRow.casenumber}</p>
+          <p className="text-xs text-muted-foreground">
+            {caseRow.casecategory ?? "Uncategorized"}
+          </p>
+        </>
+      ),
+    },
+    {
+      header: "Applicant",
+      cell: (caseRow) => pickJoined(caseRow.patient)?.fullname ?? "Unknown applicant",
+    },
+    {
+      header: "Identifier",
+      cell: (caseRow) => (
+        <span className="text-muted-foreground">
+          {pickJoined(caseRow.patient)?.governmentid ?? "Not available"}
+        </span>
+      ),
+    },
+    {
+      header: "Registered",
+      cell: (caseRow) => (
+        <span className="text-muted-foreground">
+          {formatDateOnly(caseRow.registrationtimestamp)}
+        </span>
+      ),
+    },
+    {
+      header: "Released",
+      cell: (caseRow) => (
+        <span className="text-muted-foreground">{formatTimestamp(caseRow.releasedtimestamp)}</span>
+      ),
+    },
+    {
+      header: "Status",
+      cell: (caseRow) => {
+        const status = pickJoined(caseRow.status);
+        return (
+          <StatusBadge
+            label={status?.label ?? status?.code ?? "Unknown"}
+            tone={caseStatusTone(status?.code ?? null)}
+          />
+        );
+      },
+    },
+    {
+      header: "Action",
+      cell: (caseRow) => {
+        const viewHref = buildClientDashboardHref({ ...searchState, caseId: caseRow.caseid });
+        return (
+          <Button
+            variant={selectedCaseId === caseRow.caseid ? "default" : "outline"}
+            className="h-11 px-3 sm:h-9"
+            asChild
+          >
+            <Link href={viewHref}>
+              {selectedCaseId === caseRow.caseid ? "Selected" : "View Summary"}
+            </Link>
+          </Button>
+        );
+      },
+    },
+  ];
+
   return (
     <DataTableContainer
       title="Released Cases"
@@ -35,67 +105,13 @@ export function ReleasedCases({
       emptyTitle="No released cases found"
       emptyMessage="No cases match your current search filters."
     >
-      <table className="min-w-full text-sm">
-        <thead className="bg-muted/50 text-left">
-          <tr>
-            <th className="px-3 py-2 font-semibold">Case</th>
-            <th className="px-3 py-2 font-semibold">Applicant</th>
-            <th className="px-3 py-2 font-semibold">Identifier</th>
-            <th className="px-3 py-2 font-semibold">Registered</th>
-            <th className="px-3 py-2 font-semibold">Released</th>
-            <th className="px-3 py-2 font-semibold">Status</th>
-            <th className="px-3 py-2 font-semibold">Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          {cases.map((caseRow) => {
-            const patient = pickJoined(caseRow.patient);
-            const status = pickJoined(caseRow.status);
-            const viewHref = buildClientDashboardHref({
-              ...searchState,
-              caseId: caseRow.caseid,
-            });
-
-            return (
-              <tr key={caseRow.caseid} className="border-t align-top">
-                <td className="px-3 py-2">
-                  <p className="font-medium">{caseRow.casenumber}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {caseRow.casecategory ?? "Uncategorized"}
-                  </p>
-                </td>
-                <td className="px-3 py-2">{patient?.fullname ?? "Unknown applicant"}</td>
-                <td className="px-3 py-2 text-muted-foreground">
-                  {patient?.governmentid ?? "Not available"}
-                </td>
-                <td className="px-3 py-2 text-muted-foreground">
-                  {formatDateOnly(caseRow.registrationtimestamp)}
-                </td>
-                <td className="px-3 py-2 text-muted-foreground">
-                  {formatTimestamp(caseRow.releasedtimestamp)}
-                </td>
-                <td className="px-3 py-2">
-                  <StatusBadge
-                    label={status?.label ?? status?.code ?? "Unknown"}
-                    tone={caseStatusTone(status?.code ?? null)}
-                  />
-                </td>
-                <td className="px-3 py-2">
-                  <Button
-                    variant={selectedCaseId === caseRow.caseid ? "default" : "outline"}
-                    className="h-11 px-3 sm:h-9"
-                    asChild
-                  >
-                    <Link href={viewHref}>
-                      {selectedCaseId === caseRow.caseid ? "Selected" : "View Summary"}
-                    </Link>
-                  </Button>
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+      <DataTable
+        columns={columns}
+        rows={cases}
+        rowKey={(caseRow) => caseRow.caseid}
+        rowClassName="align-top"
+        caption="Released cases"
+      />
     </DataTableContainer>
   );
 }

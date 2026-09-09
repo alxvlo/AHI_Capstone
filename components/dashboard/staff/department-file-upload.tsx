@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { DataTable, type DataTableColumn } from "@/components/dashboard/shared/data-table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -56,6 +57,50 @@ export function DepartmentFileUpload({
   const [clientError, setClientError] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const fileColumns: DataTableColumn<UploadedFileRecord>[] = [
+    {
+      header: "File",
+      cell: (fileRecord) => (
+        <>
+          <p className="font-medium">{fileRecord.filename}</p>
+          {fileRecord.remarks ? (
+            <p className="text-xs text-muted-foreground">{fileRecord.remarks}</p>
+          ) : null}
+        </>
+      ),
+    },
+    {
+      header: "Type",
+      cell: (fileRecord) => (
+        <span className="text-muted-foreground">{mimeLabel(fileRecord.mimetype)}</span>
+      ),
+    },
+    {
+      header: "Size",
+      cell: (fileRecord) => (
+        <span className="text-muted-foreground">{formatBytes(fileRecord.filesize)}</span>
+      ),
+    },
+    {
+      header: "Uploaded",
+      cell: (fileRecord) => (
+        <span className="text-muted-foreground">{formatTimestamp(fileRecord.uploadedat)}</span>
+      ),
+    },
+    {
+      header: "Action",
+      cell: (fileRecord) => (
+        <form action={deleteResultFileAction}>
+          <input type="hidden" name="returnPath" value={returnPath} />
+          <input type="hidden" name="fileId" value={fileRecord.fileid} />
+          <Button type="submit" variant="outline" size="sm">
+            Delete
+          </Button>
+        </form>
+      ),
+    },
+  ];
 
   function validateFile(file: File) {
     if (!ALLOWED_TYPES.has(file.type)) {
@@ -175,49 +220,13 @@ export function DepartmentFileUpload({
         </p>
       ) : (
         <div className="overflow-x-auto rounded-md border">
-          <table className="min-w-full text-sm">
-            <thead className="bg-muted/50 text-left">
-              <tr>
-                <th className="px-3 py-2 font-semibold">File</th>
-                <th className="px-3 py-2 font-semibold">Type</th>
-                <th className="px-3 py-2 font-semibold">Size</th>
-                <th className="px-3 py-2 font-semibold">Uploaded</th>
-                <th className="px-3 py-2 font-semibold">Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {existingFiles.map((fileRecord) => (
-                <tr key={fileRecord.fileid} className="border-t align-top">
-                  <td className="px-3 py-2">
-                    <p className="font-medium">{fileRecord.filename}</p>
-                    {fileRecord.remarks ? (
-                      <p className="text-xs text-muted-foreground">
-                        {fileRecord.remarks}
-                      </p>
-                    ) : null}
-                  </td>
-                  <td className="px-3 py-2 text-muted-foreground">
-                    {mimeLabel(fileRecord.mimetype)}
-                  </td>
-                  <td className="px-3 py-2 text-muted-foreground">
-                    {formatBytes(fileRecord.filesize)}
-                  </td>
-                  <td className="px-3 py-2 text-muted-foreground">
-                    {formatTimestamp(fileRecord.uploadedat)}
-                  </td>
-                  <td className="px-3 py-2">
-                    <form action={deleteResultFileAction}>
-                      <input type="hidden" name="returnPath" value={returnPath} />
-                      <input type="hidden" name="fileId" value={fileRecord.fileid} />
-                      <Button type="submit" variant="outline" size="sm">
-                        Delete
-                      </Button>
-                    </form>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <DataTable
+            columns={fileColumns}
+            rows={existingFiles}
+            rowKey={(fileRecord) => fileRecord.fileid}
+            rowClassName="align-top"
+            caption="Uploaded result files"
+          />
         </div>
       )}
     </section>
