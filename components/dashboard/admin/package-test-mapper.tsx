@@ -74,6 +74,7 @@ export async function PackageTestMapper() {
                 columns={columns}
                 rows={items}
                 rowKey={(r) => `${r.packageid}-${r.testid}`}
+                rowClassName="hover:bg-muted/30"
                 caption={`Tests mapped to ${pkgName}`}
               />
             </div>

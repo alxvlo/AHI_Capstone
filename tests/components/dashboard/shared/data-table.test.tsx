@@ -52,4 +52,40 @@ describe("DataTable", () => {
     expect(screen.getAllByRole("rowgroup")).toHaveLength(2);
     expect(within(screen.getAllByRole("rowgroup")[1]).queryAllByRole("row")).toHaveLength(0);
   });
+
+  it("merges a cell across following columns via colSpan, per row (reference-panel status-codes row shape)", () => {
+    // Mirrors reference-panel's status-codes table: 5 headers (Domain, Code, Label,
+    // Active, Save), but the Label cell absorbs Active and Save into one merged
+    // edit-form cell for rows that opt in — 3 rendered <td>s, not 5.
+    type SpanRow = { id: number; spanLabel: boolean };
+
+    const spanColumns: DataTableColumn<SpanRow>[] = [
+      { header: "Domain", cell: () => "CASE" },
+      { header: "Code", cell: () => "REGISTERED" },
+      { header: "Label", colSpan: (r) => (r.spanLabel ? 3 : 1), cell: () => "edit form" },
+      { header: "Active", cell: () => "active flag" },
+      { header: "Save", cell: () => "save button" },
+    ];
+
+    const spanRows: SpanRow[] = [
+      { id: 1, spanLabel: true },
+      { id: 2, spanLabel: false },
+    ];
+
+    render(<DataTable columns={spanColumns} rows={spanRows} rowKey={(r) => r.id} />);
+
+    expect(screen.getAllByRole("columnheader")).toHaveLength(5);
+
+    const bodyRows = within(screen.getAllByRole("rowgroup")[1]).getAllByRole("row");
+    expect(bodyRows).toHaveLength(2);
+
+    const spannedRowCells = within(bodyRows[0]).getAllByRole("cell");
+    expect(spannedRowCells).toHaveLength(3);
+    expect(spannedRowCells[2]).toHaveAttribute("colspan", "3");
+
+    // Negative: colSpan is evaluated per row, not fixed per column — a row that
+    // does not opt in still renders all 5 cells.
+    const unspannedRowCells = within(bodyRows[1]).getAllByRole("cell");
+    expect(unspannedRowCells).toHaveLength(5);
+  });
 });

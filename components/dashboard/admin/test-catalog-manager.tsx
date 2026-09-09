@@ -74,6 +74,7 @@ export async function TestCatalogManager() {
             columns={columns}
             rows={rows}
             rowKey={(r) => r.testid}
+            rowClassName="hover:bg-muted/30"
             caption="Test catalog"
           />
         </div>
