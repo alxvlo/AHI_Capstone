@@ -161,3 +161,88 @@ describe("updateTriageCompletionAction — happy path", () => {
     expect(auditCollector.inserts[0].entityid).toBe(CASE_ID);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Test 4: D-012 guard — a RELEASED case must not be revertible by this action
+// ---------------------------------------------------------------------------
+describe("updateTriageCompletionAction — D-012 guard", () => {
+  it("refuses a RELEASED case, naming it, and performs no write", async () => {
+    const CASE_NUMBER = "DEMO-0013";
+
+    // peme_case is read once (SELECT). It must never be reached a second time
+    // for the UPDATE — that second call is what this test forbids.
+    let pemeCaseCallCount = 0;
+
+    // SELECT chain: status is RELEASED — the only reason to reject, since
+    // hasTriageAssessment is true (count: 1) below. Isolates the status check.
+    const selectChain = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      maybeSingle: vi.fn().mockResolvedValue({
+        data: { caseid: CASE_ID, casenumber: CASE_NUMBER, status: { code: "RELEASED" } },
+        error: null,
+      }),
+    };
+
+    // UPDATE chain: must never be invoked for a rejected correction.
+    const updateChain = {
+      update: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnValue(Promise.resolve({ error: null })),
+    };
+
+    // triage_assessment count chain: count: 1 so hasTriageAssessment is true —
+    // the rejection must come from the status, not from a missing assessment.
+    const triageAssessmentChain = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockResolvedValue({ count: 1, error: null }),
+    };
+
+    // status_code chain: looked up before the case read; must resolve for the
+    // action to reach the guard at all.
+    const statusChain = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      maybeSingle: vi.fn().mockResolvedValue({ data: { statuscodeid: 2 }, error: null }),
+    };
+
+    // audit_log insert: must never be invoked for a rejected correction.
+    const auditInsert = vi.fn().mockResolvedValue({ error: null });
+
+    const supabaseStub = {
+      from: vi.fn().mockImplementation((table: string) => {
+        if (table === "status_code") return statusChain;
+        if (table === "peme_case") {
+          pemeCaseCallCount += 1;
+          return pemeCaseCallCount === 1 ? selectChain : updateChain;
+        }
+        if (table === "triage_assessment") return triageAssessmentChain;
+        if (table === "audit_log") return { insert: auditInsert };
+        return {};
+      }),
+    };
+
+    const { redirectCalls } = setupMocks("Triage Nurse", supabaseStub);
+
+    const { updateTriageCompletionAction } = await import(
+      "@/features/dashboard/staff/actions"
+    );
+
+    const formData = makeFormData({ ...VALID, caseId: CASE_ID });
+
+    // The guard rejects via redirectWithError, which throws NEXT_REDIRECT.
+    await expect(updateTriageCompletionAction(formData)).rejects.toThrow("NEXT_REDIRECT");
+
+    // The rejection names the case and its (non-correctable) status.
+    expect(redirectCalls).toHaveLength(1);
+    const url = new URL(redirectCalls[0], "http://localhost");
+    const errorMessage = url.searchParams.get("error");
+    expect(errorMessage).toContain(CASE_NUMBER);
+    expect(errorMessage).toContain("RELEASED");
+
+    // D-012 criterion 1 & 3, asserted at the level where the defect happened:
+    // no peme_case UPDATE, and no TRIAGE_COMPLETED audit row.
+    expect(pemeCaseCallCount).toBe(1);
+    expect(updateChain.update).not.toHaveBeenCalled();
+    expect(auditInsert).not.toHaveBeenCalled();
+  });
+});
