@@ -9,7 +9,7 @@ This file tracks completion status and verification results for each development
 
 ## Front-end Streamlining (2026-09-09)
 
-**Status:** Implemented on `refactor/frontend-streamlining` (13 commits, `d11f586`..`0eb12d9`, cut
+**Status:** Implemented on `refactor/frontend-streamlining` (16 commits, `d11f586`..`c041655`, cut
 from `main` @ `bbbad73`) — not yet merged, not yet pushed.
 Spec: `docs/superpowers/specs/2026-09-09-frontend-streamlining-design.md`.
 Plan: `docs/superpowers/plans/2026-09-09-frontend-streamlining.md`.
@@ -67,9 +67,9 @@ unblocked and unclosed.
 | F2 | `qa:local` passes; affected Playwright specs pass against the seeded dev project | Partially pass — `qa:local`'s lint/typecheck/vitest all green (see numbers below); Playwright run is **partial**, not fully green (see e2e summary below); `qa:supabase` **not run** |
 | F3 | `reception-module.tsx` line count reported, not targeted | Reported: 832 → 828 (near flat — selects shrank it, per-column closures grew it back) |
 
-**qa:local, confirmed by the controller on `0eb12d9`:** lint 0 errors / 2 warnings
+**qa:local, confirmed by the controller on `c041655` (post final-review fix):** lint 0 errors / 2 warnings
 (`lib/supabase/client.ts:7`, `scripts/supabase/seed-demo-data.mjs:128` — both pre-existing,
-untouched by this branch); typecheck clean; vitest 421 passed / 3 failed across 65 files. The 3
+untouched by this branch); typecheck clean; vitest 423 passed / 3 failed across 65 files. The 3
 failures are all `tests/scripts/run-guarded-sql.test.ts` ("as a process" exit-code assertions),
 pre-existing on `main` (also 3 of 397 failing at the branch's baseline on `d11f586`), unrelated to
 front-end work.

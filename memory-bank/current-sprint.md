@@ -69,7 +69,7 @@ environment. Manuscript presentation is directed by the program head.
 ## Current State
 
 **2026-09-09 — front-end streamlining slice, branch not yet merged.** `refactor/frontend-
-streamlining` (13 commits, `d11f586`..`0eb12d9`, cut from `main` @ `bbbad73`) implements
+streamlining` (16 commits, `d11f586`..`c041655`, cut from `main` @ `bbbad73`) implements
 `docs/superpowers/specs/2026-09-09-frontend-streamlining-design.md`: the four missing UI
 primitives (`NativeSelect`, `DataTable`, `InlineNotice`, `AuthFrame`/`SignInForm`) and migration of
 every hand-rolled select, table, flash card and sign-in page onto them, plus showing the signed-in
@@ -77,8 +77,8 @@ role exactly once per page. It touches only `app/`, `components/`, `features/das
 (excluding `actions.ts`), `lib/dashboard/`, and tests — `git diff main --stat -- package.json
 lib/supabase features/dashboard/staff/actions.ts supabase` is empty, confirmed. Full detail,
 criteria-by-criteria results, and deferred minors: `memory-bank/slice-progress.md` (top entry).
-`qa:local` on `0eb12d9`: lint 0 errors / 2 warnings (both pre-existing), typecheck clean, vitest
-421 passed / 3 failed across 65 files (the 3 are the pre-existing `run-guarded-sql.test.ts`
+`qa:local` on `c041655` (post final-review fix): lint 0 errors / 2 warnings (both pre-existing), typecheck clean, vitest
+423 passed / 3 failed across 65 files (the 3 are the pre-existing `run-guarded-sql.test.ts`
 process-exit-code failures, unrelated to this branch). Playwright e2e is **partially** green, not
 fully — see slice-progress.md for the per-spec breakdown — and `qa:supabase` was not run this
 slice. This work is decision-independent: it does not resolve or touch OD-4 (Reception layout) or
