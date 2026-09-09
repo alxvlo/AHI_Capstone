@@ -56,7 +56,7 @@ unblocked and unclosed.
 | C1 | `sign-in-form.tsx` the only `login()` call site from a page | Pass (Task 6) |
 | C2 | Three sign-in pages keep heading/label/button copy | Pass (Task 6, e2e patient-portal + client-portal 10/10) |
 | C3 | Patient-only `?confirmed=1` banner and unconfirmed-email redirect preserved | Pass (Task 6) |
-| C4 | Agency error copy stays the fixed non-enumerating string | Pass (Task 6) |
+| C4 | Agency error copy stays the fixed non-enumerating string | Pass after the final review's fix (`8b24c76`): the shared form had surfaced `result.error` on the success path for all three portals; now gated on `hideServerError`. |
 | C5 | Redirects: patient → `/dashboard/patient`, staff → `/dashboard`, agency → `/dashboard/client` | Pass (Task 6) |
 | C6 | Forgot-password keeps its own page, shares only `AuthFrame` | Pass (Task 6) |
 | D1 | `InlineNotice` replaces the three hand-rolled cards; keeps literal `bg-emerald-50/40`/`bg-rose-50/40` | Implemented; class tokens verified by unit test + diff. e2e (`staff-dashboard.spec.ts:141,148`) **not run** — auth-setup timeout in the local dev environment, pre-existing and unrelated to this branch. |
@@ -77,6 +77,13 @@ front-end work.
 **Line counts:** `reception-module.tsx` 832 → 828. Sign-in pages: patient 160 → 54, staff 119 → 34,
 agency 122 → 36.
 
+Staff sign-in also moved its success-path redirect from `router.push("/dashboard")` to
+`router.replace`, matching patient and agency, so Back no longer returns to a passed sign-in page.
+
+`package-test-mapper.tsx` and `test-catalog-manager.tsx` were harmonised onto the shared table look
+(cell padding `px-3 py-2`, `bg-muted/50` header, `border-t` separators) beyond the hover-state
+restore already noted; the Test Catalog tab should be eyeballed before merge.
+
 **e2e summary (report as partial, never as green):** T3 staff-dashboard + dept-staff-catalog
 19-25/27, failures confined to auth-setup/probe-login redirects, not table assertions. T4 admin +
 patient + client 33/33. T5 role-badge 2/2. T6 patient-portal + client-portal 10/10. T7 admin 17/17
@@ -96,10 +103,11 @@ same-named columns ever appear). Releasing-module's Decision/Visits columns each
 readiness default object — a `getReadiness(caseId)` helper would dedupe; the net +117 lines across
 5 files is structural (per-column closures re-running `pickJoined`), not an abstraction gap. The
 header test's third case no longer asserts description absence explicitly. `AuthFrame`'s
-`submitLabel` prop is unused (dead flexibility carried from the brief); the confirm-email branch
-toasts `result.error` before the `hideServerError` check (harmless today — only patient sets
-`checkEmailPath`); "Forgot Password?" is now a full-width footer child, flagged for Vai to eyeball.
-`admin/page.tsx:282`'s `{activeTab === "users" ? (` lost its indent/blank line. `status-tone.ts`
+`submitLabel` prop is unused (dead flexibility carried from the brief); the confirm-email branch's
+toast used to fire before the `hideServerError` check applied to it — fixed, not deferred, by
+`8b24c76`, which gates that branch on `hideServerError` too so a future page setting both flags
+can't leak either; "Forgot Password?" is now a full-width footer child, flagged for Vai to eyeball.
+`admin/page.tsx:282`'s `{activeTab === "users" ? (` indent/blank line has been restored (`8b24c76`). `status-tone.ts`
 places `REJECTED` in the positive block visually — move beside `UNFIT`/`CANCELLED`/`SKIPPED` next
 time the file is touched. The `colSpan` extension to `DataTable` (Task 4) is untested beyond the
 review's required test with requirement-derived expected values and a per-row negative.

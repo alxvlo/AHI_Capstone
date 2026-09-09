@@ -67,7 +67,7 @@ Written before the work. Each is checked by the plan's tests or by the named e2e
 - A5. **Must not happen:** a table that had an `align-top` row or a per-row `className` loses it. `DataTable` accepts `rowClassName`.
 
 **B. Identity appears once per page**
-- B1. On every `/dashboard/*` page, the current role is rendered exactly once in the document (the sidebar's "Signed in as" badge). `DashboardHeader` no longer accepts a `role` prop.
+- B1. On every `/dashboard/*` page the role badge is visible exactly once at any viewport (the sidebar; it is mounted twice in markup for desktop and the mobile drawer, one of which is `display:none`). The account page's `Role:` profile field is data, not a badge, and stays. `DashboardHeader` no longer accepts a `role` prop.
 - B2. `tests/e2e/staff-dashboard.spec.ts:126-135` ("dashboard header shows role badge") still passes because the sidebar badge is visible at the desktop viewport. If it fails, the fix is in the test's comment, not in re-adding the badge.
 - B3. **Must not happen:** the navbar user-name chip is removed. Name and role are different facts; the name stays.
 
