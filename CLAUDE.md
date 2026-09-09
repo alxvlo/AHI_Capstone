@@ -29,7 +29,7 @@ Postgres, RLS, Realtime) as the backend. Vitest + Testing Library. `npm`, Node 2
 ```bash
 npm run dev
 npm run lint | npm run typecheck | npm run test:run
-npm run qa:local     # lint + typecheck + test:run  — the pre-handoff gate
+npm run qa:local     # lint + typecheck + test:run + build — the pre-handoff gate
 npm run qa:ci        # lint + typecheck + coverage
 npm run qa:supabase  # audit:roles:all + audit:write:all + audit:auth:logs + audit:auth:e2e
 npm run qa:security  # OWASP ZAP baseline against localhost:3000 (needs Docker)
