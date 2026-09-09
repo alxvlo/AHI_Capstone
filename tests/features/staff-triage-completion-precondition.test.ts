@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { triageCompletionRejectionReason } from "@/features/dashboard/staff/actions";
+import { triageCompletionRejectionReason } from "@/features/dashboard/staff/triage-completion-precondition";
 
 const permitted = { caseNumber: "DEMO-0001", hasTriageAssessment: true };
 
