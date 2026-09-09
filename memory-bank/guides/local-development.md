@@ -5,6 +5,13 @@ it once from a clean clone and you should reach a working local login without as
 question. If a step does not do what this document says it will, add a line to
 **Troubleshooting** below rather than solving it out of band.
 
+**Validated end to end on 2026-09-09** on Apple Silicon (M5 Pro, macOS 26.6, Docker Desktop
+29.7.2, Supabase CLI 2.117.0). All seven steps, 50 of 50 migrations applied, the reference census
+matched, and all eight roles signed in and landed on their expected dashboards. The first run
+surfaced two defects in our own scripts — both fixed the same day — and several environment traps.
+All of them are written up under **Troubleshooting**; read that section before you start, not after
+you get stuck.
+
 Related reading: `docs/superpowers/specs/2026-09-08-local-development-environment-design.md` (why
 this exists and the safety model behind it) and `docs/superpowers/plans/2026-09-08-local-development-environment.md`
 (the implementation plan this runbook is one deliverable of).
@@ -257,4 +264,92 @@ local database being built from the same migrations, not from a snapshot of the 
 
 ## Troubleshooting
 
-Entries are added here as they are encountered. None have been recorded yet.
+Every entry below is something that actually happened on the first real run
+(2026-09-09, Apple Silicon, macOS 26.6). Nothing here is hypothetical. Add to it
+as you hit new things.
+
+### `docker: command not found`, but Docker Desktop is clearly running
+
+The most misleading failure on this list, because **the obvious test passes.** Typing
+`docker` in your own terminal works; anything that spawns a non-login shell — the Supabase
+CLI, `npm run` scripts, editor terminals, agent tooling — reports it missing.
+
+Docker Desktop writes its PATH line into `~/.zprofile`, which **only login shells read**.
+
+Fix — add the same line to `~/.zshenv`, which every zsh reads:
+
+```bash
+export PATH="$HOME/.docker/bin:$PATH"
+```
+
+Open a new terminal afterwards. Existing sessions keep the old PATH.
+
+### Docker Desktop's "System" CLI install appears to do nothing
+
+Settings → Advanced → "System (requires password)" is supposed to symlink `docker` into
+`/usr/local/bin`. On a clean Apple Silicon machine **that directory does not exist**, because
+Homebrew lives in `/opt/homebrew` and nothing else creates it. The install fails without
+saying so.
+
+Use the `~/.zshenv` fix above instead. It needs no password and no Docker restart.
+
+### `supabase status` says docker is missing when it is not
+
+Same root cause as the two entries above. The Supabase CLI shells out to the `docker`
+binary; it does not talk to the socket directly.
+
+### Supabase cannot reach the Docker daemon
+
+If `/var/run/docker.sock` does not exist, tick **Settings → Advanced → "Allow the default
+Docker socket to be used (requires password)"**, then Apply & restart. Docker Desktop keeps
+its socket under `~/.docker/run/` by default, and the CLI looks in the standard location.
+
+### "Rosetta installation failed"
+
+**Rosetta is not required.** It only accelerates `x86_64` images, and every image in the
+Supabase stack is native `arm64` — confirmed from the pulled images. Untick "Use Rosetta for
+x86_64/amd64 emulation" in Settings → General and carry on.
+
+### `supabase start` looks frozen
+
+The first run pulls roughly **8 GB** across eleven images and prints almost nothing while it
+does. Long flat stretches are normal — Docker reports an image's size only once the whole
+image is assembled, so the total sits still and then jumps.
+
+Check progress with `docker system df` and watch `Images` climb. If the log is still growing,
+it is not stuck. Budget 15–30 minutes on a first run; every later `db reset` reuses all of it.
+
+### `verify:local` fails with `Could not count package:`
+
+Fixed on 2026-09-09. If you see it, your checkout predates that fix.
+
+The census used the anon key, and every reference table has RLS. `role` and `status_code`
+grant SELECT to `{anon,authenticated}` so they counted fine; `package` and `test_catalog`
+grant it to `{authenticated}` only. The census now uses the service-role key, which is correct
+— it asks whether the database holds the right rows, not whether an anonymous visitor can see
+them.
+
+### `audit:roles:*` dies with `spawn taskkill ENOENT`
+
+Fixed on 2026-09-09. If you see it, your checkout predates that fix.
+
+`taskkill` is Windows-only. The runner called it unconditionally, so on macOS and Linux every
+role audit ran its checks, printed correct results, then crashed on teardown — and left an
+orphaned dev server holding port 3001. Four npm scripts and all of `qa:supabase` were affected.
+
+If you have an orphan from an older run: `lsof -nP -iTCP:3001 -sTCP:LISTEN` then `kill <pid>`.
+
+### HTTP 429 during role audits, and roles that "fail" for no reason
+
+`supabase/config.toml` sets `sign_in_sign_ups = 30` per **5-minute** window per IP. Each role
+audit signs in eight times, so three or four runs in quick succession exhaust it. The symptom
+is confusing: `dashboardRequest` passes but `signInEntryRequest` returns 429, so roles look
+broken when they are fine.
+
+**Wait five minutes and run once.** Do not raise the limit to make the check pass — that turns
+a real signal into a green light.
+
+### `WARN: config section [inbucket] is deprecated`
+
+Cosmetic. CLI 2.117 prefers `[local_smtp]`, but the container is still named `inbucket` and
+the mail catcher still runs on 54324. Nothing is broken.
