@@ -8,6 +8,7 @@ import {
 import { DataTableContainer } from "@/components/dashboard/shared/data-table-container";
 import { StatusBadge } from "@/components/dashboard/shared/status-badge";
 import { Button } from "@/components/ui/button";
+import { NativeSelect } from "@/components/ui/native-select";
 import { pickJoined } from "@/features/dashboard/admin/shared";
 import type {
   CompanyRecord,
@@ -292,30 +293,22 @@ export function ReferencePanel({
         <div className="min-w-[840px] p-4">
           <form action={setPackageDepartmentMappingAction} className="mb-4 grid gap-3 md:grid-cols-4">
             <input type="hidden" name="returnPath" value={returnPath} />
-            <select
-              name="packageId"
-              className="flex h-11 rounded-md border border-input bg-background px-3 py-2 text-sm"
-              required
-            >
+            <NativeSelect name="packageId" className="h-11" required>
               <option value="">Select package</option>
               {packages.map((item) => (
                 <option key={item.packageid} value={item.packageid}>
                   {item.packagename}
                 </option>
               ))}
-            </select>
-            <select
-              name="departmentId"
-              className="flex h-11 rounded-md border border-input bg-background px-3 py-2 text-sm"
-              required
-            >
+            </NativeSelect>
+            <NativeSelect name="departmentId" className="h-11" required>
               <option value="">Select department</option>
               {departments.map((item) => (
                 <option key={item.departmentid} value={item.departmentid}>
                   {item.code} - {item.name}
                 </option>
               ))}
-            </select>
+            </NativeSelect>
             <input type="hidden" name="isActive" value="true" />
             <Button type="submit" className="h-11 px-4 md:col-span-2">
               Add / Reactivate Mapping

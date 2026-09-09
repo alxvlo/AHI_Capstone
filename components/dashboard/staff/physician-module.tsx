@@ -10,6 +10,7 @@ import { MetricCard } from "@/components/dashboard/shared/metric-card";
 import { StatusBadge } from "@/components/dashboard/shared/status-badge";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { NativeSelect } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
@@ -446,11 +447,10 @@ export async function PhysicianModule({
 
                   <div className="space-y-2">
                     <Label htmlFor="fitnessStatus">Fitness Decision</Label>
-                    <select
+                    <NativeSelect
                       id="fitnessStatus"
                       name="fitnessStatus"
                       defaultValue={existingDecision?.fitnessstatus ?? ""}
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                       required
                     >
                       <option value="" disabled>
@@ -461,7 +461,7 @@ export async function PhysicianModule({
                           {code}
                         </option>
                       ))}
-                    </select>
+                    </NativeSelect>
                   </div>
 
                   <div className="space-y-2">

@@ -2,6 +2,7 @@ import { updateUserAccountAction } from "@/features/dashboard/admin/actions";
 import { DataTableContainer } from "@/components/dashboard/shared/data-table-container";
 import { StatusBadge } from "@/components/dashboard/shared/status-badge";
 import { Button } from "@/components/ui/button";
+import { NativeSelect } from "@/components/ui/native-select";
 import {
   formatTimestamp,
   pickJoined,
@@ -46,37 +47,25 @@ export function UserTable({
             placeholder="Search username or user ID"
             className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
           />
-          <select
-            name="roleId"
-            defaultValue={queryState.roleId}
-            className="flex h-11 rounded-md border border-input bg-background px-3 py-2 text-sm"
-          >
+          <NativeSelect name="roleId" defaultValue={queryState.roleId} className="h-11">
             <option value="">All roles</option>
             {roles.map((role) => (
               <option key={role.roleid} value={role.roleid}>
                 {role.rolename}
               </option>
             ))}
-          </select>
-          <select
-            name="active"
-            defaultValue={queryState.active}
-            className="flex h-11 rounded-md border border-input bg-background px-3 py-2 text-sm"
-          >
+          </NativeSelect>
+          <NativeSelect name="active" defaultValue={queryState.active} className="h-11">
             <option value="">All active states</option>
             <option value="true">Active only</option>
             <option value="false">Inactive only</option>
-          </select>
+          </NativeSelect>
           <div className="flex gap-2">
-            <select
-              name="locked"
-              defaultValue={queryState.locked}
-              className="flex h-11 flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm"
-            >
+            <NativeSelect name="locked" defaultValue={queryState.locked} className="h-11 flex-1">
               <option value="">All lock states</option>
               <option value="true">Locked only</option>
               <option value="false">Unlocked only</option>
-            </select>
+            </NativeSelect>
             <Button type="submit" className="h-11 px-4">
               Apply
             </Button>
@@ -141,22 +130,17 @@ export function UserTable({
                     <input type="hidden" name="targetUserId" value={userRow.userid} />
                     <input type="hidden" name="expectedUpdatedAt" value={userRow.updatedat} />
 
-                    <select
-                      name="roleId"
-                      defaultValue={String(userRow.roleid)}
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                    >
+                    <NativeSelect name="roleId" defaultValue={String(userRow.roleid)}>
                       {roles.map((roleOption) => (
                         <option key={roleOption.roleid} value={roleOption.roleid}>
                           {roleOption.rolename}
                         </option>
                       ))}
-                    </select>
+                    </NativeSelect>
 
-                    <select
+                    <NativeSelect
                       name="companyId"
                       defaultValue={userRow.companyid ? String(userRow.companyid) : ""}
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                     >
                       <option value="">No company</option>
                       {companies.map((companyOption) => (
@@ -164,7 +148,7 @@ export function UserTable({
                           {companyOption.name}
                         </option>
                       ))}
-                    </select>
+                    </NativeSelect>
 
                     <label className="flex items-center gap-2 text-xs text-muted-foreground">
                       <input

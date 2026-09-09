@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { NativeSelect } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
 import { GOVERNMENT_ID_TYPES } from "@/lib/government-id";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -315,16 +316,11 @@ export async function ReceptionModule({
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="sex">Sex</Label>
-                    <select
-                      id="sex"
-                      name="sex"
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                      required
-                    >
+                    <NativeSelect id="sex" name="sex" required>
                       <option value="">Select sex</option>
                       <option value="Male">Male</option>
                       <option value="Female">Female</option>
-                    </select>
+                    </NativeSelect>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="nationality">Nationality</Label>
@@ -351,19 +347,14 @@ export async function ReceptionModule({
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="governmentIdType">Government ID Type</Label>
-                    <select
-                      id="governmentIdType"
-                      name="governmentIdType"
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                      required
-                    >
+                    <NativeSelect id="governmentIdType" name="governmentIdType" required>
                       <option value="">Select ID type</option>
                       {GOVERNMENT_ID_TYPES.map((idType) => (
                         <option key={idType} value={idType}>
                           {idType}
                         </option>
                       ))}
-                    </select>
+                    </NativeSelect>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="governmentIdNumber">ID Number</Label>
@@ -397,28 +388,18 @@ export async function ReceptionModule({
               <input type="hidden" name="returnPath" value={returnPath} />
               <div className="space-y-2">
                 <Label htmlFor="patientId">Patient</Label>
-                <select
-                  id="patientId"
-                  name="patientId"
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                  required
-                >
+                <NativeSelect id="patientId" name="patientId" required>
                   <option value="">Select patient from lookup</option>
                   {patientMatches.map((patient) => (
                     <option key={patient.patientid} value={patient.patientid}>
                       {patient.fullname} ({patient.patientid.slice(0, 8)}...)
                     </option>
                   ))}
-                </select>
+                </NativeSelect>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="packageId">Package</Label>
-                <select
-                  id="packageId"
-                  name="packageId"
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                  required
-                >
+                <NativeSelect id="packageId" name="packageId" required>
                   <option value="">Select package</option>
                   {packageOptions.map((pkg) => (
                     <option key={pkg.packageid} value={pkg.packageid}>
@@ -426,36 +407,28 @@ export async function ReceptionModule({
                       {pkg.category ? ` (${pkg.category})` : ""}
                     </option>
                   ))}
-                </select>
+                </NativeSelect>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="companyId">Company (Optional)</Label>
-                <select
-                  id="companyId"
-                  name="companyId"
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                >
+                <NativeSelect id="companyId" name="companyId">
                   <option value="">Walk-in / No company</option>
                   {companyOptions.map((company) => (
                     <option key={company.companyid} value={company.companyid}>
                       {company.name}
                     </option>
                   ))}
-                </select>
+                </NativeSelect>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="caseCategory">Case Category</Label>
-                <select
-                  id="caseCategory"
-                  name="caseCategory"
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                >
+                <NativeSelect id="caseCategory" name="caseCategory">
                   <option value="">Select category</option>
                   <option value="LAND_BASED">Land-Based</option>
                   <option value="SEA_BASED">Sea-Based</option>
                   <option value="IMMIGRATION">Immigration</option>
                   <option value="OTHER">Other</option>
-                </select>
+                </NativeSelect>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="remarks">Registration Notes</Label>
@@ -489,39 +462,27 @@ export async function ReceptionModule({
         toolbar={
           <form className="grid gap-3 md:grid-cols-5">
             <Input name="caseSearch" defaultValue={caseSearch} placeholder="Case number" />
-            <select
-              name="statusCode"
-              defaultValue={statusFilterCode}
-              className="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
-            >
+            <NativeSelect name="statusCode" defaultValue={statusFilterCode}>
               <option value="ALL">All statuses</option>
               {caseStatuses.map((status) => (
                 <option key={status.statuscodeid} value={status.code}>
                   {status.label ?? status.code}
                 </option>
               ))}
-            </select>
-            <select
-              name="companyId"
-              defaultValue={companyFilterRaw}
-              className="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
-            >
+            </NativeSelect>
+            <NativeSelect name="companyId" defaultValue={companyFilterRaw}>
               <option value="">All companies</option>
               {companyOptions.map((company) => (
                 <option key={company.companyid} value={company.companyid}>
                   {company.name}
                 </option>
               ))}
-            </select>
-            <select
-              name="rush"
-              defaultValue={rushFilter}
-              className="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
-            >
+            </NativeSelect>
+            <NativeSelect name="rush" defaultValue={rushFilter}>
               <option value="ALL">Rush and regular</option>
               <option value="YES">Rush only</option>
               <option value="NO">Regular only</option>
-            </select>
+            </NativeSelect>
             <Input type="date" name="fromDate" defaultValue={fromDate} />
             <div className="md:col-span-5 flex flex-wrap gap-2">
               <Button type="submit">Apply Filters</Button>
