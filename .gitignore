@@ -79,3 +79,21 @@ qa-visual-dashboard-staff.png
 /.agents/
 /.claude/skills/
 /skills-lock.json
+
+# Onsite question sheets and their answers. These accumulate clinic-supplied
+# detail -- patient identifiers, internal numbering, staff names -- and this
+# repository is public. Keep the answers out of git; put only the resulting
+# structure into a spec.
+/onsite-questions-*.md
+
+# Clinic artefacts, recordings and transcripts from onsite visits. These carry
+# real patient data -- names, dates of birth, employers, examination dates --
+# and this repository is public. Never commit them. Put only the derived
+# STRUCTURE into a spec, never the rows.
+/*.jpeg
+/*.jpg
+/*.png
+/*.m4a
+/*.pdf
+/AHI Questions.md
+/*ranscript*.md
