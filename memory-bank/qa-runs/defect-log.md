@@ -297,6 +297,15 @@ Must NOT happen:
 afterwards with `demo:teardown` + `demo:seed`. Performed on a local stack only; the same steps
 against a populated environment would corrupt a real released case.
 
+**Verification status of the three criteria.** Criteria 1 and 3 are verified at action level in
+`tests/features/dashboard/staff/triage-completion.test.ts` — the rejection of a `RELEASED` case,
+and that neither the `peme_case` update nor the `audit_log` insert is invoked for it.
+**Criterion 2 is verified in unit mocks only**, and cannot presently be exercised against a live
+database: reaching the success path requires a case that satisfies `hasTriageAssessment`, and the
+demo seeder creates no `triage_assessment` rows at all. Verified 2026-09-09: zero `triage_assessment`
+rows across 21 seeded cases. This is the same seeder blocker recorded under D-017, and it
+constrains D-012's criterion 2 in exactly the same way.
+
 ### D-013 Acceptance Criteria (written 2026-09-06, before any fix)
 
 Must be true after the fix:
