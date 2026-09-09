@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { DashboardHeader } from "@/components/dashboard/shell/dashboard-header";
 import { FlashToast } from "@/components/dashboard/shared/flash-toast";
+import { InlineNotice } from "@/components/dashboard/shared/inline-notice";
 import { ReceptionModule } from "@/components/dashboard/staff/reception-module";
 import { TriageModule } from "@/components/dashboard/staff/triage-module";
 import { DepartmentModule } from "@/components/dashboard/staff/department-module";
@@ -17,7 +18,6 @@ import {
   parseDepartmentClaim,
   resolveParam,
 } from "@/features/dashboard/staff/shared";
-import { Card, CardContent } from "@/components/ui/card";
 import { DEPARTMENT_STAFF_ROLE } from "@/lib/supabase/roles";
 import {
   isStaffRole,
@@ -85,19 +85,8 @@ export default async function StaffDashboardPage({
         }
       />
 
-      {flashNotice ? (
-        <Card className="border-emerald-300/70 bg-emerald-50/40">
-          <CardContent className="pt-6 text-sm text-emerald-900">
-            {flashNotice}
-          </CardContent>
-        </Card>
-      ) : null}
-
-      {flashError ? (
-        <Card className="border-rose-300/70 bg-rose-50/40">
-          <CardContent className="pt-6 text-sm text-rose-900">{flashError}</CardContent>
-        </Card>
-      ) : null}
+      <InlineNotice tone="positive" message={flashNotice} />
+      <InlineNotice tone="danger" message={flashError} />
 
       {role === RECEPTION_ROLE ? (
         <ReceptionModule

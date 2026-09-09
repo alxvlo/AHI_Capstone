@@ -1,5 +1,6 @@
 import { DataTable, type DataTableColumn } from "@/components/dashboard/shared/data-table";
-import { StatusBadge, type StatusBadgeTone } from "@/components/dashboard/shared/status-badge";
+import { StatusBadge } from "@/components/dashboard/shared/status-badge";
+import { statusTone } from "@/lib/dashboard/status-tone";
 import {
   fitnessStatusTone,
   formatTimestamp,
@@ -22,26 +23,6 @@ function normalizeCodeLabel(code: string | null) {
   }
 
   return code.replaceAll("_", " ");
-}
-
-function verificationTone(code: string | null): StatusBadgeTone {
-  if (!code) {
-    return "neutral";
-  }
-
-  if (code === "VERIFIED") {
-    return "positive";
-  }
-
-  if (code === "PENDING") {
-    return "warning";
-  }
-
-  if (code === "REJECTED") {
-    return "danger";
-  }
-
-  return "neutral";
 }
 
 export function ResultSummary({
@@ -87,7 +68,7 @@ export function ResultSummary({
         <div className="space-y-1">
           <StatusBadge
             label={normalizeCodeLabel(item.verificationstatus)}
-            tone={verificationTone(item.verificationstatus)}
+            tone={statusTone(item.verificationstatus)}
           />
           <p className="text-xs text-muted-foreground">{formatTimestamp(item.verifiedat)}</p>
         </div>
