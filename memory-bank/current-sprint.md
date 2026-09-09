@@ -395,6 +395,20 @@ stack, 14 seeded cases with zero `triage_assessment` rows, including five at `IN
 at `RELEASED`), so adding the constraint today would break `npm run demo:seed`. D-017 stays
 `OPEN` in the defect log.
 
+**D-019 logged 2026-09-09 (P1, new).** Scoping the demo-seeder work surfaced a reference-data
+defect unrelated to the seeder itself. A case's visits are created from `package_department`;
+the visit-completion gate reads required tests from `package_test`. The two disagree for three of
+the five active packages, which between them name seven (package, department) pairs where a
+required test sits in a department the package never routes a patient through — Basic PEME (Local)
+for AUD, DENTAL, ECG and PFT; Comprehensive Seafarer for UTZ; Food Handler Package for DENTAL and
+XRAY. Those tests can never be encoded, because encoding needs a visit, and the per-visit gate
+never asks about a department that has none. The case still advances to `FOR_DECISION`. The data
+state is verified against the local stack; the workflow consequence is not reproduced, because
+producing it needs a seeded case on Basic PEME (Local) driven to `FOR_DECISION`. Criterion 2 of its
+acceptance criteria is blocked on AHI: which of the two lists is real is a clinical question, and it
+is now section B8 and priority 4 on the 2026-09-12 onsite sheet, with a printed package list added
+to the artefacts to bring back.
+
 The remaining eleven defects are unchanged and remain `OPEN — NOT REPRODUCED`.
 
 Reordered 2026-08-26 after the post-kickoff action plan (`docs/superpowers/archive/plans/2026-08-26-kickoff-action-plan.md`).
