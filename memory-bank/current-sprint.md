@@ -334,13 +334,32 @@ development target: `memory-bank/guides/local-development.md` is the setup path 
 clone, and the four destructive scripts — `npm run seed:reference`, `npm run demo:seed`,
 `npm run demo:teardown`, and `npm run probe:bootstrap` — now refuse to run against a non-local
 Supabase host (override only via `AHI_ALLOW_CLOUD_WRITES=1`, and only when a cloud write is
-genuinely intended). **This is implemented but not yet run.** No local Supabase stack has been
-started as part of this plan — `supabase start`, `supabase db reset`, and `npm run verify:local`
-have not been executed, so the design spec's Phase 1 through Phase 5 verification gates
-(`docs/superpowers/specs/2026-09-08-local-development-environment-design.md`) all remain unmet.
-None of the thirteen open P1/P2 defects that motivated this work (`memory-bank/qa-runs/defect-log.md`)
-should be treated as reproduced, verified, or fixed by this entry — this work builds the
-environment those defects need; it does not itself exercise it.
+genuinely intended).
+
+**Stood up and verified end to end on 2026-09-09** (Apple Silicon, macOS 26.6, Docker Desktop
+29.7.2, Supabase CLI 2.117.0). All five verification gates in the design spec
+(`docs/superpowers/specs/2026-09-08-local-development-environment-design.md`) are now **met**:
+`supabase db reset` applied 50 of 50 migrations with no errors, `npm run verify:local` reported
+all seven reference tables matching, `npm run probe:bootstrap` created 8 of 8 role accounts, and
+the role-redirect audit reported `passCount=8 failCount=0` — every role signing in and landing on
+its expected dashboard. The runbook (<code>memory-bank/guides/local-development.md</code>) records
+the environment traps the first run surfaced.
+
+The first real run also found two defects in our own scripts, both fixed the same day and both
+invisible until then because the implementation plan forbade running anything against a database:
+
+- `verify:local` authenticated with the anon key, which RLS blocks on `package` and
+  `test_catalog`. The census asks whether the database holds the right rows, not whether an
+  anonymous visitor can see them; it now uses the service-role key.
+- `scripts/supabase/run-role-redirect-audit-local.mjs` called Windows-only `taskkill`
+  unconditionally, so **every `audit:roles:*` script and all of `qa:supabase` crashed on teardown
+  on any Mac or Linux machine**, leaving orphaned dev servers. This is very likely why
+  `qa:supabase` has sat unrun since 2026-05-20 and is recorded above as "unchecked, not green" —
+  it may not have been neglect so much as impossible.
+
+**No defect has been reproduced or fixed by this work.** The thirteen open P1/P2 defects in
+`memory-bank/qa-runs/defect-log.md` remain `OPEN — NOT REPRODUCED`. What has changed is that they
+are now *reproducible*: there is a database it is safe to break.
 
 Reordered 2026-08-26 after the post-kickoff action plan (`docs/superpowers/archive/plans/2026-08-26-kickoff-action-plan.md`).
 Item 1 supersedes the 2026-08-22 ordering; items 2-4 are unchanged and still independent of
