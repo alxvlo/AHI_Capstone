@@ -3,16 +3,17 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ComponentProps } from "react";
 
-const { login, push, replace, toastError, toastSuccess } = vi.hoisted(() => ({
+const { login, push, replace, toastError, toastSuccess, authState } = vi.hoisted(() => ({
   login: vi.fn(),
   push: vi.fn(),
   replace: vi.fn(),
   toastError: vi.fn(),
   toastSuccess: vi.fn(),
+  authState: { user: null as object | null, isLoading: false },
 }));
 
 vi.mock("@/components/providers/auth-provider", () => ({
-  useAuth: () => ({ login, user: null, isLoading: false }),
+  useAuth: () => ({ login, user: authState.user, isLoading: authState.isLoading }),
 }));
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push, replace }),
@@ -43,6 +44,8 @@ function renderForm(overrides: Partial<ComponentProps<typeof SignInForm>> = {}) 
 describe("SignInForm", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    authState.user = null;
+    authState.isLoading = false;
   });
 
   it("refuses to submit empty fields without calling login", async () => {
@@ -70,6 +73,15 @@ describe("SignInForm", () => {
     await userEvent.type(screen.getByLabelText(/password/i), "x");
     await userEvent.click(screen.getByRole("button", { name: /sign in/i }));
     await waitFor(() => expect(toastError).toHaveBeenCalledWith("Account locked"));
+  });
+
+  it("shows the fallbackError when login fails with no server error message", async () => {
+    login.mockResolvedValueOnce({ success: false });
+    renderForm();
+    await userEvent.type(screen.getByLabelText(/email/i), "a@b.c");
+    await userEvent.type(screen.getByLabelText(/password/i), "x");
+    await userEvent.click(screen.getByRole("button", { name: /sign in/i }));
+    await waitFor(() => expect(toastError).toHaveBeenCalledWith("Invalid credentials"));
   });
 
   it("never shows the server error when hideServerError is set (agency anti-enumeration)", async () => {
@@ -103,5 +115,20 @@ describe("SignInForm", () => {
     await userEvent.click(screen.getByRole("button", { name: /sign in/i }));
     await waitFor(() => expect(toastError).toHaveBeenCalledWith("Please confirm your email first"));
     expect(push).not.toHaveBeenCalled();
+  });
+
+  it("redirects an already-signed-in user to redirectTo without calling login", async () => {
+    authState.user = { id: "u1" };
+    authState.isLoading = false;
+    renderForm();
+    await waitFor(() => expect(replace).toHaveBeenCalledWith("/dashboard/patient"));
+    expect(login).not.toHaveBeenCalled();
+  });
+
+  it("does not redirect an already-signed-in user while auth is still loading", async () => {
+    authState.user = { id: "u1" };
+    authState.isLoading = true;
+    renderForm();
+    expect(replace).not.toHaveBeenCalled();
   });
 });
