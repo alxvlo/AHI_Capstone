@@ -129,12 +129,10 @@ test.describe("Admin dashboard — Test Catalog tab", () => {
     await expect(pkgHeading).toBeVisible({ timeout: 15_000 });
   });
 
-  test("overview tab shows a Test Catalog card", async ({ page }) => {
+  test("overview tab shows the Test Catalog tab link", async ({ page }) => {
     await goToAdminDashboard(page);
-    // Overview renders 4 cards; Test Catalog should be the 4th
-    await expect(
-      page.getByRole("heading", { name: /test catalog/i }).first()
-    ).toBeVisible({ timeout: 10_000 });
+    // Overview no longer renders navigation cards; tab bar is the only navigation
+    await expect(page.getByRole("link", { name: /test catalog/i })).toBeVisible({ timeout: 10_000 });
   });
 });
 
