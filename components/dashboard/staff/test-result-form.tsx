@@ -83,6 +83,7 @@ export function TestResultForm({
             value={selectedId}
             onChange={(e) => setSelectedId(e.target.value)}
             required
+            className="block h-auto"
           >
             <option value="">Select a test...</option>
             {grouped.map(([cat, items]) => (
@@ -190,6 +191,7 @@ export function TestResultForm({
             value={value}
             onChange={(e) => setValue(e.target.value)}
             required
+            className="block h-auto"
           >
             <option value="">Select...</option>
             {selected.validvalues.map((v) => (
