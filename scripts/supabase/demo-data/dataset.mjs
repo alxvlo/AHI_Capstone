@@ -37,6 +37,41 @@ const CASE_BLUEPRINTS = [
 // Case 13 (index 12) is the probe patient's, so the patient portal has content.
 const PROBE_PATIENT_CASE_INDEX = 12;
 
+// Statuses a case can only reach through triage. submitTriageAssessmentAction
+// writes the triage_assessment row and the case transition together
+// (features/dashboard/staff/actions.ts:837-865), so a case at any of these
+// without vitals is a state the workflow cannot produce — and it is what
+// blocks the database constraint D-017 criterion 2 needs.
+const TRIAGED_STATUSES = ["IN_PROGRESS", "FOR_DECISION", "FOR_RELEASING", "RELEASED"];
+
+// Mostly 20/20, with two corrected readings so the field is not uniformly one
+// value. Any entry must match the 20/N shape the column stores.
+const VISION_READINGS = ["20/20", "20/20", "20/25", "20/20", "20/30"];
+
+// Vitals are deliberately unremarkable. This is a demo fixture, and a
+// synthetic reading that looks like a real clinical finding invites someone to
+// read meaning into it that is not there.
+//
+// Precision matches the column widths in
+// supabase/migrations/20260411_triage_assessment.sql:9-16 — smallint for the
+// three counts, numeric(_,1) for the three measurements. A value carrying more
+// precision than the column holds would be silently rounded by Postgres.
+function buildVitals(index) {
+  const spread = (multiplier, span) => (index * multiplier) % span;
+
+  return {
+    bp_systolic: 112 + spread(3, 17),
+    bp_diastolic: 70 + spread(2, 13),
+    heart_rate: 62 + spread(5, 19),
+    temperature_c: Number((36.4 + spread(1, 7) / 10).toFixed(1)),
+    weight_kg: 58 + spread(4, 27),
+    height_cm: 156 + spread(3, 25),
+    vision_left: VISION_READINGS[spread(1, VISION_READINGS.length)],
+    vision_right: VISION_READINGS[(index + 1) % VISION_READINGS.length],
+    observations: `Synthetic triage vitals for demo case ${pad(index + 1)} — not a real reading.`,
+  };
+}
+
 function pad(n) {
   return String(n).padStart(4, "0");
 }
@@ -91,6 +126,8 @@ export function buildDemoDataset({ companyId, probePatientId, departmentCodes })
         statuscode,
       })),
       decision: blueprint.decision,
+      // Null for REGISTERED: those cases have not reached triage.
+      vitals: TRIAGED_STATUSES.includes(blueprint.status) ? buildVitals(index) : null,
     };
   });
 

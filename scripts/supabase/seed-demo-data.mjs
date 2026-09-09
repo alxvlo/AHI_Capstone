@@ -9,6 +9,9 @@ const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const PROBE_PATIENT_EMAIL = "probe.patient.20260320@ahi.local";
 const PROBE_PHYSICIAN_EMAIL = "probe.physician.20260320@ahi.local";
 const PROBE_CLIENT_EMAIL = "probe.client.20260320@ahi.local";
+// triage_assessment.recorded_by references auth.users(id); user_account.userid
+// is that same id, so accountLink resolves it.
+const PROBE_TRIAGE_EMAIL = "probe.triage.20260320@ahi.local";
 
 if (!SUPABASE_URL || !SERVICE_ROLE_KEY) {
   console.error("Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY.");
@@ -76,10 +79,11 @@ async function seed() {
     process.exit(1);
   }
 
-  const [patientAcct, physicianAcct, clientAcct] = await Promise.all([
+  const [patientAcct, physicianAcct, clientAcct, triageAcct] = await Promise.all([
     accountLink(PROBE_PATIENT_EMAIL),
     accountLink(PROBE_PHYSICIAN_EMAIL),
     accountLink(PROBE_CLIENT_EMAIL),
+    accountLink(PROBE_TRIAGE_EMAIL),
   ]);
 
   if (!patientAcct.patientid) {
@@ -137,7 +141,7 @@ async function seed() {
     ])
   );
 
-  const summary = { patients: insertedPatients.data.length, cases: 0, visits: 0, decisions: 0 };
+  const summary = { patients: insertedPatients.data.length, cases: 0, vitals: 0, visits: 0, decisions: 0 };
 
   for (const demoCase of cases) {
     const insertedCase = await admin
@@ -151,11 +155,17 @@ async function seed() {
         packageid: packageRow.data.packageid,
         casecategory: demoCase.casecategory,
         isrush: demoCase.isrush,
-        casestatuscodeid: caseStatusIds[demoCase.casestatuscode],
+        // Every case is inserted at REGISTERED and transitioned below, after
+        // its vitals row exists. submitTriageAssessmentAction writes the
+        // triage_assessment row before moving a case to IN_PROGRESS
+        // (features/dashboard/staff/actions.ts:837-865), and the constraint
+        // D-017 criterion 2 calls for fires on that transition. A seeder that
+        // inserted straight into IN_PROGRESS would break the day it lands.
+        casestatuscodeid: caseStatusIds.REGISTERED,
         waiversigned: demoCase.waiversigned,
         portalvisible: demoCase.portalvisible,
         remarks: demoCase.remarks,
-        releasedtimestamp: demoCase.casestatuscode === "RELEASED" ? new Date().toISOString() : null,
+        releasedtimestamp: null,
       })
       .select("caseid")
       .single();
@@ -165,6 +175,47 @@ async function seed() {
     }
     summary.cases += 1;
     const caseid = insertedCase.data.caseid;
+
+    if (demoCase.vitals) {
+      const insertedVitals = await admin.from("triage_assessment").insert({
+        caseid,
+        ...demoCase.vitals,
+        recorded_by: triageAcct.userid,
+      });
+      if (insertedVitals.error) {
+        throw new Error(
+          `Vitals for ${demoCase.casenumber} failed: ${insertedVitals.error.message}`
+        );
+      }
+      summary.vitals += 1;
+    }
+
+    if (demoCase.casestatuscode !== "REGISTERED") {
+      const transitioned = await admin
+        .from("peme_case")
+        .update({
+          casestatuscodeid: caseStatusIds[demoCase.casestatuscode],
+          triagecompletedtimestamp: new Date().toISOString(),
+          releasedtimestamp:
+            demoCase.casestatuscode === "RELEASED" ? new Date().toISOString() : null,
+        })
+        .eq("caseid", caseid)
+        .select("caseid");
+
+      if (transitioned.error) {
+        throw new Error(
+          `Status transition for ${demoCase.casenumber} failed: ${transitioned.error.message}`
+        );
+      }
+      // A zero-row update would leave the case sitting at REGISTERED while the
+      // summary counted it as seeded. Fail loudly instead.
+      if ((transitioned.data ?? []).length !== 1) {
+        throw new Error(
+          `Status transition for ${demoCase.casenumber} matched ` +
+            `${(transitioned.data ?? []).length} rows, expected 1 — case left at REGISTERED.`
+        );
+      }
+    }
 
     for (const visit of demoCase.visits) {
       const insertedVisit = await admin.from("department_visit").insert({

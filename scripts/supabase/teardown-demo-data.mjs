@@ -18,7 +18,7 @@ const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
 
 async function teardown() {
   const summary = {
-    cases: 0, decisions: 0, results: 0, visits: 0, patients: 0, errors: [],
+    cases: 0, decisions: 0, results: 0, vitals: 0, visits: 0, patients: 0, errors: [],
   };
 
   const found = await admin
@@ -35,10 +35,14 @@ async function teardown() {
   summary.cases = caseIds.length;
 
   if (caseIds.length > 0) {
-    // Foreign-key order: decision -> result_item -> department_visit -> peme_case.
+    // Foreign-key order: decision -> result_item -> triage_assessment ->
+    // department_visit -> peme_case. triage_assessment would also go via its
+    // ON DELETE CASCADE (20260411_triage_assessment.sql:6), but deleting it
+    // here means the summary reports a real count instead of a silent zero.
     for (const [table, key] of [
       ["peme_decision", "decisions"],
       ["result_item", "results"],
+      ["triage_assessment", "vitals"],
       ["department_visit", "visits"],
     ]) {
       const del = await admin.from(table).delete().in("caseid", caseIds).select("*");

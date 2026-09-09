@@ -389,11 +389,15 @@ stopping it), then fixed (`updateTriageCompletionAction` now rejects any case th
 `triage_assessment` row and performs no write when it does — is met. Criterion 2 — the system-wide
 invariant that no code path anywhere, including RLS-permitted direct writes, can move a case to
 `IN_PROGRESS` without a `triage_assessment` row — is not met and cannot be enforced from
-application code alone; it needs a database constraint or trigger. That constraint is blocked: the
-demo seeder violates the invariant on every case it creates (verified 2026-09-09 on the local
-stack, 14 seeded cases with zero `triage_assessment` rows, including five at `IN_PROGRESS` and two
-at `RELEASED`), so adding the constraint today would break `npm run demo:seed`. D-017 stays
-`OPEN` in the defect log.
+application code alone; it needs a database constraint or trigger. That constraint was blocked by
+the demo seeder, which violated the invariant on every case it created (verified 2026-09-09 on the
+local stack, 14 seeded cases with zero `triage_assessment` rows, including five at `IN_PROGRESS`
+and two at `RELEASED`). **That blocker is now cleared.** The seeder writes vitals for all 11 cases
+it puts beyond `REGISTERED`, and it inserts each case at `REGISTERED` before transitioning it, so
+the constraint fires after the vitals row exists. Demonstrated by installing exactly such a trigger
+on the local stack: the pre-change seeder failed under it at `DEMO-0004`, the current one completed
+all 14 cases. The trigger was dropped; no migration was added. D-017 stays `OPEN` — writing the
+real constraint is what remains.
 
 **D-019 logged 2026-09-09 (P1, new).** Scoping the demo-seeder work surfaced a reference-data
 defect unrelated to the seeder itself. A case's visits are created from `package_department`;

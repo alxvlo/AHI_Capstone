@@ -308,6 +308,13 @@ demo seeder creates no `triage_assessment` rows at all. Verified 2026-09-09: zer
 rows across 21 seeded cases. This is the same seeder blocker recorded under D-017, and it
 constrains D-012's criterion 2 in exactly the same way.
 
+**Seeder blocker cleared 2026-09-09.** `npm run demo:seed` now writes a `triage_assessment` row for
+every case it puts beyond `REGISTERED` — 11 of its 14. Confirmed against the local stack: the five
+`IN_PROGRESS`, two `FOR_DECISION`, two `FOR_RELEASING` and two `RELEASED` cases each carry exactly
+one vitals row and a non-null `triagecompletedtimestamp`; the three `REGISTERED` cases carry
+neither. Criterion 2 is therefore now exercisable live, and remains unexercised — this change
+supplies the fixture, it does not itself run the check.
+
 ### D-013 Acceptance Criteria (written 2026-09-06, before any fix)
 
 Must be true after the fix:
@@ -415,6 +422,16 @@ Must be true after the fix:
 anywhere can move a case to `IN_PROGRESS` without a `triage_assessment` row — cannot be enforced
 from application code, since it must also hold for RLS-permitted direct writes and future paths.
 That needs a database constraint or trigger.
+
+**The constraint is no longer blocked by the seeder, as of 2026-09-09.** `demo:seed` previously
+inserted every case directly at its final status with no vitals, so the constraint would have
+broken it. The seeder now inserts each case at `REGISTERED`, writes the vitals row, and only then
+transitions the case — the order `submitTriageAssessmentAction` uses. Demonstrated rather than
+asserted: a `before insert or update` trigger on `peme_case` rejecting any non-`REGISTERED` status
+without a `triage_assessment` row was installed on the local stack, the pre-change seeder failed
+under it at `DEMO-0004` with the invariant's own error, and the current seeder completed all 14
+cases under the identical trigger. The trigger was dropped afterwards; it is a demonstration, not a
+migration. Writing the real constraint is what remains of criterion 2.
 
 It is blocked on a prerequisite. The demo seeder violates the invariant on every case it creates:
 verified 2026-09-09 on the local stack, 14 seeded cases carried **zero** `triage_assessment` rows,
