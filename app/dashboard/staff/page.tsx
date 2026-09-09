@@ -77,7 +77,6 @@ export default async function StaffDashboardPage({
 
       <DashboardHeader
         title="Staff Dashboard"
-        role={role}
         description="Queue overview and role workflow controls."
         quickActions={
           <Button variant="outline" size="sm" asChild>

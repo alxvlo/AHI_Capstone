@@ -243,7 +243,6 @@ export default async function AdminDashboardPage({
 
       <DashboardHeader
         title="System Admin Dashboard"
-        role={role}
         description={`${ADMIN_TAB_LABEL[activeTab]}: ${ADMIN_TAB_DESCRIPTION[activeTab]}`}
         quickActions={
           <div className="flex flex-wrap gap-2">

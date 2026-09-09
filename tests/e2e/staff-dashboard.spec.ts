@@ -127,7 +127,7 @@ test.describe("Staff dashboard shell", () => {
   }) => {
     await goToStaffDashboard(page);
 
-    // The DashboardHeader renders a role badge — look for any role text
+    // The sidebar renders the role badge ("Signed in as") — look for any role text
     const roleBadge = page
       .getByText(/reception|triage|physician|releasing|department|admin/i)
       .first();

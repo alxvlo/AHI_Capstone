@@ -38,7 +38,6 @@ export default async function AccountPage() {
       <div className="space-y-6">
         <DashboardHeader
           title="Account"
-          role={role}
           description="We could not load your account details right now."
         />
         <Card>
@@ -66,7 +65,6 @@ export default async function AccountPage() {
     <div className="space-y-6">
       <DashboardHeader
         title="Account"
-        role={role}
         description="Review your profile, role context, and account access status."
         quickActions={
           <Button variant="outline" size="sm" className="h-11 px-4 sm:h-9 sm:px-3" asChild>

@@ -90,7 +90,6 @@ export default async function PatientDashboardPage({
 
       <DashboardHeader
         title="Patient Dashboard"
-        role={role}
         description="Track your PEME case progress and review released findings."
         quickActions={
           <Button variant="outline" size="sm" className="h-11 px-4 sm:h-9 sm:px-3" asChild>
