@@ -3,12 +3,13 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ComponentProps } from "react";
 
-const { login, push, replace, toastError, toastSuccess, authState } = vi.hoisted(() => ({
+const { login, push, replace, toastError, toastSuccess, toastInfo, authState } = vi.hoisted(() => ({
   login: vi.fn(),
   push: vi.fn(),
   replace: vi.fn(),
   toastError: vi.fn(),
   toastSuccess: vi.fn(),
+  toastInfo: vi.fn(),
   authState: { user: null as object | null, isLoading: false },
 }));
 
@@ -19,7 +20,7 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ push, replace }),
 }));
 vi.mock("sonner", () => ({
-  toast: { error: (m: string) => toastError(m), success: (m: string) => toastSuccess(m), info: vi.fn() },
+  toast: { error: (m: string) => toastError(m), success: (m: string) => toastSuccess(m), info: (m: string) => toastInfo(m) },
 }));
 
 import { SignInForm } from "@/components/auth/sign-in-form";
@@ -130,5 +131,30 @@ describe("SignInForm", () => {
     authState.isLoading = true;
     renderForm();
     expect(replace).not.toHaveBeenCalled();
+  });
+
+  it("never surfaces a server note on success when hideServerError is set", async () => {
+    login.mockResolvedValueOnce({ success: true, error: "boom" });
+    renderForm({
+      hideServerError: true,
+      fallbackError: "Invalid credentials or unauthorized access",
+      redirectTo: "/dashboard/client",
+    });
+    await userEvent.type(screen.getByLabelText(/email/i), "a@b.c");
+    await userEvent.type(screen.getByLabelText(/password/i), "x");
+    await userEvent.click(screen.getByRole("button", { name: /sign in/i }));
+    await waitFor(() => expect(toastSuccess).toHaveBeenCalledWith("Welcome back!"));
+    expect(toastInfo).not.toHaveBeenCalled();
+    expect(replace).toHaveBeenCalledWith("/dashboard/client");
+  });
+
+  it("surfaces a server note on success when hideServerError is not set", async () => {
+    login.mockResolvedValueOnce({ success: true, error: "note" });
+    renderForm();
+    await userEvent.type(screen.getByLabelText(/email/i), "a@b.c");
+    await userEvent.type(screen.getByLabelText(/password/i), "x");
+    await userEvent.click(screen.getByRole("button", { name: /sign in/i }));
+    await waitFor(() => expect(toastSuccess).toHaveBeenCalledWith("Welcome back!"));
+    expect(toastInfo).toHaveBeenCalledWith("note");
   });
 });

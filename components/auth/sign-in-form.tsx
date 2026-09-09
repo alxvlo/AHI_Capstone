@@ -77,7 +77,7 @@ export function SignInForm({
 
     if (result.success) {
       toast.success(successMessage);
-      if (result.error) {
+      if (result.error && !hideServerError) {
         toast.info(result.error);
       }
       router.replace(redirectTo);
@@ -85,7 +85,12 @@ export function SignInForm({
     }
 
     const normalizedEmail = email.trim().toLowerCase();
-    if (checkEmailPath && normalizedEmail && result.error?.toLowerCase().includes("confirm your email")) {
+    if (
+      checkEmailPath &&
+      !hideServerError &&
+      normalizedEmail &&
+      result.error?.toLowerCase().includes("confirm your email")
+    ) {
       toast.error(result.error);
       router.push(`${checkEmailPath}?email=${encodeURIComponent(normalizedEmail)}`);
       return;

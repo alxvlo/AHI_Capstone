@@ -279,7 +279,7 @@ export default async function AdminDashboardPage({
         />
       </div>
 
-{activeTab === "users" ? (
+      {activeTab === "users" ? (
         <UserTable
           users={users}
           roles={roles}
