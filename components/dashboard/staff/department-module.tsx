@@ -4,6 +4,7 @@ import {
   verifyResultItemAction,
 } from "@/features/dashboard/staff/actions";
 import { ActionPanel } from "@/components/dashboard/shared/action-panel";
+import { DataTable, type DataTableColumn } from "@/components/dashboard/shared/data-table";
 import { DataTableContainer } from "@/components/dashboard/shared/data-table-container";
 import { RealtimeBridge } from "@/components/dashboard/shared/realtime-bridge";
 import { DepartmentFileUpload } from "@/components/dashboard/staff/department-file-upload";
@@ -254,6 +255,188 @@ export async function DepartmentModule({
   const panelCase = pickJoined(panelVisit?.pemeCase);
   const panelPatient = pickJoined(panelCase?.patient);
 
+  const departmentQueueColumns: DataTableColumn<DepartmentVisitRow>[] = [
+    {
+      header: "Queue",
+      cell: (visit) => visit.queuenumber ?? "-",
+    },
+    {
+      header: "Case",
+      cell: (visit) => {
+        const caseInfo = pickJoined(visit.pemeCase);
+        return (
+          <div className="flex items-center gap-2">
+            <span className="font-medium">{caseInfo?.casenumber ?? "-"}</span>
+            {caseInfo?.isrush ? <StatusBadge label="RUSH" tone="warning" /> : null}
+          </div>
+        );
+      },
+    },
+    {
+      header: "Patient",
+      cell: (visit) => {
+        const caseInfo = pickJoined(visit.pemeCase);
+        const patient = pickJoined(caseInfo?.patient);
+        return patient?.fullname ?? "Unknown patient";
+      },
+    },
+    {
+      header: "Visit Status",
+      cell: (visit) => {
+        const visitStatus = pickJoined(visit.visitStatus);
+        const visitStatusCode = visitStatus?.code ?? "";
+        return (
+          <StatusBadge
+            label={visitStatus?.label ?? (visitStatusCode || "Unknown")}
+            tone={caseStatusTone(visitStatusCode || null)}
+          />
+        );
+      },
+    },
+    {
+      header: "Time Pending",
+      cell: (visit) => (
+        <span className="text-muted-foreground">{formatTimestamp(visit.timepending)}</span>
+      ),
+    },
+    {
+      header: "Actions",
+      cell: (visit) => {
+        const visitStatusCode = pickJoined(visit.visitStatus)?.code ?? "";
+
+        return (
+          <div className="flex flex-wrap gap-2">
+            {visitStatusCode === "PENDING" ? (
+              <>
+                <form action={updateDepartmentVisitStatusAction}>
+                  <input type="hidden" name="visitId" value={visit.visitid} />
+                  <input type="hidden" name="nextStatusCode" value="IN_PROGRESS" />
+                  <input type="hidden" name="returnPath" value={returnPath} />
+                  <Button type="submit" size="sm">
+                    Start
+                  </Button>
+                </form>
+                <form action={updateDepartmentVisitStatusAction}>
+                  <input type="hidden" name="visitId" value={visit.visitid} />
+                  <input type="hidden" name="nextStatusCode" value="SKIPPED" />
+                  <input
+                    type="hidden"
+                    name="statusNote"
+                    value="Skipped due to patient not present at call."
+                  />
+                  <input type="hidden" name="returnPath" value={returnPath} />
+                  <Button type="submit" size="sm" variant="outline">
+                    Skip
+                  </Button>
+                </form>
+                <form action={updateDepartmentVisitStatusAction}>
+                  <input type="hidden" name="visitId" value={visit.visitid} />
+                  <input type="hidden" name="nextStatusCode" value="CANCELLED" />
+                  <input
+                    type="hidden"
+                    name="statusNote"
+                    value="Visit cancelled — test no longer required."
+                  />
+                  <input type="hidden" name="returnPath" value={returnPath} />
+                  <Button type="submit" size="sm" variant="ghost" className="text-destructive">
+                    Cancel
+                  </Button>
+                </form>
+              </>
+            ) : null}
+
+            {visitStatusCode === "IN_PROGRESS" ? (
+              <form action={updateDepartmentVisitStatusAction}>
+                <input type="hidden" name="visitId" value={visit.visitid} />
+                <input type="hidden" name="nextStatusCode" value="COMPLETED" />
+                <input type="hidden" name="returnPath" value={returnPath} />
+                <Button type="submit" size="sm">
+                  Complete
+                </Button>
+              </form>
+            ) : null}
+
+            {visitStatusCode === "SKIPPED" ? (
+              <form action={updateDepartmentVisitStatusAction}>
+                <input type="hidden" name="visitId" value={visit.visitid} />
+                <input type="hidden" name="nextStatusCode" value="PENDING" />
+                <input type="hidden" name="returnPath" value={returnPath} />
+                <Button type="submit" size="sm" variant="outline">
+                  Re-Queue
+                </Button>
+              </form>
+            ) : null}
+
+            {visitStatusCode === "IN_PROGRESS" || visitStatusCode === "COMPLETED" ? (
+              <Button variant="outline" size="sm" asChild>
+                <Link href={buildResultPanelHref(returnPath, visit.visitid)}>
+                  Encode Result
+                </Link>
+              </Button>
+            ) : null}
+          </div>
+        );
+      },
+    },
+  ];
+
+  const resultItemColumns: DataTableColumn<DepartmentResultItemRow>[] = [
+    {
+      header: "Test",
+      cell: (item) => (
+        <>
+          <p className="font-medium">{item.testname}</p>
+          <p className="text-xs text-muted-foreground">
+            {item.remarks?.trim() ? item.remarks : "No remarks"}
+          </p>
+        </>
+      ),
+    },
+    {
+      header: "Value",
+      cell: (item) => (
+        <span className="text-muted-foreground">
+          {item.value ? `${item.value}${item.unit ? ` ${item.unit}` : ""}` : "Not set"}
+        </span>
+      ),
+    },
+    {
+      header: "Reference",
+      cell: (item) => (
+        <span className="text-muted-foreground">{item.referencerange ?? "N/A"}</span>
+      ),
+    },
+    {
+      header: "Flag",
+      cell: (item) => (
+        <div className="flex flex-wrap gap-1">
+          <StatusBadge
+            label={item.isabnormal ? "Abnormal" : "Normal"}
+            tone={item.isabnormal ? "danger" : "positive"}
+          />
+          {item.verificationstatus ? (
+            <StatusBadge label={item.verificationstatus} tone="neutral" />
+          ) : null}
+        </div>
+      ),
+    },
+    {
+      header: "Action",
+      cell: (item) =>
+        item.verificationstatus !== "VERIFIED" ? (
+          <form action={verifyResultItemAction}>
+            <input type="hidden" name="returnPath" value={returnPath} />
+            <input type="hidden" name="resultId" value={item.resultid} />
+            <Button type="submit" size="sm" variant="outline">
+              Verify
+            </Button>
+          </form>
+        ) : (
+          <span className="text-xs text-muted-foreground">Verified</span>
+        ),
+    },
+  ];
+
   return (
     <div className="space-y-6">
       {userDepartmentClaim ? (
@@ -286,120 +469,13 @@ export async function DepartmentModule({
         emptyTitle="No visits queued"
         emptyMessage="No visits are currently queued for this department."
       >
-        <table className="min-w-full text-sm">
-          <thead className="bg-muted/50 text-left">
-            <tr>
-              <th className="px-3 py-2 font-semibold">Queue</th>
-              <th className="px-3 py-2 font-semibold">Case</th>
-              <th className="px-3 py-2 font-semibold">Patient</th>
-              <th className="px-3 py-2 font-semibold">Visit Status</th>
-              <th className="px-3 py-2 font-semibold">Time Pending</th>
-              <th className="px-3 py-2 font-semibold">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {visits.map((visit) => {
-              const visitStatus = pickJoined(visit.visitStatus);
-              const caseInfo = pickJoined(visit.pemeCase);
-              const patient = pickJoined(caseInfo?.patient);
-              const visitStatusCode = visitStatus?.code ?? "";
-
-              return (
-                <tr key={visit.visitid} className="border-t align-top">
-                  <td className="px-3 py-2">{visit.queuenumber ?? "-"}</td>
-                  <td className="px-3 py-2">
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium">{caseInfo?.casenumber ?? "-"}</span>
-                      {caseInfo?.isrush ? <StatusBadge label="RUSH" tone="warning" /> : null}
-                    </div>
-                  </td>
-                  <td className="px-3 py-2">{patient?.fullname ?? "Unknown patient"}</td>
-                  <td className="px-3 py-2">
-                    <StatusBadge
-                      label={visitStatus?.label ?? (visitStatusCode || "Unknown")}
-                      tone={caseStatusTone(visitStatusCode || null)}
-                    />
-                  </td>
-                  <td className="px-3 py-2 text-muted-foreground">
-                    {formatTimestamp(visit.timepending)}
-                  </td>
-                  <td className="px-3 py-2">
-                    <div className="flex flex-wrap gap-2">
-                      {visitStatusCode === "PENDING" ? (
-                        <>
-                          <form action={updateDepartmentVisitStatusAction}>
-                            <input type="hidden" name="visitId" value={visit.visitid} />
-                            <input type="hidden" name="nextStatusCode" value="IN_PROGRESS" />
-                            <input type="hidden" name="returnPath" value={returnPath} />
-                            <Button type="submit" size="sm">
-                              Start
-                            </Button>
-                          </form>
-                          <form action={updateDepartmentVisitStatusAction}>
-                            <input type="hidden" name="visitId" value={visit.visitid} />
-                            <input type="hidden" name="nextStatusCode" value="SKIPPED" />
-                            <input
-                              type="hidden"
-                              name="statusNote"
-                              value="Skipped due to patient not present at call."
-                            />
-                            <input type="hidden" name="returnPath" value={returnPath} />
-                            <Button type="submit" size="sm" variant="outline">
-                              Skip
-                            </Button>
-                          </form>
-                          <form action={updateDepartmentVisitStatusAction}>
-                            <input type="hidden" name="visitId" value={visit.visitid} />
-                            <input type="hidden" name="nextStatusCode" value="CANCELLED" />
-                            <input
-                              type="hidden"
-                              name="statusNote"
-                              value="Visit cancelled — test no longer required."
-                            />
-                            <input type="hidden" name="returnPath" value={returnPath} />
-                            <Button type="submit" size="sm" variant="ghost" className="text-destructive">
-                              Cancel
-                            </Button>
-                          </form>
-                        </>
-                      ) : null}
-
-                      {visitStatusCode === "IN_PROGRESS" ? (
-                        <form action={updateDepartmentVisitStatusAction}>
-                          <input type="hidden" name="visitId" value={visit.visitid} />
-                          <input type="hidden" name="nextStatusCode" value="COMPLETED" />
-                          <input type="hidden" name="returnPath" value={returnPath} />
-                          <Button type="submit" size="sm">
-                            Complete
-                          </Button>
-                        </form>
-                      ) : null}
-
-                      {visitStatusCode === "SKIPPED" ? (
-                        <form action={updateDepartmentVisitStatusAction}>
-                          <input type="hidden" name="visitId" value={visit.visitid} />
-                          <input type="hidden" name="nextStatusCode" value="PENDING" />
-                          <input type="hidden" name="returnPath" value={returnPath} />
-                          <Button type="submit" size="sm" variant="outline">
-                            Re-Queue
-                          </Button>
-                        </form>
-                      ) : null}
-
-                      {(visitStatusCode === "IN_PROGRESS" || visitStatusCode === "COMPLETED") ? (
-                        <Button variant="outline" size="sm" asChild>
-                          <Link href={buildResultPanelHref(returnPath, visit.visitid)}>
-                            Encode Result
-                          </Link>
-                        </Button>
-                      ) : null}
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+        <DataTable
+          columns={departmentQueueColumns}
+          rows={visits}
+          rowKey={(visit) => visit.visitid}
+          rowClassName="align-top"
+          caption="Department visit queue"
+        />
       </DataTableContainer>
 
       <ActionPanel
@@ -504,61 +580,13 @@ export async function DepartmentModule({
                 </p>
               ) : (
                 <div className="overflow-x-auto rounded-md border">
-                  <table className="min-w-full text-sm">
-                    <thead className="bg-muted/50 text-left">
-                      <tr>
-                        <th className="px-3 py-2 font-semibold">Test</th>
-                        <th className="px-3 py-2 font-semibold">Value</th>
-                        <th className="px-3 py-2 font-semibold">Reference</th>
-                        <th className="px-3 py-2 font-semibold">Flag</th>
-                        <th className="px-3 py-2 font-semibold">Action</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {panelResultItems.map((item) => (
-                        <tr key={item.resultid} className="border-t align-top">
-                          <td className="px-3 py-2">
-                            <p className="font-medium">{item.testname}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {item.remarks?.trim() ? item.remarks : "No remarks"}
-                            </p>
-                          </td>
-                          <td className="px-3 py-2 text-muted-foreground">
-                            {item.value
-                              ? `${item.value}${item.unit ? ` ${item.unit}` : ""}`
-                              : "Not set"}
-                          </td>
-                          <td className="px-3 py-2 text-muted-foreground">
-                            {item.referencerange ?? "N/A"}
-                          </td>
-                          <td className="px-3 py-2">
-                            <div className="flex flex-wrap gap-1">
-                              <StatusBadge
-                                label={item.isabnormal ? "Abnormal" : "Normal"}
-                                tone={item.isabnormal ? "danger" : "positive"}
-                              />
-                              {item.verificationstatus ? (
-                                <StatusBadge label={item.verificationstatus} tone="neutral" />
-                              ) : null}
-                            </div>
-                          </td>
-                          <td className="px-3 py-2">
-                            {item.verificationstatus !== "VERIFIED" ? (
-                              <form action={verifyResultItemAction}>
-                                <input type="hidden" name="returnPath" value={returnPath} />
-                                <input type="hidden" name="resultId" value={item.resultid} />
-                                <Button type="submit" size="sm" variant="outline">
-                                  Verify
-                                </Button>
-                              </form>
-                            ) : (
-                              <span className="text-xs text-muted-foreground">Verified</span>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                  <DataTable
+                    columns={resultItemColumns}
+                    rows={panelResultItems}
+                    rowKey={(item) => item.resultid}
+                    rowClassName="align-top"
+                    caption="Encoded results for this visit"
+                  />
                 </div>
               )}
             </section>

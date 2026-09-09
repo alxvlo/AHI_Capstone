@@ -8,6 +8,7 @@ import {
 import { MetricCard } from "@/components/dashboard/shared/metric-card";
 import { StatusBadge } from "@/components/dashboard/shared/status-badge";
 import { ActionPanel } from "@/components/dashboard/shared/action-panel";
+import { DataTable, type DataTableColumn } from "@/components/dashboard/shared/data-table";
 import { DataTableContainer } from "@/components/dashboard/shared/data-table-container";
 import { RealtimeBridge } from "@/components/dashboard/shared/realtime-bridge";
 import { Button } from "@/components/ui/button";
@@ -212,6 +213,163 @@ export async function ReceptionModule({
   const waiverPendingCases = cases.filter((row) => !row.waiversigned).length;
   const todayRegisteredPatients = todayPatientRegistrationCount ?? 0;
 
+  const patientLookupColumns: DataTableColumn<PatientRecord>[] = [
+    {
+      header: "Patient",
+      cell: (patient) => (
+        <>
+          <p className="font-medium">{patient.fullname}</p>
+          <p className="text-xs text-muted-foreground">{patient.patientid}</p>
+        </>
+      ),
+    },
+    {
+      header: "DOB",
+      cell: (patient) => (
+        <span className="text-muted-foreground">{formatDateOnly(patient.dateofbirth)}</span>
+      ),
+    },
+    {
+      header: "Government ID",
+      cell: (patient) => (
+        <span className="text-muted-foreground">{patient.governmentid ?? "Not set"}</span>
+      ),
+    },
+    {
+      header: "Contact",
+      cell: (patient) => (
+        <span className="text-muted-foreground">{patient.contactnumber ?? "Not set"}</span>
+      ),
+    },
+  ];
+
+  const caseTrackerColumns: DataTableColumn<CaseRow>[] = [
+    {
+      header: "Case",
+      cell: (caseRow) => (
+        <>
+          <p className="font-medium">{caseRow.casenumber}</p>
+          <p className="text-xs text-muted-foreground">
+            {caseRow.casecategory ?? "Uncategorized"}
+          </p>
+        </>
+      ),
+    },
+    {
+      header: "Patient",
+      cell: (caseRow) => pickJoined(caseRow.patient)?.fullname ?? "Unknown patient",
+    },
+    {
+      header: "Company",
+      cell: (caseRow) => (
+        <span className="text-muted-foreground">
+          {pickJoined(caseRow.company)?.name ?? "Walk-in"}
+        </span>
+      ),
+    },
+    {
+      header: "Package",
+      cell: (caseRow) => (
+        <span className="text-muted-foreground">
+          {pickJoined(caseRow.package)?.packagename ?? "Unknown package"}
+        </span>
+      ),
+    },
+    {
+      header: "Status",
+      cell: (caseRow) => {
+        const status = pickJoined(caseRow.status);
+        return (
+          <StatusBadge
+            label={status?.label ?? status?.code ?? "Unknown"}
+            tone={caseStatusTone(status?.code ?? null)}
+          />
+        );
+      },
+    },
+    {
+      header: "Flags",
+      cell: (caseRow) => (
+        <div className="flex flex-wrap gap-1">
+          {caseRow.isrush ? <StatusBadge label="RUSH" tone="warning" /> : null}
+          {!caseRow.waiversigned ? (
+            <StatusBadge label="WAIVER PENDING" tone="danger" />
+          ) : null}
+          {caseRow.portalvisible ? (
+            <StatusBadge label="PORTAL VISIBLE" tone="positive" />
+          ) : null}
+        </div>
+      ),
+    },
+    {
+      header: "Registered",
+      cell: (caseRow) => (
+        <span className="text-muted-foreground">
+          {formatTimestamp(caseRow.registrationtimestamp)}
+        </span>
+      ),
+    },
+    {
+      header: "Action",
+      cell: (caseRow) => (
+        <Button variant="outline" size="sm" asChild>
+          <Link href={buildPanelHref(returnPath, caseRow.caseid)}>View Details</Link>
+        </Button>
+      ),
+    },
+  ];
+
+  const visitSummaryColumns: DataTableColumn<ReceptionVisitRow>[] = [
+    {
+      header: "Department",
+      cell: (visit) => {
+        const department = pickJoined(visit.department);
+        return (
+          <>
+            <p className="font-medium">{department?.name ?? "Unknown"}</p>
+            <p className="text-xs text-muted-foreground">{department?.code ?? "No code"}</p>
+          </>
+        );
+      },
+    },
+    {
+      header: "Queue",
+      cell: (visit) => (
+        <span className="text-muted-foreground">{visit.queuenumber ?? "Not assigned"}</span>
+      ),
+    },
+    {
+      header: "Status",
+      cell: (visit) => {
+        const visitStatus = pickJoined(visit.visitStatus);
+        return (
+          <StatusBadge
+            label={visitStatus?.label ?? visitStatus?.code ?? "Unknown"}
+            tone={caseStatusTone(visitStatus?.code ?? null)}
+          />
+        );
+      },
+    },
+    {
+      header: "Pending",
+      cell: (visit) => (
+        <span className="text-muted-foreground">{formatTimestamp(visit.timepending)}</span>
+      ),
+    },
+    {
+      header: "Started",
+      cell: (visit) => (
+        <span className="text-muted-foreground">{formatTimestamp(visit.timestarted)}</span>
+      ),
+    },
+    {
+      header: "Completed",
+      cell: (visit) => (
+        <span className="text-muted-foreground">{formatTimestamp(visit.timecompleted)}</span>
+      ),
+    },
+  ];
+
   return (
     <div className="space-y-6">
       <RealtimeBridge table="peme_case" />
@@ -265,35 +423,12 @@ export async function ReceptionModule({
               </p>
             ) : (
               <div className="overflow-x-auto rounded-md border">
-                <table className="min-w-full text-sm">
-                  <thead className="bg-muted/50 text-left">
-                    <tr>
-                      <th className="px-3 py-2 font-semibold">Patient</th>
-                      <th className="px-3 py-2 font-semibold">DOB</th>
-                      <th className="px-3 py-2 font-semibold">Government ID</th>
-                      <th className="px-3 py-2 font-semibold">Contact</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {patientMatches.map((patient) => (
-                      <tr key={patient.patientid} className="border-t">
-                        <td className="px-3 py-2">
-                          <p className="font-medium">{patient.fullname}</p>
-                          <p className="text-xs text-muted-foreground">{patient.patientid}</p>
-                        </td>
-                        <td className="px-3 py-2 text-muted-foreground">
-                          {formatDateOnly(patient.dateofbirth)}
-                        </td>
-                        <td className="px-3 py-2 text-muted-foreground">
-                          {patient.governmentid ?? "Not set"}
-                        </td>
-                        <td className="px-3 py-2 text-muted-foreground">
-                          {patient.contactnumber ?? "Not set"}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                <DataTable
+                  columns={patientLookupColumns}
+                  rows={patientMatches}
+                  rowKey={(patient) => patient.patientid}
+                  caption="Patient lookup results"
+                />
               </div>
             )}
 
@@ -498,73 +633,13 @@ export async function ReceptionModule({
         emptyTitle="No cases found"
         emptyMessage="No cases match the current filter set."
       >
-        <table className="min-w-full text-sm">
-          <thead className="bg-muted/50 text-left">
-            <tr>
-              <th className="px-3 py-2 font-semibold">Case</th>
-              <th className="px-3 py-2 font-semibold">Patient</th>
-              <th className="px-3 py-2 font-semibold">Company</th>
-              <th className="px-3 py-2 font-semibold">Package</th>
-              <th className="px-3 py-2 font-semibold">Status</th>
-              <th className="px-3 py-2 font-semibold">Flags</th>
-              <th className="px-3 py-2 font-semibold">Registered</th>
-              <th className="px-3 py-2 font-semibold">Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {cases.map((caseRow) => {
-              const patient = pickJoined(caseRow.patient);
-              const company = pickJoined(caseRow.company);
-              const packageInfo = pickJoined(caseRow.package);
-              const status = pickJoined(caseRow.status);
-
-              return (
-                <tr key={caseRow.caseid} className="border-t align-top">
-                  <td className="px-3 py-2">
-                    <p className="font-medium">{caseRow.casenumber}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {caseRow.casecategory ?? "Uncategorized"}
-                    </p>
-                  </td>
-                  <td className="px-3 py-2">{patient?.fullname ?? "Unknown patient"}</td>
-                  <td className="px-3 py-2 text-muted-foreground">
-                    {company?.name ?? "Walk-in"}
-                  </td>
-                  <td className="px-3 py-2 text-muted-foreground">
-                    {packageInfo?.packagename ?? "Unknown package"}
-                  </td>
-                  <td className="px-3 py-2">
-                    <StatusBadge
-                      label={status?.label ?? status?.code ?? "Unknown"}
-                      tone={caseStatusTone(status?.code ?? null)}
-                    />
-                  </td>
-                  <td className="px-3 py-2">
-                    <div className="flex flex-wrap gap-1">
-                      {caseRow.isrush ? <StatusBadge label="RUSH" tone="warning" /> : null}
-                      {!caseRow.waiversigned ? (
-                        <StatusBadge label="WAIVER PENDING" tone="danger" />
-                      ) : null}
-                      {caseRow.portalvisible ? (
-                        <StatusBadge label="PORTAL VISIBLE" tone="positive" />
-                      ) : null}
-                    </div>
-                  </td>
-                  <td className="px-3 py-2 text-muted-foreground">
-                    {formatTimestamp(caseRow.registrationtimestamp)}
-                  </td>
-                  <td className="px-3 py-2">
-                    <Button variant="outline" size="sm" asChild>
-                      <Link href={buildPanelHref(returnPath, caseRow.caseid)}>
-                        View Details
-                      </Link>
-                    </Button>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+        <DataTable
+          columns={caseTrackerColumns}
+          rows={cases}
+          rowKey={(caseRow) => caseRow.caseid}
+          rowClassName="align-top"
+          caption="Case tracker"
+        />
       </DataTableContainer>
 
       <ActionPanel
@@ -703,53 +778,13 @@ export async function ReceptionModule({
                 </div>
               ) : (
                 <div className="overflow-x-auto rounded-md border">
-                  <table className="min-w-full text-sm">
-                    <thead className="bg-muted/50 text-left">
-                      <tr>
-                        <th className="px-3 py-2 font-semibold">Department</th>
-                        <th className="px-3 py-2 font-semibold">Queue</th>
-                        <th className="px-3 py-2 font-semibold">Status</th>
-                        <th className="px-3 py-2 font-semibold">Pending</th>
-                        <th className="px-3 py-2 font-semibold">Started</th>
-                        <th className="px-3 py-2 font-semibold">Completed</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {panelVisits.map((visit) => {
-                        const department = pickJoined(visit.department);
-                        const visitStatus = pickJoined(visit.visitStatus);
-
-                        return (
-                          <tr key={visit.visitid} className="border-t align-top">
-                            <td className="px-3 py-2">
-                              <p className="font-medium">{department?.name ?? "Unknown"}</p>
-                              <p className="text-xs text-muted-foreground">
-                                {department?.code ?? "No code"}
-                              </p>
-                            </td>
-                            <td className="px-3 py-2 text-muted-foreground">
-                              {visit.queuenumber ?? "Not assigned"}
-                            </td>
-                            <td className="px-3 py-2">
-                              <StatusBadge
-                                label={visitStatus?.label ?? visitStatus?.code ?? "Unknown"}
-                                tone={caseStatusTone(visitStatus?.code ?? null)}
-                              />
-                            </td>
-                            <td className="px-3 py-2 text-muted-foreground">
-                              {formatTimestamp(visit.timepending)}
-                            </td>
-                            <td className="px-3 py-2 text-muted-foreground">
-                              {formatTimestamp(visit.timestarted)}
-                            </td>
-                            <td className="px-3 py-2 text-muted-foreground">
-                              {formatTimestamp(visit.timecompleted)}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+                  <DataTable
+                    columns={visitSummaryColumns}
+                    rows={panelVisits}
+                    rowKey={(visit) => visit.visitid}
+                    rowClassName="align-top"
+                    caption="Department visit summary"
+                  />
                 </div>
               )}
             </section>
