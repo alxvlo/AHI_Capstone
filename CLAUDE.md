@@ -81,6 +81,25 @@ template/signature requirements) and deployment authorization.
 If a change affects workflow, auth, or system design, update the relevant `memory-bank/` doc in the
 same task.
 
+## Agent skills
+
+Per-repo configuration for the `mattpocock-skills` engineering skills.
+
+### Issue tracker
+
+In-repo Markdown — `memory-bank/` and `DEVELOPMENT-PLAN.md`, no external board.
+See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+The five default roles, written as a `Triage:` field on the item rather than as
+tracker labels. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context. `memory-bank/decisions.md` fills the ADR role; there is no
+`docs/adr/`. See `docs/agents/domain.md`.
+
 ## Notes
 
 - Historical docs use `SCRUM-NN` identifiers from the project's former Jira board. They are an
