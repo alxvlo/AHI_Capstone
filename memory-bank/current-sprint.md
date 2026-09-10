@@ -98,8 +98,18 @@ Local verification on 2026-08-22 (`npm run qa:local` at `d47e19b`):
 | `npm run test:run` | PASS | 272 passed / 0 skipped across 51 files, 23s. Integration tests under `tests/integration/**` are excluded from the unit run since `eba9b64`, which is why the old "22 skipped" line no longer appears. |
 
 No Supabase linked commands, migrations, seed scripts, cleanup scripts, or Auth email flows were
-run during this reconciliation. `qa:supabase` and Playwright E2E have not been re-run since the
-2026-05-20 baseline — that gap is unchecked, not green.
+run during this reconciliation. `qa:supabase` and Playwright E2E had not been re-run since the
+2026-05-20 baseline as of this reconciliation.
+
+**Measured 2026-09-10 (Gate 0 of the system verification campaign,
+`memory-bank/qa-runs/2026-09-10-gate-0-baseline.md`).** Of `qa:supabase`'s four chained groups,
+the two role-audit groups (`audit:roles:all`, `audit:auth:logs`) and the write-policy group
+(`audit:write:all`) behave as designed — they can and do produce real pass/fail verdicts. The
+auth end-to-end group (`audit:auth:e2e`) cannot: it asserts nothing and always exits 0 given valid
+credentials, so it can never fail the chain (**D-023**). Separately, the Playwright E2E suite
+(`npm run test:e2e`) cannot execute at all — every project fails at `browserType.launch` before
+any test runs, and no documented setup path installs browsers (**D-024**) — which blocks the
+Gate 2 ten-journey entry plan until resolved.
 
 **`qa:local` re-run 2026-09-07** on local `main` at `8dc1dfc` (post-merge): lint 0 errors + 2
 warnings (`lib/supabase/client.ts:7` as above, plus `scripts/supabase/seed-demo-data.mjs:125`),
