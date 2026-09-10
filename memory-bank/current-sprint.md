@@ -399,6 +399,16 @@ on the local stack: the pre-change seeder failed under it at `DEMO-0004`, the cu
 all 14 cases. The trigger was dropped; no migration was added. D-017 stays `OPEN` — writing the
 real constraint is what remains.
 
+**Demo seeder now produces reachable case states (2026-09-09/10).** It previously wrote no
+`triage_assessment` and no `result_item` rows at all, so every case beyond `REGISTERED` was a state
+the workflow cannot reach. It now writes vitals for the 11 cases past `REGISTERED`, and 150 result
+rows covering every required test of all 14 `COMPLETED` visits — checked the way the application
+checks it, required test ids minus encoded test ids empty for every completed visit. All 150 values
+pass the app's own `validateTestValue`, and every `isabnormal` flag agrees with its `isAbnormal`.
+Abnormal readings are confined to the case the physician marked `FIT_WITH_RESTRICTIONS`. Spec and
+acceptance criteria in
+`docs/superpowers/specs/2026-09-09-demo-seeder-clinical-fidelity-design.md`.
+
 **D-019 logged 2026-09-09 (P1, new).** Scoping the demo-seeder work surfaced a reference-data
 defect unrelated to the seeder itself. A case's visits are created from `package_department`;
 the visit-completion gate reads required tests from `package_test`. The two disagree for three of

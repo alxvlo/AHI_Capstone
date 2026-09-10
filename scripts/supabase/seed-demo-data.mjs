@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { buildDemoDataset, DEMO_PREFIX } from "./demo-data/dataset.mjs";
+import { buildCaseResults } from "./demo-data/results.mjs";
 import { assertWritableTarget } from "./target-guard.mjs";
 
 assertWritableTarget("seed-demo-data.mjs");
@@ -12,6 +13,10 @@ const PROBE_CLIENT_EMAIL = "probe.client.20260320@ahi.local";
 // triage_assessment.recorded_by references auth.users(id); user_account.userid
 // is that same id, so accountLink resolves it.
 const PROBE_TRIAGE_EMAIL = "probe.triage.20260320@ahi.local";
+// Results on a COMPLETED visit are seeded VERIFIED. The Department Staff probe
+// is scoped to LAB and the app restricts staff to their own department, while
+// an administrator may verify any (features/dashboard/staff/actions.ts:1325-1339).
+const PROBE_ADMIN_EMAIL = "probe.admin.20260320@ahi.local";
 
 if (!SUPABASE_URL || !SERVICE_ROLE_KEY) {
   console.error("Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY.");
@@ -62,6 +67,51 @@ async function accountLink(email) {
   return q.data;
 }
 
+// "Male"/"Female" as stored on patient, to the M/F code isAbnormal expects
+// (features/dashboard/staff/actions.ts:1175-1180).
+function toSexCode(sex) {
+  if (sex === "Male") return "M";
+  if (sex === "Female") return "F";
+  return null;
+}
+
+async function requiredTestsByDepartment(packageId, deptIds) {
+  const q = await admin
+    .from("package_test")
+    .select(
+      "testid, displayorder, test_catalog!inner(testid, testname, valuetype, defaultunit, " +
+        "defaultref, refmin, refmax, refmin_male, refmax_male, refmin_female, refmax_female, " +
+        "validvalues, isactive, departmentid)"
+    )
+    .eq("packageid", packageId)
+    .eq("isrequired", true)
+    .eq("test_catalog.isactive", true);
+
+  if (q.error) {
+    throw new Error(`Could not read package tests: ${q.error.message}`);
+  }
+
+  const codeByDeptId = Object.fromEntries(Object.entries(deptIds).map(([c, id]) => [id, c]));
+  const grouped = {};
+
+  for (const row of q.data ?? []) {
+    const test = Array.isArray(row.test_catalog) ? row.test_catalog[0] : row.test_catalog;
+    const code = codeByDeptId[test.departmentid];
+    // Departments outside the seeded visit set are skipped. Package 1 lists
+    // required tests for four such departments — that mismatch is D-019, and
+    // it is reference data, not something the seeder should paper over.
+    if (!code) continue;
+    (grouped[code] ??= []).push({ ...test, displayorder: row.displayorder ?? 0 });
+  }
+
+  // Deterministic order, so repeated seeds insert the same rows in the same
+  // sequence.
+  for (const code of Object.keys(grouped)) {
+    grouped[code].sort((a, b) => a.displayorder - b.displayorder || a.testid - b.testid);
+  }
+  return grouped;
+}
+
 async function seed() {
   const existing = await admin
     .from("peme_case")
@@ -79,11 +129,12 @@ async function seed() {
     process.exit(1);
   }
 
-  const [patientAcct, physicianAcct, clientAcct, triageAcct] = await Promise.all([
+  const [patientAcct, physicianAcct, clientAcct, triageAcct, adminAcct] = await Promise.all([
     accountLink(PROBE_PATIENT_EMAIL),
     accountLink(PROBE_PHYSICIAN_EMAIL),
     accountLink(PROBE_CLIENT_EMAIL),
     accountLink(PROBE_TRIAGE_EMAIL),
+    accountLink(PROBE_ADMIN_EMAIL),
   ]);
 
   if (!patientAcct.patientid) {
@@ -127,6 +178,25 @@ async function seed() {
     )
   );
 
+  // Required tests for this package, grouped by the department that runs them.
+  // Only the departments the seeder actually creates visits for are needed.
+  const testsByDepartment = await requiredTestsByDepartment(
+    packageRow.data.packageid,
+    deptIds
+  );
+
+  // Case 13 belongs to the probe patient, whose sex the pure generator cannot
+  // know. Hemoglobin and Hematocrit resolve against it.
+  const probePatient = await admin
+    .from("patient")
+    .select("sex")
+    .eq("patientid", patientAcct.patientid)
+    .maybeSingle();
+  if (probePatient.error) {
+    throw new Error(`Could not read probe patient sex: ${probePatient.error.message}`);
+  }
+  const probePatientSex = toSexCode(probePatient.data?.sex);
+
   const insertedPatients = await admin
     .from("patient")
     .insert(patients.map(({ key, ...row }) => row))
@@ -134,6 +204,7 @@ async function seed() {
   if (insertedPatients.error) {
     throw new Error(`Patient insert failed: ${insertedPatients.error.message}`);
   }
+  const patientSexByKey = Object.fromEntries(patients.map((p) => [p.key, p.sex]));
   const patientIdByKey = Object.fromEntries(
     patients.map((p) => [
       p.key,
@@ -141,9 +212,12 @@ async function seed() {
     ])
   );
 
-  const summary = { patients: insertedPatients.data.length, cases: 0, vitals: 0, visits: 0, decisions: 0 };
+  const summary = {
+    patients: insertedPatients.data.length,
+    cases: 0, vitals: 0, visits: 0, results: 0, decisions: 0,
+  };
 
-  for (const demoCase of cases) {
+  for (const [caseIndex, demoCase] of cases.entries()) {
     const insertedCase = await admin
       .from("peme_case")
       .insert({
@@ -217,20 +291,75 @@ async function seed() {
       }
     }
 
+    const visitIdByDepartment = {};
+
     for (const visit of demoCase.visits) {
-      const insertedVisit = await admin.from("department_visit").insert({
-        caseid,
-        departmentid: deptIds[visit.departmentcode],
-        visitstatuscodeid: visitStatusIds[visit.statuscode],
-        timepending: new Date().toISOString(),
-        timecompleted: visit.statuscode === "COMPLETED" ? new Date().toISOString() : null,
-      });
+      const insertedVisit = await admin
+        .from("department_visit")
+        .insert({
+          caseid,
+          departmentid: deptIds[visit.departmentcode],
+          visitstatuscodeid: visitStatusIds[visit.statuscode],
+          timepending: new Date().toISOString(),
+          timecompleted: visit.statuscode === "COMPLETED" ? new Date().toISOString() : null,
+        })
+        .select("visitid")
+        .single();
       if (insertedVisit.error) {
         throw new Error(
           `Visit ${visit.departmentcode} on ${demoCase.casenumber} failed: ${insertedVisit.error.message}`
         );
       }
+      visitIdByDepartment[visit.departmentcode] = insertedVisit.data.visitid;
       summary.visits += 1;
+    }
+
+    // Results for the COMPLETED visits. The generator emits rows only for
+    // those, so a PENDING or IN_PROGRESS visit cannot pick one up here.
+    const patientSex = demoCase.useProbePatient
+      ? probePatientSex
+      : toSexCode(patientSexByKey[demoCase.patientKey]);
+
+    const resultRows = buildCaseResults({
+      demoCase,
+      caseIndex,
+      patientSex,
+      testsByDepartment,
+    });
+
+    for (const row of resultRows) {
+      const visitid = visitIdByDepartment[row.departmentcode];
+      if (!visitid) {
+        throw new Error(
+          `Result for ${row.testname} on ${demoCase.casenumber} has no ${row.departmentcode} visit.`
+        );
+      }
+
+      const insertedResult = await admin.from("result_item").insert({
+        visitid,
+        caseid,
+        departmentid: deptIds[row.departmentcode],
+        testid: row.testid,
+        testname: row.testname,
+        value: row.value,
+        unit: row.unit,
+        referencerange: row.referencerange,
+        isabnormal: row.isabnormal,
+        // A department would not complete a visit leaving its results
+        // unverified, so seeded results arrive verified.
+        verificationstatus: "VERIFIED",
+        verifiedbyuserid: adminAcct.userid,
+        verifiedat: new Date().toISOString(),
+        is_additional_test: false,
+        additional_test_remark: null,
+      });
+
+      if (insertedResult.error) {
+        throw new Error(
+          `Result ${row.testname} on ${demoCase.casenumber} failed: ${insertedResult.error.message}`
+        );
+      }
+      summary.results += 1;
     }
 
     if (demoCase.decision) {
