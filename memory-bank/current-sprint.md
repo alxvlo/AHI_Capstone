@@ -419,6 +419,23 @@ Abnormal readings are confined to the case the physician marked `FIT_WITH_RESTRI
 acceptance criteria in
 `docs/superpowers/specs/2026-09-09-demo-seeder-clinical-fidelity-design.md`.
 
+**D-008 FIXED 2026-09-10.** Government-ID uniqueness compared raw strings, and the storage helper
+stripped whitespace but not hyphens or slashes while the validator happily accepted hyphenated SSS,
+PhilHealth, UMID and National ID numbers. Reproduced against the local stack: `SSS::0102030405` and
+`SSS::01-02-03-04-05` both inserted, two patient records for one person. That is one receptionist
+and one self-registering patient punctuating the same number differently, not an edge case.
+
+`supabase/migrations/20260910000003_govid_canonical_unique.sql` adds `canonical_government_id()` and
+a unique index over it; `lib/government-id.ts` now strips punctuation too. No stored value was
+rewritten — `governmentid` is patient-identifying data and the defect's own criteria forbid a silent
+migration of it, so the index canonicalises for comparison only. `npm run audit:govid-formats`
+reports legacy rows that may duplicate typed ones, without merging them: a legacy row records no ID
+type, and the type is part of the identifier.
+
+The original criterion 1 was revised before any fix. It described registering a patient under the
+legacy plain-string convention, which no application path can do — both writers go through
+`buildGovernmentIdForStorage`, which always emits `TYPE::NUMBER`.
+
 **D-015 and D-016 FIXED, D-021 logged, 2026-09-10.** Both were silent truncation of text a
 clinician had typed. The decision-remarks field carried no limit and the server sliced it to 255,
 on a field required for UNFIT and FIT_WITH_RESTRICTIONS. The additional-tests reason advertised 255

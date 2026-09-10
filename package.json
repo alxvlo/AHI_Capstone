@@ -32,6 +32,7 @@
     "audit:roles:smoke:all": "node scripts/supabase/run-role-redirect-audit-local.mjs scripts/supabase/audit-role-smoke-all-roles.mjs",
     "audit:roles:all": "npm run audit:roles:redirect && npm run audit:roles:protected:all && npm run audit:roles:smoke:all",
     "audit:roles:deptstaff:noclaim": "node scripts/supabase/run-role-redirect-audit-local.mjs scripts/supabase/audit-department-staff-missing-claim.mjs",
+    "audit:govid-formats": "node --env-file=.env.local scripts/supabase/audit-government-id-formats.mjs",
     "audit:write-policies": "node --env-file=.env.local scripts/supabase/validate-write-policy-baseline.mjs",
     "audit:write:workflow": "node --env-file=.env.local scripts/supabase/validate-workflow-write-matrix.mjs",
     "audit:write:all": "npm run audit:write-policies && npm run audit:write:workflow",
