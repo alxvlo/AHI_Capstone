@@ -157,7 +157,7 @@
 
 **Issue encountered:** Patient account `avellanedakeithalfred@gmail.cin` had been created during live signup with an unknown password (not the standard probe password). Standard sign-in failed; the app redirected back to sign-in silently.
 
-**Fix applied:** Reset password via Supabase SQL using `crypt('AhiProbe!2026', gen_salt('bf'))`.
+**Fix applied:** Reset password via Supabase SQL using `crypt('<redacted 2026-09-10 — value rotated; see .env.local>', gen_salt('bf'))`.
 
 **Also active:** BUG-01 — patient portal sign-in does not auto-redirect to `/dashboard/patient` after successful auth. Navigated manually.
 
@@ -216,7 +216,7 @@
 | Confirm `peme_decision` FIT row | PASS — row present with `decision = 'FIT'` |
 | Confirm case RELEASED + `portalvisible = true` | PASS |
 | Confirm result_item rows (3) for the case | PASS — FBS, Urine Color, Chest PA all present |
-| Patient password reset | APPLIED — `crypt('AhiProbe!2026', gen_salt('bf'))` on patient email |
+| Patient password reset | APPLIED — `crypt('<redacted 2026-09-10 — value rotated; see .env.local>', gen_salt('bf'))` on patient email |
 | XRAY dept staff `raw_app_meta_data` patch + restore | APPLIED and RESTORED |
 
 ---
@@ -265,3 +265,8 @@
 ---
 
 *Report generated: 2026-05-22 | QA mode: Autonomous E2E lifecycle | Boundary: UI-only writes (with user-approved data mutations for setup/cleanup)*
+
+> **2026-09-10 — credential redacted.** This document previously contained the live
+> `AHI_PROBE_PASSWORD` value in plaintext. The credential was rotated on 2026-09-10 and the
+> literal replaced. The value remains present in this repository's git history; removing it
+> from history is a separate decision. Never paste a credential into a tracked document.

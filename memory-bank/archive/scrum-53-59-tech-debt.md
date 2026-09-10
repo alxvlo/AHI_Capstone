@@ -26,7 +26,7 @@ Systematic cleanup of tech debt items identified in Jira (SCRUM-53 to 59).
 ## 2. Probe Credentials Hardening (Security/Backend)
 
 ### `scripts/supabase/*.mjs` tests
-- **Remove `AhiProbe!2026` (SCRUM-55):** Strip the hardcoded string from audit logs and workflow matrix tests (such as `audit-role-smoke-all-roles.mjs` and `validate-auth-audit-events.mjs`). Replace them with `process.env.AHI_PROBE_PASSWORD` (which already exists in `.env.example`).
+- **Remove `<redacted 2026-09-10 — value rotated; see .env.local>` (SCRUM-55):** Strip the hardcoded string from audit logs and workflow matrix tests (such as `audit-role-smoke-all-roles.mjs` and `validate-auth-audit-events.mjs`). Replace them with `process.env.AHI_PROBE_PASSWORD` (which already exists in `.env.example`).
 
 ### `scripts/supabase/bootstrap-role-probe-users.sql`
 - **Dynamic Password (SCRUM-55):** Convert this hardcoded SQL script into an equivalent `.mjs` Javascript script. By running this strictly through Node using the `@supabase/supabase-js` service role client, we can securely read `process.env.AHI_PROBE_PASSWORD` from `.env.local` directly, completely eliminating cleartext passwords from being committed into the GitHub repository.
@@ -46,3 +46,8 @@ Systematic cleanup of tech debt items identified in Jira (SCRUM-53 to 59).
 
 ### `app/auth/patient/update-password/page.tsx` (NEW)
 - **Recovery UI (SCRUM-53):** Create the secure route where Supabase will redirect the user back to complete the password reset entry via `supabase.auth.updateUser`.
+
+> **2026-09-10 — credential redacted.** This document previously contained the live
+> `AHI_PROBE_PASSWORD` value in plaintext. The credential was rotated on 2026-09-10 and the
+> literal replaced. The value remains present in this repository's git history; removing it
+> from history is a separate decision. Never paste a credential into a tracked document.

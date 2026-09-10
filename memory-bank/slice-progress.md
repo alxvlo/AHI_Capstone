@@ -862,7 +862,7 @@ change needing its own accessibility test pass.
 **What was done:**
 - **SCRUM-53:** Forgot password flow — `app/auth/patient/forgot-password/page.tsx` and `update-password/page.tsx` created; `resetPassword` method added to `AuthContext`; "Forgot Password?" link added to patient sign-in page.
 - **SCRUM-54:** Edge middleware rate limiter (`applyAuthRateLimit`) added to `lib/supabase/middleware.ts` covering `/auth/*` endpoints; in-memory IP tracker blocks abusive request volume.
-- **SCRUM-55:** Hardcoded `AhiProbe!2026` credential string removed from probe scripts; replaced with `process.env.AHI_PROBE_PASSWORD`; `bootstrap-role-probe-users.sql` converted to `bootstrap-role-probe-users.mjs` to read credentials from `.env.local` at runtime.
+- **SCRUM-55:** Hardcoded `<redacted 2026-09-10 — value rotated; see .env.local>` credential string removed from probe scripts; replaced with `process.env.AHI_PROBE_PASSWORD`; `bootstrap-role-probe-users.sql` converted to `bootstrap-role-probe-users.mjs` to read credentials from `.env.local` at runtime.
 - **SCRUM-56:** Session auto-timeout (`SESSION_TIMEOUT_MS = 15 * 60 * 1000`) added to `components/providers/auth-provider.tsx` via `mousemove`, `keydown`, `touchstart` inactivity listeners.
 - **SCRUM-57:** CI/CD pipeline — `.github/workflows/qa.yml` confirmed present and correct; no additional work required.
 - **SCRUM-58:** Prettier code formatting — marked Done in Jira; no `.prettierrc` file found in repo as of 2026-04-25 (may have been intentionally skipped per prior team consensus documented in the original tech debt plan).
@@ -907,3 +907,8 @@ Next active sequence:
 2. Deferred Sprint 09 queue: `SCRUM-36`, `SCRUM-37`, `SCRUM-38`
 
 See [DEVELOPMENT-PLAN.md - Phase 2](../DEVELOPMENT-PLAN.md#6-phase-2--external-portals-slices-910) for details.
+
+> **2026-09-10 — credential redacted.** This document previously contained the live
+> `AHI_PROBE_PASSWORD` value in plaintext. The credential was rotated on 2026-09-10 and the
+> literal replaced. The value remains present in this repository's git history; removing it
+> from history is a separate decision. Never paste a credential into a tracked document.
