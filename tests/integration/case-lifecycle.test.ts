@@ -315,7 +315,9 @@ describe("PEME case lifecycle — SCRUM-31", () => {
       return;
     }
 
-    const { data: rpcResult, error: rpcError } = await ctx.svc.rpc(
+    // Reception/Billing is one of the two roles bootstrap_peme_case admits; the
+    // service-role client carries no role claim, so it is refused (D-022).
+    const { data: rpcResult, error: rpcError } = await ctx.receptionClient.rpc(
       "bootstrap_peme_case",
       {
         p_patientid: ctx.patientId,
@@ -325,6 +327,8 @@ describe("PEME case lifecycle — SCRUM-31", () => {
         p_rush: false,
         p_waiver: true,
         p_remarks: `${ctx.runPrefix} lifecycle test`,
+        // Ignored by the function since the D-003 fix: it forces the audit actor
+        // to auth.uid(). Left in place to keep exercising that the value is ignored.
         p_created_by: ctx.physicianUserId,
       }
     );
