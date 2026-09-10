@@ -358,3 +358,106 @@ describe("submitPhysicianDecisionAction — existing-decision UPDATE path", () =
     expect(auditCollector.inserts[0].actiontype).toBe("PHYSICIAN_DECISION_SUBMITTED");
   });
 });
+
+// ---------------------------------------------------------------------------
+// D-015: remarks longer than the column silently lost their tail.
+//
+// The field is required for UNFIT and FIT_WITH_RESTRICTIONS, so what was being
+// discarded is the physician's clinical justification. Full stubs on purpose:
+// the action must be able to reach its write, so a failure here is the missing
+// rejection rather than a crash on an empty stub.
+// ---------------------------------------------------------------------------
+function makeCapturingDecisionStub() {
+  const writes: Array<Record<string, unknown>> = [];
+  let isWrite = false;
+  const chain: Record<string, unknown> = {};
+  chain.select = () => chain;
+  chain.insert = (row: Record<string, unknown>) => {
+    isWrite = true;
+    writes.push(row);
+    return chain;
+  };
+  chain.update = (row: Record<string, unknown>) => {
+    isWrite = true;
+    writes.push(row);
+    return chain;
+  };
+  chain.eq = () => chain;
+  chain.maybeSingle = async () =>
+    isWrite ? { data: { decisionid: 101 }, error: null } : { data: null, error: null };
+  return { chain, writes };
+}
+
+function makeDecisionSupabase(decisionChain: unknown, auditCollector: ReturnType<typeof makeAuditCollector>) {
+  const statusCodeStub = makeStatusCodeStub();
+  const pemeCaseStub = makePemeCaseStub(
+    { data: { caseid: CASE_ID, casenumber: "AHI-D015", casestatuscodeid: 4 }, error: null },
+    { data: { caseid: CASE_ID }, error: null }
+  );
+  return {
+    from: (table: string) => {
+      if (table === "status_code") return statusCodeStub;
+      if (table === "peme_case") return pemeCaseStub;
+      if (table === "peme_decision") return decisionChain;
+      if (table === "audit_log") {
+        return {
+          insert: (row: Parameters<typeof auditCollector.handler>[0]) =>
+            auditCollector.handler(row),
+        };
+      }
+      return {};
+    },
+  };
+}
+
+describe("submitPhysicianDecisionAction — over-length remarks (D-015)", () => {
+  it("rejects remarks longer than the column instead of silently truncating them", async () => {
+    const { REMARKS_MAX_LENGTH } = await import("@/features/dashboard/staff/remarks-limits");
+    const auditCollector = makeAuditCollector();
+    const { chain, writes } = makeCapturingDecisionStub();
+    const { redirectCalls } = setupMocks("Physician", makeDecisionSupabase(chain, auditCollector));
+
+    const { submitPhysicianDecisionAction } = await import(
+      "@/features/dashboard/staff/actions"
+    );
+
+    const tooLong = "A".repeat(REMARKS_MAX_LENGTH + 1);
+    const formData = makeFormData({ ...VALID, fitnessStatus: "UNFIT", remarks: tooLong });
+
+    await expect(submitPhysicianDecisionAction(formData)).rejects.toThrow("NEXT_REDIRECT");
+
+    expect(redirectCalls).toHaveLength(1);
+    const url = new URL(redirectCalls[0], "http://localhost");
+    const message = url.searchParams.get("error") ?? "";
+
+    expect(message, "over-length remarks must be refused, not trimmed").toContain(
+      String(REMARKS_MAX_LENGTH)
+    );
+    // Assert the negatives: nothing may be written, and no success reported.
+    expect(writes, "no decision row may be written for a rejected submission").toEqual([]);
+    expect(auditCollector.inserts).toEqual([]);
+    expect(url.searchParams.get("notice")).toBeNull();
+  });
+
+  it("saves remarks at exactly the limit unmodified — regression guard", async () => {
+    const { REMARKS_MAX_LENGTH } = await import("@/features/dashboard/staff/remarks-limits");
+    const auditCollector = makeAuditCollector();
+    const { chain, writes } = makeCapturingDecisionStub();
+    const { redirectCalls } = setupMocks("Physician", makeDecisionSupabase(chain, auditCollector));
+
+    const { submitPhysicianDecisionAction } = await import(
+      "@/features/dashboard/staff/actions"
+    );
+
+    const exact = "B".repeat(REMARKS_MAX_LENGTH);
+    const formData = makeFormData({ ...VALID, fitnessStatus: "UNFIT", remarks: exact });
+
+    await expect(submitPhysicianDecisionAction(formData)).rejects.toThrow("NEXT_REDIRECT");
+
+    const url = new URL(redirectCalls[0], "http://localhost");
+    expect(url.searchParams.get("error")).toBeNull();
+    expect(writes).toHaveLength(1);
+    expect(writes[0].remarks).toBe(exact);
+    expect(String(writes[0].remarks)).toHaveLength(REMARKS_MAX_LENGTH);
+  });
+});

@@ -42,6 +42,11 @@ import {
   parseOptionalPositiveInt,
 } from "@/lib/dashboard/action-redirect";
 import { triageCompletionRejectionReason } from "./triage-completion-precondition";
+import {
+  ADDITIONAL_TEST_REASON_MAX_LENGTH,
+  ADDITIONAL_TEST_REMARK_PREFIX,
+  REMARKS_MAX_LENGTH,
+} from "./remarks-limits";
 
 const STAFF_DASHBOARD_PATH = "/dashboard/staff";
 const SUPPORTED_GOVERNMENT_ID_TYPES = new Set<string>(GOVERNMENT_ID_TYPES);
@@ -1362,7 +1367,9 @@ export async function verifyResultItemAction(formData: FormData) {
 export async function requestAdditionalTestsAction(formData: FormData) {
   const returnPath = normalizeReturnPath(normalizeText(formData.get("returnPath")));
   const caseId = normalizeText(formData.get("caseId"));
-  const reason = normalizeText(formData.get("reason")).slice(0, 255);
+  // D-016: not sliced. The prefix added below spends the same 255 characters,
+  // so slicing here hid a second truncation behind the form's visible limit.
+  const reason = normalizeText(formData.get("reason"));
   const departmentIds = parseDepartmentIdsFromForm(formData);
 
   if (!caseId || !isUuid(caseId)) {
@@ -1371,6 +1378,16 @@ export async function requestAdditionalTestsAction(formData: FormData) {
 
   if (!reason) {
     redirectWithError(returnPath, "Reason is required when requesting additional tests.");
+  }
+
+  // D-016: the budget is what the column leaves once the prefix is added, and
+  // the form advertises the same number.
+  if (reason.length > ADDITIONAL_TEST_REASON_MAX_LENGTH) {
+    redirectWithError(
+      returnPath,
+      `The reason must be ${ADDITIONAL_TEST_REASON_MAX_LENGTH} characters or fewer — yours is ` +
+        `${reason.length}. Nothing was queued; shorten the reason and submit again.`
+    );
   }
 
   if (departmentIds.length === 0) {
@@ -1491,7 +1508,7 @@ export async function requestAdditionalTestsAction(formData: FormData) {
     departmentid: departmentId,
     visitstatuscodeid: pendingVisitStatusId,
     timepending: queuedAt,
-    remarks: `Additional test requested: ${reason}`.slice(0, 255),
+    remarks: `${ADDITIONAL_TEST_REMARK_PREFIX}${reason}`,
   }));
 
   const { error: visitInsertError } = await supabase.from("department_visit").insert(visitRows);
@@ -1556,7 +1573,10 @@ export async function submitPhysicianDecisionAction(formData: FormData) {
   const returnPath = normalizeReturnPath(normalizeText(formData.get("returnPath")));
   const caseId = normalizeText(formData.get("caseId"));
   const fitnessStatus = normalizeText(formData.get("fitnessStatus")).toUpperCase();
-  const remarks = normalizeText(formData.get("remarks")).slice(0, 255);
+  // D-015: not sliced. Truncating here discarded clinical justification the
+  // physician had already typed, on a field that is required for UNFIT and
+  // FIT_WITH_RESTRICTIONS, with nothing telling them it happened.
+  const remarks = normalizeText(formData.get("remarks"));
 
   if (!caseId || !isUuid(caseId)) {
     redirectWithError(returnPath, "Invalid case selected for physician decision.");
@@ -1570,6 +1590,17 @@ export async function submitPhysicianDecisionAction(formData: FormData) {
     redirectWithError(
       returnPath,
       "Remarks are required when the decision is UNFIT or FIT_WITH_RESTRICTIONS."
+    );
+  }
+
+  // D-015: refuse rather than trim. The form enforces the same limit, so this
+  // only fires for a submission that bypassed it — and a bypass must not cost
+  // the physician their text silently.
+  if (remarks.length > REMARKS_MAX_LENGTH) {
+    redirectWithError(
+      returnPath,
+      `Decision remarks must be ${REMARKS_MAX_LENGTH} characters or fewer — yours is ` +
+        `${remarks.length}. Nothing was saved; shorten the remarks and submit again.`
     );
   }
 

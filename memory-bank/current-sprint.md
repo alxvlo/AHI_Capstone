@@ -419,6 +419,24 @@ Abnormal readings are confined to the case the physician marked `FIT_WITH_RESTRI
 acceptance criteria in
 `docs/superpowers/specs/2026-09-09-demo-seeder-clinical-fidelity-design.md`.
 
+**D-015 and D-016 FIXED, D-021 logged, 2026-09-10.** Both were silent truncation of text a
+clinician had typed. The decision-remarks field carried no limit and the server sliced it to 255,
+on a field required for UNFIT and FIT_WITH_RESTRICTIONS. The additional-tests reason advertised 255
+but the server prefixed 27 characters before applying the same limit, so a reason near the visible
+maximum lost its tail in what Department Staff read.
+
+`features/dashboard/staff/remarks-limits.ts` now holds the column width and derives the reason
+budget from it, so the advertised limit and the persisted limit cannot drift apart again — a test
+asserts that arithmetic. A new `CountedTextarea` client component enforces the limit and shows the
+count while typing, and both actions refuse an over-length value rather than trimming it.
+
+Two corrections to the record while fixing these. The prefix is 27 characters, not the 28 D-016's
+entry stated, so the real reason budget is 228. And `.slice(0, 255)` on remarks appears at four
+sites, not one; only the physician-decision site was in D-015's scope. The other three are logged
+as **D-021 (P2)** rather than folded in — they are optional notes rather than required clinical
+justification, and widening the fix past its written criteria is how criteria stop meaning
+anything.
+
 **D-011 FIXED 2026-09-10.** `rls_case_visible_to_current_user`'s Physician branch admitted a
 `PENDING_ADDITIONAL_TESTS` case only when a `peme_decision` row existed for that physician, but
 `requestAdditionalTestsAction` never writes one. Requesting additional tests therefore hid the case
