@@ -225,3 +225,97 @@ describe("requestAdditionalTestsAction", () => {
     expect((err as Error).message).toMatch(/error=/);
   });
 });
+
+// ---------------------------------------------------------------------------
+// D-016: the form advertised a 255-character reason, but the server prefixes
+// "Additional test requested: " before applying the same 255-character limit,
+// so a reason typed near the visible maximum lost its tail in what Department
+// Staff actually read. The visible limit and the persisted limit must come
+// from the same number.
+// ---------------------------------------------------------------------------
+function setupRequestScenario() {
+  const statusCodes = makeStatusCodeMap();
+  const supa = makeSupabaseMock(statusCodes);
+  mockPhysicianContext(supa);
+
+  supa.client.from("peme_case");
+  const pcStub = supa.tableStubs.get("peme_case")!;
+  pcStub.maybeSingle = vi.fn().mockResolvedValue({
+    data: {
+      caseid: VALID_CASE_UUID,
+      casenumber: "AHI-D016",
+      casestatuscodeid: statusCodes.get("CASE.FOR_DECISION")!,
+    },
+    error: null,
+  });
+
+  supa.client.from("department");
+  const deptStub = supa.tableStubs.get("department")!;
+  deptStub.select = vi.fn().mockReturnValue({
+    in: vi.fn().mockReturnValue({
+      eq: vi.fn().mockResolvedValue({
+        data: [{ departmentid: 3, code: "RAD", name: "Radiology" }],
+        error: null,
+      }),
+    }),
+  });
+
+  supa.client.from("department_visit");
+  const dvStub = supa.tableStubs.get("department_visit")!;
+  dvStub.select = vi.fn().mockReturnValue({
+    eq: vi.fn().mockReturnValue({
+      in: vi.fn().mockReturnValue({
+        neq: vi.fn().mockReturnValue({
+          neq: vi.fn().mockResolvedValue({ data: [], error: null }),
+        }),
+      }),
+    }),
+  });
+
+  return { supa, dvStub };
+}
+
+describe("requestAdditionalTestsAction — reason length (D-016)", () => {
+  it("persists a reason at the advertised limit without dropping its tail", async () => {
+    const { ADDITIONAL_TEST_REASON_MAX_LENGTH, ADDITIONAL_TEST_REMARK_PREFIX, REMARKS_MAX_LENGTH } =
+      await import("@/features/dashboard/staff/remarks-limits");
+
+    const { dvStub } = setupRequestScenario();
+    const reason = "R".repeat(ADDITIONAL_TEST_REASON_MAX_LENGTH);
+
+    await expect(
+      requestAdditionalTestsAction(buildFormData({ reason, departmentIds: ["3"] }))
+    ).rejects.toThrow(/__REDIRECT__/);
+
+    const payload = (dvStub.insert as ReturnType<typeof vi.fn>).mock.calls[0]?.[0];
+    expect(payload).toHaveLength(1);
+
+    const stored = String(payload[0].remarks);
+    // The physician's text must survive whole — this is the defect.
+    expect(stored.endsWith(reason), "the reason lost characters the form did not warn about").toBe(
+      true
+    );
+    expect(stored).toBe(`${ADDITIONAL_TEST_REMARK_PREFIX}${reason}`);
+    // And the result must still fit the column it is going into.
+    expect(stored.length).toBeLessThanOrEqual(REMARKS_MAX_LENGTH);
+  });
+
+  it("refuses a reason longer than the budget the prefix leaves", async () => {
+    const { ADDITIONAL_TEST_REASON_MAX_LENGTH } = await import(
+      "@/features/dashboard/staff/remarks-limits"
+    );
+
+    const { dvStub } = setupRequestScenario();
+    const reason = "R".repeat(ADDITIONAL_TEST_REASON_MAX_LENGTH + 1);
+
+    await expect(
+      requestAdditionalTestsAction(buildFormData({ reason, departmentIds: ["3"] }))
+    ).rejects.toThrow(/__REDIRECT__/);
+
+    // Assert the negative: nothing may be queued for a rejected request.
+    expect(
+      (dvStub.insert as ReturnType<typeof vi.fn>).mock.calls,
+      "no visit may be queued when the reason is refused"
+    ).toHaveLength(0);
+  });
+});

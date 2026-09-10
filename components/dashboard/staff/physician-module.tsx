@@ -1,4 +1,9 @@
 import Link from "next/link";
+import { CountedTextarea } from "@/components/dashboard/staff/counted-textarea";
+import {
+  ADDITIONAL_TEST_REASON_MAX_LENGTH,
+  REMARKS_MAX_LENGTH,
+} from "@/features/dashboard/staff/remarks-limits";
 import {
   requestAdditionalTestsAction,
   submitPhysicianDecisionAction,
@@ -12,7 +17,6 @@ import { StatusBadge } from "@/components/dashboard/shared/status-badge";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/native-select";
-import { Textarea } from "@/components/ui/textarea";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
   CaseRow,
@@ -486,11 +490,12 @@ export async function PhysicianModule({
                     <Label htmlFor="decisionRemarks">
                       Remarks (required for UNFIT and FIT_WITH_RESTRICTIONS)
                     </Label>
-                    <Textarea
+                    <CountedTextarea
                       id="decisionRemarks"
                       name="remarks"
                       defaultValue={existingDecision?.remarks ?? ""}
                       placeholder="Enter physician findings and decision rationale."
+                      maxLength={REMARKS_MAX_LENGTH}
                     />
                   </div>
 
@@ -545,12 +550,12 @@ export async function PhysicianModule({
 
                   <div className="space-y-2">
                     <Label htmlFor="additionalTestReason">Reason</Label>
-                    <Textarea
+                    <CountedTextarea
                       id="additionalTestReason"
                       name="reason"
                       placeholder="Explain why additional tests are required."
                       required
-                      maxLength={255}
+                      maxLength={ADDITIONAL_TEST_REASON_MAX_LENGTH}
                     />
                   </div>
 
