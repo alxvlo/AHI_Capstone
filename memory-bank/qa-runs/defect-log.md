@@ -27,6 +27,7 @@
 | D-016 | **P1** | `components/dashboard/staff/physician-module.tsx`; `features/dashboard/staff/actions.ts` | 528-536; 1476 | The additional-tests reason field has a real client-side `maxLength={255}` that genuinely blocks further typing (`components/dashboard/staff/physician-module.tsx:528-536`) — but the value actually persisted is a 28-character prefix plus the typed reason, re-sliced to 255 total: `` remarks: `Additional test requested: ${reason}`.slice(0, 255) `` (`features/dashboard/staff/actions.ts:1476`), against a `department_visit.remarks` column also `character varying(255)` (`memory-bank/database/schema.txt:43`). A reason typed near the visible 255-character limit can still lose roughly its last 28 characters in what a Department Staff member actually reads, with no signal this second truncation exists. Found by static code review — see `docs/superpowers/journeys/04-physician.md:294-301` and finding F-031 in `docs/superpowers/findings/register.md`. **Not reproduced against a live database:** doing so needs submitting an additional-tests request with a reason at or near 255 characters against a seeded case and confirming the persisted `department_visit.remarks` value is missing the expected trailing characters — a live write the audit's zero-write budget did not permit. | The prefix is concatenated with the user's text before the length limit is applied a second time, so the client-side `maxLength` on the raw reason text does not account for the prefix added server-side. | **OPEN — NOT REPRODUCED** | — |
 | D-017 | **P1** | `features/dashboard/staff/actions.ts` | 889-950 (role gate at 898) | `updateTriageCompletionAction` has no status precondition of any kind — it never checks whether the case is `REGISTERED`, `IN_PROGRESS`, or anything else before writing `casestatuscodeid: inProgressStatusId` and `triagecompletedtimestamp: new Date().toISOString()` (`features/dashboard/staff/actions.ts:889-950`), then an audit row saying `TRIAGE_COMPLETED`. Its role gate admits `Triage Nurse` alongside `System Administrator` (`features/dashboard/staff/actions.ts:898`) — the normal, intended role for triage completion, not an edge-case admin. No component anywhere binds it to a form, link, or handler; the only references outside this file are its own tests (`tests/features/dashboard/staff/triage-completion.test.ts:39-141`). A Next.js Server Action is directly callable by anyone who can reach it regardless of whether any page renders a UI trigger for it — the identical reasoning already logged as present-day for this same function's other consequence, D-012 ("No page renders it, but it remains a live Server Action"). Calling it against a `REGISTERED` case moves that case straight to `IN_PROGRESS` with **no `triage_assessment` row ever written**, skipping vitals entirely — exactly the "case admitted with no vitals" scenario the normal flow (`submitTriageAssessmentAction`, which inserts `triage_assessment` and transitions the case together, `features/dashboard/staff/actions.ts:757-887`) and the table's own `unique (caseid)` constraint (`supabase/migrations/20260411_triage_assessment.sql:25`) are built to prevent. Originally raised as finding F-022 in `docs/superpowers/findings/register.md` and excluded as a non-defect on the reasoning that the action is "unreachable from any UI today" and "no gap exists in the product as it stands" (`docs/superpowers/journeys/02-triage.md:158-166`) — that reasoning does not hold once a Server Action's reachability is understood independent of UI wiring, which is exactly what D-012's own justification for the same function already establishes. **Not reproduced against a live database:** doing so needs calling this Server Action directly (bypassing the UI, since no page renders it) against a seeded `REGISTERED` case as a Triage Nurse account and confirming the case reaches `IN_PROGRESS` with zero `triage_assessment` rows recorded for it — a live write the audit's zero-write budget did not permit. | `updateTriageCompletionAction` writes the case-status transition unconditionally, with no read of the case's current status and no check that a `triage_assessment` row exists for it, unlike `submitTriageAssessmentAction`, which performs both writes together. | **OPEN — NOT REPRODUCED** | — |
 | D-018 | **P2** | `features/dashboard/staff/actions.ts` | 987-993 | `updateTriageCompletionAction` reads the case's `casestatuscodeid` at its initial `select` (`features/dashboard/staff/actions.ts:957-961`), then performs two more awaited round-trips (the `triage_assessment` count and the rejection check), before finally updating with only `.eq("caseid", caseId)` (`features/dashboard/staff/actions.ts:987-993`) — no status predicate constrains the write to the status that was actually read. Between the check and the write, a concurrent release can land on the same case, and this update still applies and reverts it: the exact D-012 symptom, produced by a race rather than by a missing guard. The same check-then-write-with-no-status-predicate pattern appears in all nine status-writing actions in this file, so this is a class of defect, not a single site. | Check-then-write without an optimistic predicate: the status read at select time is never carried into the update's `WHERE`/`.eq()` clause, leaving a time-of-check-to-time-of-use gap between the read and the write. | **OPEN — NOT REPRODUCED** | — |
+| D-019 | **P1** | `supabase/migrations/20260330_seed_package_department.sql`; `supabase/migrations/20260514_seed_package_test.sql` | 11-41; 10-144 | Two reference tables define a package's scope and they disagree. `bootstrap_peme_case` creates a case's `department_visit` rows from `package_department` (`supabase/migrations/20260828_restore_bootstrap_role_gate.sql:108-116`), while the visit-completion gate reads a package's required tests from `package_test` (`features/dashboard/staff/actions.ts:1042-1071`, via `getRequiredTestIds` at `lib/test-catalog/queries.ts:28-43`). Verified against the local stack 2026-09-09: three of the five active packages list required tests in departments the package never routes a patient through — Basic PEME (Local) requires tests in AUD, DENTAL, ECG and PFT; Comprehensive Seafarer in UTZ; Food Handler Package in DENTAL and XRAY. Registration creates no `department_visit` row for those departments, so those required tests surface in no department queue and are never encoded — result encoding resolves its `visitid` from an existing `department_visit` row and aborts when none is found (`features/dashboard/staff/actions.ts:1129-1140`), so with no visit there is no route to encode them short of a physician separately requesting an additional-test visit for that department. The per-visit completion gate does not notice, because it only asks whether the required tests for that visit's own department are encoded. Every routed visit therefore completes, the case advances to FOR_DECISION, and the physician sees a case presented as complete while up to four of its package's required tests were never collected. The opposite direction — BILLING and RECEPTION visits carrying no catalog tests — is expected and not part of this defect: those are workflow stations, not testing departments. Separately, `package_department` is absent from `memory-bank/database/schema.txt`, the file `CLAUDE.md` names as the source of truth for DB types, as are `package_test`, `test_catalog` and `triage_assessment`. **Data state verified live; the workflow consequence is NOT reproduced** — confirming it end to end needs a case whose visits came from `bootstrap_peme_case`, so that the routing gap is present, driven to FOR_DECISION. The demo seeder does now produce FOR_DECISION cases carrying results, but it hardcodes its own department list rather than reading `package_department`, so its cases do not exhibit this defect and cannot be used to reproduce it. | `package_department` was authored 2026-03-29/30 as routing data (`supabase/migrations/20260329_create_package_dept_mapping.sql:44-65`). `package_test` was authored six weeks later, on 2026-05-14, from a separate plan document — its own header records department-code corrections (AUDIOMETRY to AUD, PSYCH to PHYS_EXAM, ULTRASOUND to UTZ), showing it was reconciled against the `department` table but never against each package's routing. Neither migration reads the other, no constraint relates them, and no test compares them. | **OPEN — DATA STATE VERIFIED, CONSEQUENCE NOT REPRODUCED** | — |
 
 ---
 
@@ -307,6 +308,13 @@ demo seeder creates no `triage_assessment` rows at all. Verified 2026-09-09: zer
 rows across 21 seeded cases. This is the same seeder blocker recorded under D-017, and it
 constrains D-012's criterion 2 in exactly the same way.
 
+**Seeder blocker cleared 2026-09-09.** `npm run demo:seed` now writes a `triage_assessment` row for
+every case it puts beyond `REGISTERED` — 11 of its 14. Confirmed against the local stack: the five
+`IN_PROGRESS`, two `FOR_DECISION`, two `FOR_RELEASING` and two `RELEASED` cases each carry exactly
+one vitals row and a non-null `triagecompletedtimestamp`; the three `REGISTERED` cases carry
+neither. Criterion 2 is therefore now exercisable live, and remains unexercised — this change
+supplies the fixture, it does not itself run the check.
+
 ### D-013 Acceptance Criteria (written 2026-09-06, before any fix)
 
 Must be true after the fix:
@@ -415,11 +423,22 @@ anywhere can move a case to `IN_PROGRESS` without a `triage_assessment` row — 
 from application code, since it must also hold for RLS-permitted direct writes and future paths.
 That needs a database constraint or trigger.
 
-It is blocked on a prerequisite. The demo seeder violates the invariant on every case it creates:
-verified 2026-09-09 on the local stack, 14 seeded cases carried **zero** `triage_assessment` rows,
-including five at `IN_PROGRESS` and two at `RELEASED`. A constraint added today would break
-`npm run demo:seed` and every demo, screenshot and walkthrough built on it. The seeder must first
-be corrected to produce states the real workflow can actually reach.
+**The constraint is no longer blocked by the seeder, as of 2026-09-09.** `demo:seed` previously
+inserted every case directly at its final status with no vitals, so the constraint would have
+broken it. The seeder now inserts each case at `REGISTERED`, writes the vitals row, and only then
+transitions the case — the order `submitTriageAssessmentAction` uses. Demonstrated rather than
+asserted: a `before insert or update` trigger on `peme_case` rejecting any non-`REGISTERED` status
+without a `triage_assessment` row was installed on the local stack, the pre-change seeder failed
+under it at `DEMO-0004` with the invariant's own error, and the current seeder completed all 14
+cases under the identical trigger. The trigger was dropped afterwards; it is a demonstration, not a
+migration. Writing the real constraint is what remains of criterion 2.
+
+~~It is blocked on a prerequisite.~~ **Resolved 2026-09-09 — see the paragraph above.** The
+prerequisite was real when written: the demo seeder violated the invariant on every case it
+created, 14 seeded cases carrying **zero** `triage_assessment` rows, including five at
+`IN_PROGRESS` and two at `RELEASED`, so a constraint added then would have broken
+`npm run demo:seed` and every demo built on it. The seeder has since been corrected to produce
+states the real workflow can reach, and the constraint can now be written.
 
 Must NOT happen:
 
@@ -454,6 +473,46 @@ Must NOT happen:
   trail must never record a transition that did not actually occur.
 - No silent success: the action must not redirect with a success notice when the underlying write
   matched no rows.
+
+### D-019 Acceptance Criteria (written 2026-09-09, before any fix)
+
+Must be true after the fix:
+
+1. For every active package, every department named by an active `package_test` row's test is also
+   named by an active `package_department` row for the same package. Checked across all packages by
+   query, not confirmed for one package in isolation.
+2. Each of the seven current mismatches — Basic PEME (Local) to AUD, DENTAL, ECG and PFT;
+   Comprehensive Seafarer to UTZ; Food Handler Package to DENTAL and XRAY — is resolved in a
+   direction AHI supplied, either the package gains the department in its routing or the test leaves
+   its required list, and the migration records which answer it came from. Both directions are
+   clinically plausible and the data alone cannot distinguish them, so a direction chosen by
+   inspection rather than by AHI's answer does not satisfy this criterion.
+3. A check exists that fails when any mismatched (package, department) pair is present, and it was
+   seen failing against the current data — reporting the seven pairs above — before any migration
+   changed them. Expected failure: the check names the mismatched pairs and exits non-zero. An
+   offline test over the seed migrations or a `qa:supabase` audit query both satisfy this; the
+   failing run must be observed first, per `.claude/rules/verification.md`.
+4. `memory-bank/database/schema.txt` describes `package_department`, `package_test`, `test_catalog`
+   and `triage_assessment`. `CLAUDE.md` names that file as the source of truth for DB types, and all
+   four tables are load-bearing for the case workflow while absent from it.
+
+Must NOT happen:
+
+- The mismatch must not be resolved by weakening, narrowing, or removing the visit-completion gate at
+  `features/dashboard/staff/actions.ts:1042-1071`. The gate is correct; the reference data it reads
+  is not.
+- BILLING and RECEPTION must not be given catalog tests to make a symmetry check pass. They are
+  workflow stations with no tests by design, and the required direction of this check is one-way:
+  every test department must be routed, not every routed department must have tests.
+- Adding a department to `package_department` must not retroactively alter the visit set of any
+  existing case. The mapping is read only at registration, so the change applies to newly registered
+  cases; backfilling in-flight cases is a separate step with its own decision and its own criteria.
+
+**Blocked on AHI input.** Criterion 2 cannot be met before the 2026-09-12 onsite visit. Criteria 3
+and 4 are independent of that answer and can be done first.
+
+---
+
 
 ---
 

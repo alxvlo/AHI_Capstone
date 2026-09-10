@@ -389,11 +389,39 @@ stopping it), then fixed (`updateTriageCompletionAction` now rejects any case th
 `triage_assessment` row and performs no write when it does — is met. Criterion 2 — the system-wide
 invariant that no code path anywhere, including RLS-permitted direct writes, can move a case to
 `IN_PROGRESS` without a `triage_assessment` row — is not met and cannot be enforced from
-application code alone; it needs a database constraint or trigger. That constraint is blocked: the
-demo seeder violates the invariant on every case it creates (verified 2026-09-09 on the local
-stack, 14 seeded cases with zero `triage_assessment` rows, including five at `IN_PROGRESS` and two
-at `RELEASED`), so adding the constraint today would break `npm run demo:seed`. D-017 stays
-`OPEN` in the defect log.
+application code alone; it needs a database constraint or trigger. That constraint was blocked by
+the demo seeder, which violated the invariant on every case it created (verified 2026-09-09 on the
+local stack, 14 seeded cases with zero `triage_assessment` rows, including five at `IN_PROGRESS`
+and two at `RELEASED`). **That blocker is now cleared.** The seeder writes vitals for all 11 cases
+it puts beyond `REGISTERED`, and it inserts each case at `REGISTERED` before transitioning it, so
+the constraint fires after the vitals row exists. Demonstrated by installing exactly such a trigger
+on the local stack: the pre-change seeder failed under it at `DEMO-0004`, the current one completed
+all 14 cases. The trigger was dropped; no migration was added. D-017 stays `OPEN` — writing the
+real constraint is what remains.
+
+**Demo seeder now produces reachable case states (2026-09-09/10).** It previously wrote no
+`triage_assessment` and no `result_item` rows at all, so every case beyond `REGISTERED` was a state
+the workflow cannot reach. It now writes vitals for the 11 cases past `REGISTERED`, and 150 result
+rows covering every required test of all 14 `COMPLETED` visits — checked the way the application
+checks it, required test ids minus encoded test ids empty for every completed visit. All 150 values
+pass the app's own `validateTestValue`, and every `isabnormal` flag agrees with its `isAbnormal`.
+Abnormal readings are confined to the case the physician marked `FIT_WITH_RESTRICTIONS`. Spec and
+acceptance criteria in
+`docs/superpowers/specs/2026-09-09-demo-seeder-clinical-fidelity-design.md`.
+
+**D-019 logged 2026-09-09 (P1, new).** Scoping the demo-seeder work surfaced a reference-data
+defect unrelated to the seeder itself. A case's visits are created from `package_department`;
+the visit-completion gate reads required tests from `package_test`. The two disagree for three of
+the five active packages, which between them name seven (package, department) pairs where a
+required test sits in a department the package never routes a patient through — Basic PEME (Local)
+for AUD, DENTAL, ECG and PFT; Comprehensive Seafarer for UTZ; Food Handler Package for DENTAL and
+XRAY. Those tests can never be encoded, because encoding needs a visit, and the per-visit gate
+never asks about a department that has none. The case still advances to `FOR_DECISION`. The data
+state is verified against the local stack; the workflow consequence is not reproduced, because
+producing it needs a seeded case on Basic PEME (Local) driven to `FOR_DECISION`. Criterion 2 of its
+acceptance criteria is blocked on AHI: which of the two lists is real is a clinical question, and it
+is now section B8 and priority 4 on the 2026-09-12 onsite sheet, with a printed package list added
+to the artefacts to bring back.
 
 The remaining eleven defects are unchanged and remain `OPEN — NOT REPRODUCED`.
 
