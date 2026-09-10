@@ -396,8 +396,18 @@ and two at `RELEASED`). **That blocker is now cleared.** The seeder writes vital
 it puts beyond `REGISTERED`, and it inserts each case at `REGISTERED` before transitioning it, so
 the constraint fires after the vitals row exists. Demonstrated by installing exactly such a trigger
 on the local stack: the pre-change seeder failed under it at `DEMO-0004`, the current one completed
-all 14 cases. The trigger was dropped; no migration was added. D-017 stays `OPEN` — writing the
-real constraint is what remains.
+all 14 cases. That demonstration used a trigger scoped to any status past `REGISTERED`, which was
+right for the demonstration and would have been wrong as a constraint: it would block a `REGISTERED`
+case being cancelled to `ARCHIVED`.
+
+**D-017 is FIXED as of 2026-09-10.** `supabase/migrations/20260910_triage_required_before_in_progress.sql`
+adds a `before insert or update` trigger on `peme_case` refusing any transition to `IN_PROGRESS`
+while the case has no `triage_assessment` row, raising SQLSTATE `23514`. The defect was reproduced
+against a live database first — a service-role update moved a vitals-less `REGISTERED` case straight
+to `IN_PROGRESS` returning no error at all — and the check that caught it now lives in
+`scripts/supabase/validate-write-policy-baseline.mjs` as `d017*`, run by `npm run audit:write-policies`.
+The migration depends on the seeder fix in PR #78; applied against the previous seeder it breaks
+`npm run demo:seed`.
 
 **Demo seeder now produces reachable case states (2026-09-09/10).** It previously wrote no
 `triage_assessment` and no `result_item` rows at all, so every case beyond `REGISTERED` was a state
