@@ -480,6 +480,131 @@ async function runWritePolicyValidation() {
         },
       };
     }
+
+    // ---------------------------------------------------------------------
+    // D-017 criterion 2 — the invariant must hold at the database, not only
+    // in application code. A case must not reach IN_PROGRESS unless a
+    // triage_assessment row already exists for it.
+    //
+    // Driven with the service-role client on purpose: that is the strongest
+    // caller in the system and it bypasses RLS. If the invariant holds
+    // against this client it holds against every Server Action and every
+    // RLS-permitted direct write, which is what criterion 2 asks for and what
+    // an application-code guard cannot deliver.
+    // ---------------------------------------------------------------------
+    const d017Case = await receptionClient.rpc("bootstrap_peme_case", {
+      p_patientid: probePatientId,
+      p_packageid: probePackageId,
+    });
+    const d017CaseId = d017Case.data?.caseid ?? null;
+
+    const d017Status = await adminClient
+      .from("status_code")
+      .select("statuscodeid")
+      .eq("domain", "CASE")
+      .eq("code", "IN_PROGRESS")
+      .maybeSingle();
+    const d017InProgressId = d017Status.data?.statuscodeid ?? null;
+
+    if (d017CaseId && d017InProgressId) {
+      const d017Actor = adminAuth.signInResult.data.user?.id ?? null;
+
+      // The case is REGISTERED with no vitals. This transition must be refused.
+      const withoutVitals = await adminClient
+        .from("peme_case")
+        .update({ casestatuscodeid: d017InProgressId })
+        .eq("caseid", d017CaseId)
+        .select("caseid");
+
+      result.checks.d017InProgressRejectedWithoutVitals = {
+        pass:
+          withoutVitals.error?.code === "23514" &&
+          typeof withoutVitals.error?.message === "string" &&
+          withoutVitals.error.message.includes("triage_assessment"),
+        error: toErrorObject(withoutVitals.error),
+        data: withoutVitals.data ?? null,
+      };
+
+      // And the case must genuinely still be REGISTERED — a rejection that
+      // let the write through would show up here rather than in the code above.
+      const afterRejection = await adminClient
+        .from("peme_case")
+        .select("casestatuscodeid")
+        .eq("caseid", d017CaseId)
+        .maybeSingle();
+
+      result.checks.d017CaseUnchangedAfterRejection = {
+        pass:
+          !afterRejection.error &&
+          afterRejection.data?.casestatuscodeid !== d017InProgressId,
+        error: toErrorObject(afterRejection.error),
+        data: afterRejection.data ?? null,
+      };
+
+      // Criteria 3 and 4 regression guard: with vitals recorded, the same
+      // transition must succeed. A constraint that blocked this would break
+      // submitTriageAssessmentAction, the normal triage path.
+      const vitalsInsert = await adminClient.from("triage_assessment").insert({
+        caseid: d017CaseId,
+        bp_systolic: 118,
+        bp_diastolic: 76,
+        heart_rate: 68,
+        temperature_c: 36.6,
+        weight_kg: 70,
+        height_cm: 170,
+        vision_left: "20/20",
+        vision_right: "20/20",
+        observations: "D-017 probe — synthetic vitals.",
+        recorded_by: d017Actor,
+      });
+
+      const withVitals = vitalsInsert.error
+        ? { error: vitalsInsert.error, data: null }
+        : await adminClient
+            .from("peme_case")
+            .update({ casestatuscodeid: d017InProgressId })
+            .eq("caseid", d017CaseId)
+            .select("caseid, casestatuscodeid");
+
+      result.checks.d017InProgressSucceedsWithVitals = {
+        pass:
+          !withVitals.error &&
+          (withVitals.data ?? []).length === 1 &&
+          withVitals.data?.[0]?.casestatuscodeid === d017InProgressId,
+        error: toErrorObject(withVitals.error),
+        data: withVitals.data ?? null,
+      };
+
+      const cleanupD017Vitals = await adminClient
+        .from("triage_assessment")
+        .delete()
+        .eq("caseid", d017CaseId);
+      const cleanupD017Visits = await adminClient
+        .from("department_visit")
+        .delete()
+        .eq("caseid", d017CaseId);
+      const cleanupD017Case = await adminClient
+        .from("peme_case")
+        .delete()
+        .eq("caseid", d017CaseId);
+
+      result.checks.d017CleanupProbeCase = {
+        pass:
+          !cleanupD017Vitals.error && !cleanupD017Visits.error && !cleanupD017Case.error,
+        error:
+          toErrorObject(cleanupD017Vitals.error) ??
+          toErrorObject(cleanupD017Visits.error) ??
+          toErrorObject(cleanupD017Case.error),
+      };
+    } else {
+      result.checks.d017InProgressRejectedWithoutVitals = {
+        pass: false,
+        error: {
+          code: "precondition_failed",
+          message: "could not bootstrap a probe case or resolve IN_PROGRESS for the D-017 check",
+        },
+      };
+    }
   } else {
     result.checks.d003BootstrapDeniedForPatient = {
       pass: false,
@@ -490,6 +615,10 @@ async function runWritePolicyValidation() {
       error: { code: "precondition_failed", message: "probe patient or package lookup failed" },
     };
     result.checks.d003BootstrapSucceedsForAdmin = {
+      pass: false,
+      error: { code: "precondition_failed", message: "probe patient or package lookup failed" },
+    };
+    result.checks.d017InProgressRejectedWithoutVitals = {
       pass: false,
       error: { code: "precondition_failed", message: "probe patient or package lookup failed" },
     };
