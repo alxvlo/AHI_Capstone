@@ -21,8 +21,25 @@ function normalizeIdType(value: string) {
   return trimmed;
 }
 
+/**
+ * Punctuation in an ID number is presentation, not identity.
+ *
+ * D-008: whitespace was already stripped here, hyphens and slashes were not,
+ * while validateGovernmentIdFormat accepts hyphenated SSS, PhilHealth, UMID
+ * and National ID numbers. So one SSS number typed `01-02-03-04-05` at
+ * reception and `0102030405` at patient self-signup produced two stored
+ * values, and the uniqueness constraint — which compares strings — saw two
+ * different people.
+ *
+ * The database enforces the same canonical form independently, in
+ * supabase/migrations/20260910000003_govid_canonical_unique.sql. Two write
+ * paths reach this column and a third could be added.
+ */
 function normalizeIdNumber(value: string) {
-  const trimmed = value.trim().replace(/\s+/g, "").toUpperCase();
+  const trimmed = value
+    .trim()
+    .replace(/[\s\-/]+/g, "")
+    .toUpperCase();
 
   if (!trimmed || trimmed.includes(GOVERNMENT_ID_SEPARATOR)) {
     return null;
