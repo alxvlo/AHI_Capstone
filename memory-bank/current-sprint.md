@@ -419,6 +419,25 @@ Abnormal readings are confined to the case the physician marked `FIT_WITH_RESTRI
 acceptance criteria in
 `docs/superpowers/specs/2026-09-09-demo-seeder-clinical-fidelity-design.md`.
 
+**D-014 FIXED, and D-020 logged, 2026-09-10.** `triage_assessment`'s UPDATE policy was scoped by
+role alone, so any authenticated Triage Nurse could rewrite any case's vitals directly through
+supabase-js — RLS is this table's only enforcement layer, since no application code updates it.
+Reproduced live: a nurse overwrote an entry recorded by the System Administrator.
+`supabase/migrations/20260910000001_triage_update_scoped_to_recorder.sql` restricts the nurse to
+rows where `recorded_by = auth.uid()`; Admin keeps the broader grant.
+
+D-014's original acceptance criteria were **withdrawn before any fix was written**, not adjusted
+after. They asked for the case-visibility condition used elsewhere, which would have scoped the
+grant to nothing: a Triage Nurse's visibility ends when `triagecompletedtimestamp` is set, the same
+moment the vitals row is created. Measured at the time — 11 vitals rows, 0 still updatable under
+that rule. The withdrawn criteria are kept struck through in the defect log with the reasoning.
+
+Correcting them surfaced **D-020 (P2, new)**: `triage_assessment`'s SELECT policy is case-scoped
+only on its Patient branch. Triage Nurse, Physician and System Administrator read by role alone, so
+a Physician can read vitals for cases their own case visibility excludes. Reproduced and left open —
+what a Triage Nurse should read after triage ends is a product question, worth asking AHI alongside
+the D-019 package questions.
+
 **D-019 logged 2026-09-09 (P1, new).** Scoping the demo-seeder work surfaced a reference-data
 defect unrelated to the seeder itself. A case's visits are created from `package_department`;
 the visit-completion gate reads required tests from `package_test`. The two disagree for three of

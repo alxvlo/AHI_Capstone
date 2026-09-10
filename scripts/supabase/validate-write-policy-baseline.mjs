@@ -25,6 +25,7 @@ const PROBE_ACCOUNTS = {
   admin: "probe.admin.20260320@ahi.local",
   patient: "probe.patient.20260320@ahi.local",
   reception: "probe.reception.20260320@ahi.local",
+  triage: "probe.triage.20260320@ahi.local",
 };
 
 function toErrorObject(error) {
@@ -74,6 +75,7 @@ async function runWritePolicyValidation() {
   const adminAuth = await signIn(PROBE_ACCOUNTS.admin);
   const patientAuth = await signIn(PROBE_ACCOUNTS.patient);
   const receptionAuth = await signIn(PROBE_ACCOUNTS.reception);
+  const triageAuth = await signIn(PROBE_ACCOUNTS.triage);
 
   result.checks.signInAdmin = {
     pass: !adminAuth.signInResult.error && Boolean(adminAuth.signInResult.data.user),
@@ -102,6 +104,7 @@ async function runWritePolicyValidation() {
   const adminClient = adminAuth.client;
   const patientClient = patientAuth.client;
   const receptionClient = receptionAuth.client;
+  const triageClient = triageAuth.client;
   const patientUserId = patientAuth.signInResult.data.user.id;
   const receptionUserId = receptionAuth.signInResult.data.user.id;
 
@@ -602,6 +605,184 @@ async function runWritePolicyValidation() {
         error: {
           code: "precondition_failed",
           message: "could not bootstrap a probe case or resolve IN_PROGRESS for the D-017 check",
+        },
+      };
+    }
+
+    // ---------------------------------------------------------------------
+    // D-014 — a Triage Nurse may correct only vitals they recorded.
+    //
+    // The grant exists for typo correction. Scoped by role alone it lets any
+    // authenticated Triage Nurse rewrite any case's vitals at the database
+    // layer, which RLS is the only thing guarding: no application code
+    // updates this table.
+    //
+    // The original acceptance criteria asked for the read policy's
+    // case-visibility condition instead. That was withdrawn on 2026-09-10 —
+    // a Triage Nurse's visibility ends when triagecompletedtimestamp is set,
+    // which is when the vitals row is created, so it would have scoped the
+    // grant to nothing. See the defect log.
+    // ---------------------------------------------------------------------
+    const d014Case = await receptionClient.rpc("bootstrap_peme_case", {
+      p_patientid: probePatientId,
+      p_packageid: probePackageId,
+    });
+    const d014CaseId = d014Case.data?.caseid ?? null;
+    const d014AdminId = adminAuth.signInResult.data.user?.id ?? null;
+    const d014NurseId = triageAuth.signInResult.data.user?.id ?? null;
+
+    if (d014CaseId && d014AdminId && d014NurseId) {
+      const vitalsTemplate = {
+        bp_systolic: 120, bp_diastolic: 78, heart_rate: 70,
+        temperature_c: 36.7, weight_kg: 72, height_cm: 171,
+        vision_left: "20/20", vision_right: "20/20",
+      };
+
+      // Recorded by the ADMIN, so it is somebody else's entry as far as the
+      // Triage Nurse is concerned.
+      const foreignVitals = await adminClient
+        .from("triage_assessment")
+        .insert({
+          caseid: d014CaseId,
+          ...vitalsTemplate,
+          observations: "D-014 probe — recorded by admin.",
+          recorded_by: d014AdminId,
+        })
+        .select("assessmentid")
+        .maybeSingle();
+
+      const foreignId = foreignVitals.data?.assessmentid ?? null;
+
+      // Must affect zero rows: the nurse did not record this entry.
+      const nurseEditsForeign = await triageClient
+        .from("triage_assessment")
+        .update({ observations: "D-014 probe — nurse overwrote another user's entry." })
+        .eq("assessmentid", foreignId)
+        .select("assessmentid");
+
+      result.checks.d014NurseCannotEditAnotherUsersVitals = {
+        pass: !nurseEditsForeign.error && (nurseEditsForeign.data ?? []).length === 0,
+        error: toErrorObject(nurseEditsForeign.error),
+        data: nurseEditsForeign.data ?? null,
+      };
+
+      // Read back with the admin client: RLS can report rows-affected without
+      // the write having been refused, so confirm the stored value directly.
+      const foreignAfter = await adminClient
+        .from("triage_assessment")
+        .select("observations")
+        .eq("assessmentid", foreignId)
+        .maybeSingle();
+
+      result.checks.d014ForeignVitalsUnchanged = {
+        pass: foreignAfter.data?.observations === "D-014 probe — recorded by admin.",
+        error: toErrorObject(foreignAfter.error),
+        data: foreignAfter.data ?? null,
+      };
+
+      // Admin keeps the broader grant.
+      const adminEditsForeign = await adminClient
+        .from("triage_assessment")
+        .update({ observations: "D-014 probe — admin correction." })
+        .eq("assessmentid", foreignId)
+        .select("assessmentid");
+
+      result.checks.d014AdminCanEditAnyVitals = {
+        pass: !adminEditsForeign.error && (adminEditsForeign.data ?? []).length === 1,
+        error: toErrorObject(adminEditsForeign.error),
+        data: adminEditsForeign.data ?? null,
+      };
+
+      // The nurse's own entry must remain correctable, or the grant is dead —
+      // the failure mode the withdrawn criteria would have shipped.
+      //
+      // A second case, not a second row on the first: triage_assessment is
+      // unique per case, and DELETE is blocked for every role by design
+      // (20260519_triage_patient_select_admin_update.sql:5), so the first
+      // row cannot be cleared and replaced.
+      const d014OwnCase = await receptionClient.rpc("bootstrap_peme_case", {
+        p_patientid: probePatientId,
+        p_packageid: probePackageId,
+      });
+      const d014OwnCaseId = d014OwnCase.data?.caseid ?? null;
+
+      const ownVitals = await adminClient
+        .from("triage_assessment")
+        .insert({
+          caseid: d014OwnCaseId,
+          ...vitalsTemplate,
+          observations: "D-014 probe — recorded by the nurse.",
+          recorded_by: d014NurseId,
+        })
+        .select("assessmentid")
+        .maybeSingle();
+
+      const ownVitalsId = ownVitals.data?.assessmentid ?? null;
+
+      const nurseEditsOwn = ownVitalsId
+        ? await triageClient
+            .from("triage_assessment")
+            .update({ observations: "D-014 probe — nurse corrected a typo." })
+            .eq("assessmentid", ownVitalsId)
+            .select("assessmentid")
+        : { error: ownVitals.error, data: null };
+
+      result.checks.d014NurseCanEditOwnVitals = {
+        pass: !nurseEditsOwn.error && (nurseEditsOwn.data ?? []).length === 1,
+        error: toErrorObject(nurseEditsOwn.error),
+        data: nurseEditsOwn.data ?? null,
+      };
+
+      // ---------------------------------------------------------------------
+      // D-020 evidence — the read side is role-only for staff. This asserts
+      // the CURRENT behaviour so the defect is reproduced rather than merely
+      // reasoned about. It flips to a failure the moment D-020 is fixed, which
+      // is the point: whoever fixes it will see this check and update it.
+      // ---------------------------------------------------------------------
+      const nurseReadsOutOfScope = await triageClient
+        .from("triage_assessment")
+        .select("assessmentid")
+        .eq("caseid", d014CaseId);
+
+      result.checks.d020NurseReadsVitalsOutsideCaseScope = {
+        pass: !nurseReadsOutOfScope.error && (nurseReadsOutOfScope.data ?? []).length === 1,
+        error: toErrorObject(nurseReadsOutOfScope.error),
+        data: {
+          note: "D-020 is OPEN. This documents current behaviour: the case carries a triagecompletedtimestamp, putting it outside the nurse's case visibility, yet the vitals row is still readable. Expect this check to fail when D-020 is fixed.",
+          rows: (nurseReadsOutOfScope.data ?? []).length,
+        },
+      };
+
+      // triage_assessment rows go with the case: DELETE on that table is
+      // blocked for every role, but caseid carries ON DELETE CASCADE
+      // (20260411_triage_assessment.sql:6).
+      const d014Ids = [d014CaseId, d014OwnCaseId].filter(Boolean);
+      const cleanupD014Visits = await adminClient
+        .from("department_visit").delete().in("caseid", d014Ids);
+      const cleanupD014Cases = await adminClient
+        .from("peme_case").delete().in("caseid", d014Ids).select("caseid");
+
+      const leftoverVitals = await adminClient
+        .from("triage_assessment")
+        .select("assessmentid", { count: "exact", head: true })
+        .in("caseid", d014Ids);
+
+      result.checks.d014CleanupProbeCase = {
+        pass:
+          !cleanupD014Visits.error &&
+          !cleanupD014Cases.error &&
+          (cleanupD014Cases.data ?? []).length === d014Ids.length &&
+          (leftoverVitals.count ?? 0) === 0,
+        error:
+          toErrorObject(cleanupD014Visits.error) ?? toErrorObject(cleanupD014Cases.error),
+        data: { casesDeleted: (cleanupD014Cases.data ?? []).length, leftoverVitals: leftoverVitals.count ?? 0 },
+      };
+    } else {
+      result.checks.d014NurseCannotEditAnotherUsersVitals = {
+        pass: false,
+        error: {
+          code: "precondition_failed",
+          message: "could not bootstrap a probe case or resolve probe user ids for the D-014 check",
         },
       };
     }
