@@ -419,6 +419,16 @@ Abnormal readings are confined to the case the physician marked `FIT_WITH_RESTRI
 acceptance criteria in
 `docs/superpowers/specs/2026-09-09-demo-seeder-clinical-fidelity-design.md`.
 
+**D-011 FIXED 2026-09-10.** `rls_case_visible_to_current_user`'s Physician branch admitted a
+`PENDING_ADDITIONAL_TESTS` case only when a `peme_decision` row existed for that physician, but
+`requestAdditionalTestsAction` never writes one. Requesting additional tests therefore hid the case
+from the physician who requested them, contradicting the migration's own header. Reproduced live:
+the requesting physician's `peme_case` select returned zero rows.
+`supabase/migrations/20260910000002_physician_keeps_additional_test_visibility.sql` adds
+`peme_case.additionaltestsrequestedbyuserid`, teaches the Physician branch to read it, and the
+action now records the requester. A physician who did not request the tests still sees nothing,
+asserted rather than assumed.
+
 **D-014 FIXED, and D-020 logged, 2026-09-10.** `triage_assessment`'s UPDATE policy was scoped by
 role alone, so any authenticated Triage Nurse could rewrite any case's vitals directly through
 supabase-js — RLS is this table's only enforcement layer, since no application code updates it.

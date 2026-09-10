@@ -26,6 +26,7 @@ const PROBE_ACCOUNTS = {
   patient: "probe.patient.20260320@ahi.local",
   reception: "probe.reception.20260320@ahi.local",
   triage: "probe.triage.20260320@ahi.local",
+  physician: "probe.physician.20260320@ahi.local",
 };
 
 function toErrorObject(error) {
@@ -76,6 +77,7 @@ async function runWritePolicyValidation() {
   const patientAuth = await signIn(PROBE_ACCOUNTS.patient);
   const receptionAuth = await signIn(PROBE_ACCOUNTS.reception);
   const triageAuth = await signIn(PROBE_ACCOUNTS.triage);
+  const physicianAuth = await signIn(PROBE_ACCOUNTS.physician);
 
   result.checks.signInAdmin = {
     pass: !adminAuth.signInResult.error && Boolean(adminAuth.signInResult.data.user),
@@ -105,6 +107,7 @@ async function runWritePolicyValidation() {
   const patientClient = patientAuth.client;
   const receptionClient = receptionAuth.client;
   const triageClient = triageAuth.client;
+  const physicianClient = physicianAuth.client;
   const patientUserId = patientAuth.signInResult.data.user.id;
   const receptionUserId = receptionAuth.signInResult.data.user.id;
 
@@ -783,6 +786,127 @@ async function runWritePolicyValidation() {
         error: {
           code: "precondition_failed",
           message: "could not bootstrap a probe case or resolve probe user ids for the D-014 check",
+        },
+      };
+    }
+
+    // ---------------------------------------------------------------------
+    // D-011 — a physician who requests additional tests must keep sight of
+    // the case. rls_case_visible_to_current_user's Physician branch admits a
+    // PENDING_ADDITIONAL_TESTS case only when a peme_decision row exists for
+    // that physician, but requestAdditionalTestsAction never writes one — it
+    // queues visits, moves the case, and logs. So the request itself hides
+    // the case from the person who made it, contradicting the migration's own
+    // header (20260525_physician_pending_additional_visibility.sql:2-3).
+    //
+    // Set up with the admin client, mirroring exactly what the action writes,
+    // then read as the physician. That isolates visibility from write
+    // permission, which is what the defect is about.
+    // ---------------------------------------------------------------------
+    const d011Case = await receptionClient.rpc("bootstrap_peme_case", {
+      p_patientid: probePatientId,
+      p_packageid: probePackageId,
+    });
+    const d011CaseId = d011Case.data?.caseid ?? null;
+    const d011PhysicianId = physicianAuth.signInResult.data.user?.id ?? null;
+
+    const d011Status = await adminClient
+      .from("status_code")
+      .select("statuscodeid")
+      .eq("domain", "CASE")
+      .eq("code", "PENDING_ADDITIONAL_TESTS")
+      .maybeSingle();
+    const d011PendingId = d011Status.data?.statuscodeid ?? null;
+
+    if (d011CaseId && d011PhysicianId && d011PendingId) {
+      // What requestAdditionalTestsAction does: move the case, and (after the
+      // fix) record who asked. The column is written through a plain object so
+      // this check still runs before the migration exists.
+      const requestPayload = { casestatuscodeid: d011PendingId };
+      const columnProbe = await adminClient
+        .from("peme_case")
+        .select("additionaltestsrequestedbyuserid")
+        .eq("caseid", d011CaseId)
+        .maybeSingle();
+      const requesterColumnExists = !columnProbe.error;
+      if (requesterColumnExists) {
+        requestPayload.additionaltestsrequestedbyuserid = d011PhysicianId;
+      }
+
+      const d011Move = await adminClient
+        .from("peme_case")
+        .update(requestPayload)
+        .eq("caseid", d011CaseId)
+        .select("caseid");
+
+      // The requesting physician must still see their own case.
+      const requesterSees = await physicianClient
+        .from("peme_case")
+        .select("caseid")
+        .eq("caseid", d011CaseId);
+
+      result.checks.d011RequestingPhysicianRetainsVisibility = {
+        pass:
+          !d011Move.error &&
+          !requesterSees.error &&
+          (requesterSees.data ?? []).length === 1,
+        error: toErrorObject(d011Move.error) ?? toErrorObject(requesterSees.error),
+        data: {
+          requesterColumnExists,
+          rowsVisible: (requesterSees.data ?? []).length,
+        },
+      };
+
+      // Exclusivity: with a different physician recorded as the requester, the
+      // probe physician must NOT see it. Guards against fixing this by opening
+      // PENDING_ADDITIONAL_TESTS to every physician.
+      let otherPhysicianPass = null;
+      if (requesterColumnExists && d014AdminId) {
+        await adminClient
+          .from("peme_case")
+          .update({ additionaltestsrequestedbyuserid: d014AdminId })
+          .eq("caseid", d011CaseId);
+
+        const otherSees = await physicianClient
+          .from("peme_case")
+          .select("caseid")
+          .eq("caseid", d011CaseId);
+
+        otherPhysicianPass = !otherSees.error && (otherSees.data ?? []).length === 0;
+
+        result.checks.d011OtherPhysicianStillExcluded = {
+          pass: otherPhysicianPass,
+          error: toErrorObject(otherSees.error),
+          data: { rowsVisible: (otherSees.data ?? []).length },
+        };
+      } else {
+        result.checks.d011OtherPhysicianStillExcluded = {
+          pass: false,
+          error: {
+            code: "precondition_failed",
+            message: "requester column absent — D-011 not fixed yet, exclusivity cannot be tested",
+          },
+        };
+      }
+
+      const cleanupD011Visits = await adminClient
+        .from("department_visit").delete().eq("caseid", d011CaseId);
+      const cleanupD011Case = await adminClient
+        .from("peme_case").delete().eq("caseid", d011CaseId).select("caseid");
+
+      result.checks.d011CleanupProbeCase = {
+        pass:
+          !cleanupD011Visits.error &&
+          !cleanupD011Case.error &&
+          (cleanupD011Case.data ?? []).length === 1,
+        error: toErrorObject(cleanupD011Visits.error) ?? toErrorObject(cleanupD011Case.error),
+      };
+    } else {
+      result.checks.d011RequestingPhysicianRetainsVisibility = {
+        pass: false,
+        error: {
+          code: "precondition_failed",
+          message: "could not bootstrap a probe case or resolve PENDING_ADDITIONAL_TESTS for the D-011 check",
         },
       };
     }

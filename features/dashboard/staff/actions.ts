@@ -1518,6 +1518,11 @@ export async function requestAdditionalTestsAction(formData: FormData) {
     .from("peme_case")
     .update({
       casestatuscodeid: nextCaseStatusId,
+      // D-011: record who asked. rls_case_visible_to_current_user reads this
+      // to keep the requesting physician's view of the case while the
+      // follow-up runs — without it the request hides the case from the
+      // person who made it.
+      additionaltestsrequestedbyuserid: userId,
     })
     .eq("caseid", caseId);
 
