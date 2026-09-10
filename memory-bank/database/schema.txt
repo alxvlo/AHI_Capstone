@@ -88,12 +88,14 @@ create table public.peme_case (
   portalvisible boolean null default false,
   remarks character varying(255) null,
   waiversigned boolean null default false,
+  additionaltestsrequestedbyuserid uuid null,
   constraint peme_case_pkey primary key (caseid),
   constraint peme_case_casenumber_key unique (casenumber),
   constraint peme_case_casestatuscodeid_fkey foreign KEY (casestatuscodeid) references status_code (statuscodeid),
   constraint peme_case_companyid_fkey foreign KEY (companyid) references company (companyid),
   constraint peme_case_packageid_fkey foreign KEY (packageid) references package (packageid),
-  constraint peme_case_patientid_fkey foreign KEY (patientid) references patient (patientid)
+  constraint peme_case_patientid_fkey foreign KEY (patientid) references patient (patientid),
+  constraint peme_case_additionaltestsrequestedbyuserid_fkey foreign KEY (additionaltestsrequestedbyuserid) references user_account (userid)
 ) TABLESPACE pg_default;
 
 create table public.peme_decision (
