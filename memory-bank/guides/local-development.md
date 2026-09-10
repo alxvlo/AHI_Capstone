@@ -161,6 +161,17 @@ Physician, Releasing Staff, System Admin, Patient, and Client/Agency — and con
 its expected dashboard. This is Phase 2 of the design's verification gates and is the practical
 confirmation that the stack is actually usable, not just migrated.
 
+### Install the Playwright browsers
+
+```bash
+npm run e2e:install
+```
+
+Playwright pins an exact browser revision per version, and this repository pins
+`@playwright/test` 1.59.1. Browsers installed by any other Playwright version will not be
+used, and `npm run test:e2e` fails at launch with `Executable doesn't exist`. This step was
+absent from this guide until 2026-09-10, which is why the E2E suite had never run (D-024).
+
 ## Restoring cloud access
 
 When you deliberately need the cloud project — checking something against the real Singapore
